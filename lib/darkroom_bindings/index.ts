@@ -35,7 +35,10 @@ import {
 
 // Import all reducer arg schemas
 import AppendEventReducer from "./append_event_reducer";
+import CreateJoinCodeReducer from "./create_join_code_reducer";
+import JoinWithCodeReducer from "./join_with_code_reducer";
 import OpenIncidentReducer from "./open_incident_reducer";
+import RttPingReducer from "./rtt_ping_reducer";
 import SeedMemberReducer from "./seed_member_reducer";
 
 // Import all procedure arg schemas
@@ -45,6 +48,7 @@ import ChainHeadRow from "./chain_head_table";
 import ConfigRow from "./config_table";
 import EventLogRow from "./event_log_table";
 import MemberRow from "./member_table";
+import RttProbeRow from "./rtt_probe_table";
 
 /** Type-only namespace exports for generated type groups. */
 
@@ -97,12 +101,26 @@ const tablesSchema = __schema({
       { name: 'member_identity_key', constraint: 'unique', columns: ['identity'] },
     ],
   }, MemberRow),
+  rttProbe: __table({
+    name: 'rtt_probe',
+    indexes: [
+      { accessor: 'id', name: 'rtt_probe_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'rtt_probe_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, RttProbeRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
   __reducerSchema("append_event", AppendEventReducer),
+  __reducerSchema("create_join_code", CreateJoinCodeReducer),
+  __reducerSchema("join_with_code", JoinWithCodeReducer),
   __reducerSchema("open_incident", OpenIncidentReducer),
+  __reducerSchema("rtt_ping", RttPingReducer),
   __reducerSchema("seed_member", SeedMemberReducer),
 );
 

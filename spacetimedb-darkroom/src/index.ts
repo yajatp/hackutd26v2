@@ -7,10 +7,12 @@
 // Who wrote an entry comes from the member row for ctx.sender, never from the client.
 
 import { schema, table, t, SenderError, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
-import type { Identity } from 'spacetimedb';
+import { Timestamp, type Identity } from 'spacetimedb';
 import { canonical, GENESIS_PREV, hashEvent, type Json } from '../../lib/chain.ts';
 import { actorString, checkWrite, isRole } from '../../lib/rules/darkroom/roles.ts';
 import { nextIncidentId, validName, validatePayload } from '../../lib/rules/darkroom/entries.ts';
+import { checkCreateJoinCode, checkJoin, hashJoinCode, joinCodeExpiry, normalizeJoinCode } from '../../lib/rules/darkroom/joincode.ts';
+import { rttRowsToDelete } from '../../lib/rules/darkroom/rtt.ts';
 
 const config = table({ name: 'config', public: true }, {
   id: t.u8().primaryKey(),
@@ -46,7 +48,28 @@ const chainHead = table({ name: 'chain_head', public: true }, {
   count: t.u64(),
 });
 
-const spacetimedb = schema({ config, member, eventLog, chainHead });
+// One-use join codes a Commander made (Add a member on /box). Private: no client can read it.
+// Only the SHA-256 of the code is stored; the code itself never reaches this table.
+const joinCode = table({ name: 'join_code' }, {
+  codeHash: t.string().primaryKey(),
+  role: t.string(),
+  createdBy: t.identity(),
+  createdAt: t.timestamp(),
+  expiresAt: t.timestamp(),
+  used: t.bool(),
+  usedBy: t.option(t.identity()),
+});
+
+// Live latency probe: rtt_ping writes (sender, nonce, server time); each screen times how long
+// its own row takes to come back through its subscription. Not part of the log. Newest 50 rows.
+const rttProbe = table({ name: 'rtt_probe', public: true }, {
+  id: t.u64().primaryKey().autoInc(),
+  sender: t.identity(),
+  nonce: t.u32(),
+  at: t.timestamp(),
+});
+
+const spacetimedb = schema({ config, member, eventLog, chainHead, joinCode, rttProbe });
 export default spacetimedb;
 type Ctx = ReducerCtx<InferSchema<typeof spacetimedb>>;
 
@@ -101,8 +124,8 @@ function appendEntry(ctx: Ctx, incidentId: string, actor: string, type: string, 
   else ctx.db.chainHead.insert({ id: 0, seq, hash, count: ONE });
 }
 
-function upsertMember(ctx: Ctx, identity: Identity, name: string, role: string) {
-  const row = { identity, name, role, addedBy: ctx.sender, addedAt: ctx.timestamp, active: true };
+function upsertMember(ctx: Ctx, identity: Identity, name: string, role: string, addedBy: Identity = ctx.sender) {
+  const row = { identity, name, role, addedBy, addedAt: ctx.timestamp, active: true };
   if (memberOf(ctx, identity)) ctx.db.member.identity.update(row);
   else ctx.db.member.insert(row);
 }
@@ -164,5 +187,57 @@ export const appendEvent = spacetimedb.reducer(
     const p = validatePayload(type, raw);
     if (!p.ok) throw new SenderError(p.reason);
     appendEntry(ctx, incidentId, actorOf(ctx), type, p.payload);
+  }
+);
+
+// Commander only. The browser makes the code and sends only its SHA-256 hash. The code works
+// once, for 60 s from now, and gives the role chosen here (Responder or Viewer).
+export const createJoinCode = spacetimedb.reducer(
+  { codeHash: t.string(), role: t.string() },
+  (ctx, { codeHash, role }) => {
+    const allowed = checkCreateJoinCode(memberOf(ctx, ctx.sender), role, codeHash);
+    if (!allowed.ok) throw new SenderError(allowed.reason);
+    // Housekeeping: codes past their time are useless, so the table only holds live ones.
+    const now = ctx.timestamp.microsSinceUnixEpoch;
+    const old = [...ctx.db.joinCode.iter()].filter(c => c.expiresAt.microsSinceUnixEpoch <= now).map(c => c.codeHash);
+    for (const h of old) ctx.db.joinCode.codeHash.delete(h);
+    if (ctx.db.joinCode.codeHash.find(codeHash)) throw new SenderError('that code already exists; make a new one');
+    ctx.db.joinCode.insert({
+      codeHash, role, createdBy: ctx.sender, createdAt: ctx.timestamp,
+      expiresAt: new Timestamp(joinCodeExpiry(now)), used: false, usedBy: undefined,
+    });
+  }
+);
+
+// Anyone may call it: the caller becomes a member if the code is right, unused and under 60 s
+// old. Logged as member_added with the code's creator as the actor (they let this person in).
+export const joinWithCode = spacetimedb.reducer(
+  { code: t.string(), name: t.string() },
+  (ctx, { code, name }) => {
+    const typed = normalizeJoinCode(code);
+    if (!typed) throw new SenderError('a join code is 10 letters and digits, like ABCDE-FGHJK');
+    const row = ctx.db.joinCode.codeHash.find(hashJoinCode(typed));
+    const ok = checkJoin(
+      row && { role: row.role, expiresAtMicros: row.expiresAt.microsSinceUnixEpoch, used: row.used },
+      ctx.timestamp.microsSinceUnixEpoch, memberOf(ctx, ctx.sender), name,
+    );
+    if (!ok.ok || !row) throw new SenderError(ok.ok ? 'This code is not valid.' : ok.reason);
+    // The Commander who made the code must still be one when it is used.
+    const creator = memberOf(ctx, row.createdBy);
+    if (!creator || !creator.active || creator.role !== 'Commander') throw new SenderError('the Commander who made this code is no longer one');
+    ctx.db.joinCode.codeHash.update({ ...row, used: true, usedBy: ctx.sender });
+    upsertMember(ctx, ctx.sender, ok.name, ok.role, row.createdBy);
+    appendEntry(ctx, BOX, actorString(creator.name, creator.role, row.createdBy.toHexString()), 'member_added', {
+      name: ok.name, role: ok.role, identity: ctx.sender.toHexString(), how: 'joined by code',
+    });
+  }
+);
+
+// Anyone may call it (witness phones are not members). Keeps the newest 50 rows.
+export const rttPing = spacetimedb.reducer(
+  { nonce: t.u32() },
+  (ctx, { nonce }) => {
+    ctx.db.rttProbe.insert({ id: ZERO, sender: ctx.sender, nonce, at: ctx.timestamp });
+    for (const id of rttRowsToDelete([...ctx.db.rttProbe.iter()].map(r => r.id))) ctx.db.rttProbe.id.delete(id);
   }
 );

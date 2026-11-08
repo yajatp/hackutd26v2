@@ -37,6 +37,17 @@ export const EventLog = __t.object("EventLog", {
 });
 export type EventLog = __Infer<typeof EventLog>;
 
+export const JoinCode = __t.object("JoinCode", {
+  codeHash: __t.string(),
+  role: __t.string(),
+  createdBy: __t.identity(),
+  createdAt: __t.timestamp(),
+  expiresAt: __t.timestamp(),
+  used: __t.bool(),
+  usedBy: __t.option(__t.identity()),
+});
+export type JoinCode = __Infer<typeof JoinCode>;
+
 export const Member = __t.object("Member", {
   identity: __t.identity(),
   name: __t.string(),
@@ -46,4 +57,12 @@ export const Member = __t.object("Member", {
   active: __t.bool(),
 });
 export type Member = __Infer<typeof Member>;
+
+export const RttProbe = __t.object("RttProbe", {
+  id: __t.u64(),
+  sender: __t.identity(),
+  nonce: __t.u32(),
+  at: __t.timestamp(),
+});
+export type RttProbe = __Infer<typeof RttProbe>;
 

@@ -40,6 +40,7 @@ import FinishIngestReducer from "./finish_ingest_reducer";
 import IngestBatchReducer from "./ingest_batch_reducer";
 import InjectFaultReducer from "./inject_fault_reducer";
 import LoadDatasetReducer from "./load_dataset_reducer";
+import RttPingReducer from "./rtt_ping_reducer";
 
 // Import all procedure arg schemas
 
@@ -50,6 +51,7 @@ import ConfirmationRow from "./confirmation_table";
 import ConsoleMetaRow from "./console_meta_table";
 import FacilityRow from "./facility_table";
 import FaultRow from "./fault_table";
+import RttProbeRow from "./rtt_probe_table";
 import SensorIssueRow from "./sensor_issue_table";
 
 /** Type-only namespace exports for generated type groups. */
@@ -122,6 +124,17 @@ const tablesSchema = __schema({
       { name: 'fault_asset_id_key', constraint: 'unique', columns: ['assetId'] },
     ],
   }, FaultRow),
+  rttProbe: __table({
+    name: 'rtt_probe',
+    indexes: [
+      { accessor: 'id', name: 'rtt_probe_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'rtt_probe_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, RttProbeRow),
   sensorIssue: __table({
     name: 'sensor_issue',
     indexes: [
@@ -143,6 +156,7 @@ const reducersSchema = __reducers(
   __reducerSchema("ingest_batch", IngestBatchReducer),
   __reducerSchema("inject_fault", InjectFaultReducer),
   __reducerSchema("load_dataset", LoadDatasetReducer),
+  __reducerSchema("rtt_ping", RttPingReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */
@@ -153,6 +167,8 @@ type __SchemaWithTableAccessorAliases = Omit<typeof tablesSchema.schemaType, "ta
   tables: typeof tablesSchema.schemaType.tables & {
     /** @deprecated Use `consoleMeta` instead. This alias will be removed in the next major version. */
     readonly "console_meta": Omit<typeof tablesSchema.schemaType.tables["consoleMeta"], "accessorName"> & { readonly accessorName: "console_meta" };
+    /** @deprecated Use `rttProbe` instead. This alias will be removed in the next major version. */
+    readonly "rtt_probe": Omit<typeof tablesSchema.schemaType.tables["rttProbe"], "accessorName"> & { readonly accessorName: "rtt_probe" };
     /** @deprecated Use `sensorIssue` instead. This alias will be removed in the next major version. */
     readonly "sensor_issue": Omit<typeof tablesSchema.schemaType.tables["sensorIssue"], "accessorName"> & { readonly accessorName: "sensor_issue" };
   };
@@ -174,6 +190,7 @@ const REMOTE_MODULE = {
 
 const tableAccessorAliases = {
   "console_meta": "consoleMeta",
+  "rtt_probe": "rttProbe",
   "sensor_issue": "sensorIssue",
 } as const;
 
@@ -197,6 +214,8 @@ type __DbViewBase = __DbConnectionImpl<typeof REMOTE_MODULE>["db"];
 export type DbView = __DbViewBase & {
   /** @deprecated Use `consoleMeta` instead. This alias will be removed in the next major version. */
   readonly "console_meta": __DbViewBase["consoleMeta"];
+  /** @deprecated Use `rttProbe` instead. This alias will be removed in the next major version. */
+  readonly "rtt_probe": __DbViewBase["rttProbe"];
   /** @deprecated Use `sensorIssue` instead. This alias will be removed in the next major version. */
   readonly "sensor_issue": __DbViewBase["sensorIssue"];
 };
@@ -205,6 +224,8 @@ type __TablesBase = __QueryBuilder<typeof tablesSchema.schemaType>;
 export type Tables = __TablesBase & {
   /** @deprecated Use `consoleMeta` instead. This alias will be removed in the next major version. */
   readonly "console_meta": __TablesBase["consoleMeta"];
+  /** @deprecated Use `rttProbe` instead. This alias will be removed in the next major version. */
+  readonly "rtt_probe": __TablesBase["rttProbe"];
   /** @deprecated Use `sensorIssue` instead. This alias will be removed in the next major version. */
   readonly "sensor_issue": __TablesBase["sensorIssue"];
 };

@@ -108,6 +108,14 @@ export const Reading = __t.object("Reading", {
 });
 export type Reading = __Infer<typeof Reading>;
 
+export const RttProbe = __t.object("RttProbe", {
+  id: __t.u64(),
+  sender: __t.identity(),
+  nonce: __t.u32(),
+  at: __t.timestamp(),
+});
+export type RttProbe = __Infer<typeof RttProbe>;
+
 export const SensorIssue = __t.object("SensorIssue", {
   rank: __t.u32(),
   issueJson: __t.string(),

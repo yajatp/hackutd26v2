@@ -63,3 +63,11 @@ export function parseActor(actor: string): { name: string; role: string; identit
   const role = parts.pop() as string;
   return { name: parts.join("|"), role, identity };
 }
+
+// What a role may and may not do, in the same words as the refusals (shown on /join).
+export function roleAbilities(role: string): { can: string[]; cannot: string[] } {
+  const can: string[] = [];
+  const cannot: string[] = [];
+  for (const type of WRITE_TYPES) (checkWrite({ role, active: true }, type).ok ? can : cannot).push(VERB[type]);
+  return { can, cannot };
+}

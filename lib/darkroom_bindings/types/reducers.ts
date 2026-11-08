@@ -7,10 +7,16 @@ import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
 import AppendEventReducer from "../append_event_reducer";
+import CreateJoinCodeReducer from "../create_join_code_reducer";
+import JoinWithCodeReducer from "../join_with_code_reducer";
 import OpenIncidentReducer from "../open_incident_reducer";
+import RttPingReducer from "../rtt_ping_reducer";
 import SeedMemberReducer from "../seed_member_reducer";
 
 export type AppendEventParams = __Infer<typeof AppendEventReducer>;
+export type CreateJoinCodeParams = __Infer<typeof CreateJoinCodeReducer>;
+export type JoinWithCodeParams = __Infer<typeof JoinWithCodeReducer>;
 export type OpenIncidentParams = __Infer<typeof OpenIncidentReducer>;
+export type RttPingParams = __Infer<typeof RttPingReducer>;
 export type SeedMemberParams = __Infer<typeof SeedMemberReducer>;
 

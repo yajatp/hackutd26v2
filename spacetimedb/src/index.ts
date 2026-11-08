@@ -5,6 +5,7 @@ import { schema, table, t, SenderError, type InferSchema, type ReducerCtx } from
 import { consoleOf, datasetFromReadings } from './eog.ts';
 import { injectFault, type FaultKind } from '../../lib/rules/faults.ts';
 import { facilitiesOf } from './wide.ts';
+import { rttRowsToDelete } from '../../lib/rules/darkroom/rtt.ts';
 import type { NetworkJson } from '../../lib/eog/types.ts';
 
 const config = table({ name: 'config', public: true }, {
@@ -124,8 +125,18 @@ const sensorIssue = table({ name: 'sensor_issue', public: true }, {
   issueJson: t.string(),            // JSON.stringify(SensorIssue)
 });
 
+// Live latency probe (lib/rules/darkroom/rtt.ts, shared with the darkroom module): rtt_ping writes
+// (sender, nonce, server time); each screen times how long its own row takes to come back through
+// its subscription. The header badge shows the median. Newest 50 rows only.
+const rttProbe = table({ name: 'rtt_probe', public: true }, {
+  id: t.u64().primaryKey().autoInc(),
+  sender: t.identity(),
+  nonce: t.u32(),
+  at: t.timestamp(),
+});
+
 // snake_case keys so source and canonical names agree (SQL, describe and logs all say console_meta).
-const spacetimedb = schema({ config, dataset_source: datasetSource, facility, reading, alert, console_meta: consoleMeta, fault, sensor_issue: sensorIssue, load_lock: loadLock, confirmation });
+const spacetimedb = schema({ config, dataset_source: datasetSource, facility, reading, alert, console_meta: consoleMeta, fault, sensor_issue: sensorIssue, load_lock: loadLock, confirmation, rtt_probe: rttProbe });
 export default spacetimedb;
 
 export const load_dataset = spacetimedb.reducer(
@@ -301,5 +312,14 @@ export const confirm_plan = spacetimedb.reducer(
     if (!a.fix) throw new SenderError('this alert has no plan to confirm');
     ctx.db.confirmation.alertId.delete(alertId);
     ctx.db.confirmation.insert({ alertId, headline: a.fix.headline, cost: a.fix.plan.cost, confirmedBy: ctx.sender, confirmedAt: ctx.timestamp });
+  }
+);
+
+// Any screen may call it. Keeps the newest 50 rows.
+export const rtt_ping = spacetimedb.reducer(
+  { nonce: t.u32() },
+  (ctx, { nonce }) => {
+    ctx.db.rtt_probe.insert({ id: 0n, sender: ctx.sender, nonce, at: ctx.timestamp });
+    for (const id of rttRowsToDelete([...ctx.db.rtt_probe.iter()].map((r) => r.id))) ctx.db.rtt_probe.id.delete(id);
   }
 );

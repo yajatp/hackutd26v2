@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { actorString, checkWrite, parseActor } from "./roles.ts";
+import { actorString, checkWrite, parseActor, roleAbilities } from "./roles.ts";
 
 test("a non-member is refused with 'not a member'", () => {
   assert.deepEqual(checkWrite(null, "chat"), { ok: false, reason: "not a member" });
@@ -40,4 +40,16 @@ test("the actor string is built from the member row and parses back", () => {
   assert.equal(a, "Dana|Commander|c2000453abcd");
   assert.deepEqual(parseActor(a), { name: "Dana", role: "Commander", identity: "c2000453abcd" });
   assert.deepEqual(parseActor("physics-check"), { name: "physics-check", role: "", identity: "" });
+});
+
+test("what each role can and cannot do, in words for the join page", () => {
+  assert.deepEqual(roleAbilities("Responder"), {
+    can: ["update the scope board", "post in chat", "log evidence"],
+    cannot: ["open an incident", "close an incident"],
+  });
+  assert.deepEqual(roleAbilities("Viewer"), {
+    can: ["post in chat"],
+    cannot: ["open an incident", "update the scope board", "log evidence", "close an incident"],
+  });
+  assert.equal(roleAbilities("Commander").cannot.length, 0);
 });
