@@ -73,9 +73,10 @@ Darkroom must-haves: open incident, scope board (ENCRYPTED, EXFILTRATED, ACCESSE
 - Two databases on purpose: `avon` (the company side) and `darkroom` (the isolated room). If they shared one database, the isolation would be fake. That's the answer if a judge asks.
 - Don't quote the 1.5 ms number as performance; it was on one laptop. Say "every screen updates instantly because they all subscribe to the same live data."
 
-### Quest: optional garnish
-- The site twin must also run in a normal browser window, so the demo never depends on the headset.
-- Use the Quest only for judges who want to try it, cast to a screen.
+### Quest: the judge's VR view (changed Sun 00:37, Mohan)
+- Every judge is offered the headset: /twin shows the same live site in 3D, so the tank the teammate faked turns amber with LYING · SIMULATED while the judge watches.
+- It must be easy for a first-time VR user: they stand in front of a table-size model, point and pull the trigger to select a tank, the thumbstick turns the model, a big Reset view button, and a "How to use" card on entry. No walking around.
+- The same /twin page works in a normal browser window, so the demo never depends on the headset. The 90-second laptop demo still comes first; the headset follows it.
 
 ### README for judges (3 steps)
 1. `npm ci`
