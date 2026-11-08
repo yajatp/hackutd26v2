@@ -1,7 +1,7 @@
 "use client";
-// Text inside the 3D scene for immersive VR, where page DOM is not visible. Drawn in Barlow (served
+// Text inside the 3D scene for immersive VR, where page DOM is not visible. Drawn in Hanken Grotesk, with IBM Plex Mono for labels (served
 // from /fonts by app/fonts.css, so no CDN) onto a 2D canvas and used as a texture. Nothing is drawn
-// until the Barlow faces have loaded, so the headset never shows a fallback font.
+// until those faces have loaded, so the headset never shows a fallback font.
 // Cards are the night page's language: night at 92%, square corners, moonlight hairlines.
 import { useEffect, useMemo, useState, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -13,7 +13,7 @@ export interface TextRow {
   text: string;
   color: string;
   size: number;
-  face?: "head" | "body";       // head: Barlow Condensed; body (default): Barlow
+  face?: "head" | "body";       // head: IBM Plex Mono; body (default): Hanken Grotesk
   weight?: 400 | 500 | 600 | 700;
   bold?: boolean;               // shorthand for weight 600
   gap?: number;                 // extra space above the row, px
@@ -35,22 +35,23 @@ interface Spec {
 }
 
 export const MAX_TEX_PX = 1024;          // label and card textures stay at most this wide
-export const CARD_BG = "rgba(16, 34, 49, 0.92)";
-const BODY = '"Barlow", "Bahnschrift", "Roboto", system-ui, sans-serif';
-const HEAD = '"Barlow Condensed", "Barlow", "Bahnschrift", system-ui, sans-serif';
+export const CARD_BG = "rgba(19, 21, 24, 0.96)";   // Sui panel #131518
+const BODY = '"Hanken Grotesk", "Helvetica Neue", Arial, system-ui, sans-serif';
+const HEAD = '"IBM Plex Mono", ui-monospace, Menlo, monospace';   // small labels and figures
 const LEAD = 1.28;                       // row pitch, in font sizes
 
 let fontsLoading: Promise<void> | null = null;
 
-// Loads every Barlow face the cards use (from /fonts, declared in app/fonts.css). Resolves once,
+// Loads every face the cards use (from /fonts, declared in app/fonts.css). Resolves once,
 // also on failure, so a missing file still lets the text draw.
 export function fontsReady(): Promise<void> {
   fontsLoading ??= Promise.all([
-    document.fonts.load('600 64px "Barlow Condensed"'),
-    document.fonts.load('700 64px "Barlow Condensed"'),
-    document.fonts.load('400 64px "Barlow"'),
-    document.fonts.load('500 64px "Barlow"'),
-    document.fonts.load('600 64px "Barlow"'),
+    document.fonts.load('400 64px "IBM Plex Mono"'),
+    document.fonts.load('500 64px "IBM Plex Mono"'),
+    document.fonts.load('400 64px "Hanken Grotesk"'),
+    document.fonts.load('500 64px "Hanken Grotesk"'),
+    document.fonts.load('600 64px "Hanken Grotesk"'),
+    document.fonts.load('700 64px "Hanken Grotesk"'),
   ]).then(() => undefined, () => undefined);
   return fontsLoading;
 }
@@ -66,7 +67,7 @@ export function useFontsReady(): boolean {
 }
 
 const fontOf = (r: TextRow, size = r.size) =>
-  `${r.weight ?? (r.bold ? 600 : 400)} ${size}px ${r.face === "head" ? HEAD : BODY}`;
+  `${r.face === "head" ? Math.min(500, r.weight ?? (r.bold ? 500 : 400)) : r.weight ?? (r.bold ? 600 : 400)} ${size}px ${r.face === "head" ? HEAD : BODY}`;
 
 function wrap(ctx: CanvasRenderingContext2D, text: string, max: number): string[] {
   const out: string[] = [];

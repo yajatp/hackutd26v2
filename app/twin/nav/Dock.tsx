@@ -36,7 +36,7 @@ const buttonPainter: Painter<ButtonSpec, null> = {
     if (s.active) {
       glass(ctx, p, p, w, h, { r, fill: C.holo, fillAlpha: 0.95, edge: C.text, edgeAlpha: 0.85, edgePx: 4, glowPx: p * 0.9 });
     } else {
-      glass(ctx, p, p, w, h, { r, edge: C.holo, edgeAlpha: 0.6, edgePx: 3, glowPx: p * 0.45, tintAlpha: 0.2 });
+      glass(ctx, p, p, w, h, { r, edge: C.line, edgeAlpha: 1, edgePx: 2 });
       corners(ctx, p, p, w, h, h * 0.13, rgba(C.holo, 0.9), 3, 7);
     }
     const ink = s.active ? C.skyZenith : C.holo;
@@ -62,7 +62,7 @@ const railPainter: Painter<RailSpec, null> = {
     ctx.rotate(Math.PI / 4);
     ctx.fillStyle = C.holo;
     ctx.shadowColor = C.holo;
-    ctx.shadowBlur = 10;
+    ctx.shadowBlur = 0;
     ctx.fillRect(-9, -9, 18, 18);
     ctx.restore();
     const w = text(ctx, "AVON", x0 + 38, ty, { size: 44, weight: 700, color: C.holo, spacing: 6, glow: 8 });

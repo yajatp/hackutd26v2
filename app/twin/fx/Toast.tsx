@@ -35,7 +35,7 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 function icon(ctx: CanvasRenderingContext2D, kind: FxKind, cx: number, cy: number, s: number, tone: string) {
   ctx.save();
   ctx.shadowColor = withAlpha(tone, 0.8);
-  ctx.shadowBlur = 22;
+  ctx.shadowBlur = 0;
   if (kind === "cleared") {
     ctx.strokeStyle = tone;
     ctx.lineWidth = s * 0.1;
@@ -124,7 +124,7 @@ export function drawToast(n: FxNotice): Drawn {
   roundRect(ctx, 2, 2, W_PX - 4, h - 4, r);
   ctx.clip();
   ctx.shadowColor = tone;
-  ctx.shadowBlur = 24;
+  ctx.shadowBlur = 0;
   ctx.fillStyle = tone;
   ctx.fillRect(2, 2, bar, h - 4);
   ctx.restore();
@@ -143,7 +143,7 @@ export function drawToast(n: FxNotice): Drawn {
   // Row 2: the console's state line, big, in its state color.
   ctx.save();
   ctx.shadowColor = withAlpha(tone, 0.65);
-  ctx.shadowBlur = 18;
+  ctx.shadowBlur = 0;
   ctx.fillStyle = tone;
   fitText(ctx, n.state, x0, yState, 700, FONT.label, rowState, max);
   ctx.restore();
@@ -263,7 +263,7 @@ export function Toast({ events, distance = 1.0, drop = 0.05, holdMs = TOAST_HOLD
     if (scan.current && scanMat.current) {
       scan.current.visible = p.scan >= 0;
       scan.current.position.x = -drawn.w / 2 + p.scan * drawn.w;
-      scanMat.current.opacity = 0.9 * (1 - p.scan) * p.opacity;
+      scanMat.current.opacity = 0;     // Sui style: no scan line sweep
     }
     if (hold.current) {
       const inner = drawn.w - 0.06;

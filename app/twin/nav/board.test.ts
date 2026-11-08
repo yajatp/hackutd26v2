@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Alert, ConsoleView, SensorIssue } from "@/lib/eog/alerts";
 import type { Confirmed, SiteFacility } from "@/lib/live";
-import { boardModel, CALM, confirmModel, fixDetails, goToRows, otherFixes, page, pretty, sensorLines, stats, topCard, totalsLine } from "./board";
+import { boardModel, CALM, confirmModel, fillPtsH, fixCards, fixDetails, goToRows, otherFixes, page, pretty, pumpFacts, sensorLines, STAT_WORDS, stats, topCard, totalsLine } from "./board";
 
 const clock = (ms: number) => `T${ms}`;
 
@@ -54,15 +54,15 @@ const LYING: Alert["tank_sensor"] = { state: "lying", evidence: "Level rises 4 p
 
 test("totals line: the console's words", () => {
   const v = view([failure("S5_FACILITY_C"), failure("S1_FACILITY_A")]);
-  assert.equal(totalsLine(v), "2 pump failures · doing nothing costs $9,957 · these plans cost $1,810");
-  assert.equal(totalsLine(view([failure("S5_FACILITY_C")])), "1 pump failure · doing nothing costs $9,957 · these plans cost $1,810");
+  assert.equal(totalsLine(v), "2 pump failures · Cost if unaddressed $9,957 · Response cost $1,810 · Savings $8,147");
+  assert.equal(totalsLine(view([failure("S5_FACILITY_C")])), "1 pump failure · Cost if unaddressed $9,957 · Response cost $1,810 · Savings $8,147");
   assert.equal(totalsLine(view([inspect("S2_FACILITY_A")])), null);
 });
 
 test("stat tiles: the totals line's own words, in three parts", () => {
   const v = view([failure("S5_FACILITY_C"), failure("S1_FACILITY_A")]);
   const s = stats(v)!;
-  assert.equal(`${s.failures} ${s.failuresWord} · doing nothing costs ${s.doNothing} · these plans cost ${s.plans}`, totalsLine(v));
+  assert.equal(`${s.failures} ${s.failuresWord} · Cost if unaddressed ${s.doNothing} · Response cost ${s.plans} · Savings ${s.savings}`, totalsLine(v));
   assert.equal(stats(view([failure("S5_FACILITY_C")]))!.failuresWord, "pump failure");
   assert.equal(stats(view([])), null);
 });
@@ -171,4 +171,35 @@ test("Go to pages wrap round", () => {
   assert.deepEqual(page(rows, 2, 6).rows, [12, 13, 14]);
   assert.equal(page(rows, 3, 6).index, 0);
   assert.equal(page([], 0, 6).count, 1);
+});
+
+test("pump facts: each pump's own numbers, from the alert and the last hour of flow", () => {
+  const a = failure("S5_FACILITY_C", { hours: 2.5 });
+  a.event.level_pct = 62.44;
+  a.lost_revenue_per_hour = 410;
+  a.fix!.details = ["Truck arrives 01:35"];
+  a.fix!.plan.trucks = 1;
+  (a as { facility: unknown }).facility = { wells: [{}, {}, {}], tank: { id: "S5_TANK_C" } };
+  const flow = { facility_id: "S5_FACILITY_C", system_id: "S5", tank_id: "S5_TANK_C", capacity_bbl: 500, step_s: 3600, points: [{ end_ts: 1, inflow_bpd: 900, outflow_bpd: 0, level_pct: 62, physics_pts: 3.14, reported_pts: 3 }] };
+  const f = pumpFacts(a, flow, { system_id: "S5", fleet: 2, trucks_used: 1 } as never);
+  assert.deepEqual(f, { level: "62.4%", fill: "+3.1 pts/h", toLimit: "2h 30m", lostPerHour: "$410/h", truckEta: "01:35", wells: "3 wells", spare: "1 of 2" });
+  // No flow row: the countdown and the shutdown line give the rate.
+  assert.equal(fillPtsH(undefined, 60, 3), 10);
+  assert.equal(fillPtsH(undefined, undefined, null), null);
+  // A bare alert still reads.
+  const bare = pumpFacts(failure("S1_FACILITY_A", { hours: null }));
+  assert.equal(bare.level, "—");
+  assert.equal(bare.wells, "—");
+});
+
+test("fix cards: every pump failure, top first, each with its own facts", () => {
+  const v = view([failure("S5_FACILITY_C", { hours: 1 }), inspect("S2_FACILITY_A"), failure("S1_FACILITY_A", { hours: 4 })]);
+  const cs = fixCards(v, {}, clock);
+  assert.deepEqual(cs.map((c) => c.facilityId), ["S5_FACILITY_C", "S1_FACILITY_A"]);
+  assert.deepEqual(cs.map((c) => c.pump.toLimit), ["1h 00m", "4h 00m"]);
+  assert.equal(cs[0].assetId, "S5_PUMP_C");
+  const m = boardModel(v, {}, [], clock);
+  assert.equal(m.cards.length, 2);
+  assert.equal(m.top?.facilityId, "S5_FACILITY_C");
+  assert.equal(STAT_WORDS.doNothing, "Cost if unaddressed");
 });

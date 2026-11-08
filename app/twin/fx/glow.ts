@@ -14,9 +14,8 @@ export function glowTexture(): CanvasTexture {
   const ctx = canvas.getContext("2d")!;
   const g = ctx.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2);
   // A mask, not a color: the material's color tints it.
-  g.addColorStop(0, "rgba(255,255,255,1)");
-  g.addColorStop(0.18, "rgba(255,255,255,0.75)");
-  g.addColorStop(0.45, "rgba(255,255,255,0.22)");
+  // Sui style: no halos. The mask is empty, so every halo that uses it draws nothing.
+  g.addColorStop(0, "rgba(255,255,255,0)");
   g.addColorStop(1, "rgba(255,255,255,0)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, n, n);
@@ -34,7 +33,7 @@ export function withAlpha(hex: string, a: number): string {
 
 let fontsLoading: Promise<void> | null = null;
 
-// Chakra Petch and Barlow from /fonts (app/fonts.css). Resolves once, also on failure.
+// Hanken Grotesk and IBM Plex Mono from /fonts (app/fonts.css). Resolves once, also on failure.
 export function themeFontsReady(): Promise<void> {
   fontsLoading ??= Promise.all(FONT.load.map((f) => document.fonts.load(f))).then(() => undefined, () => undefined);
   return fontsLoading;

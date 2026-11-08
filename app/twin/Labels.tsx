@@ -6,10 +6,8 @@
 // Only tanks with something to say carry a label (look.ts visibleLabels): a red or amber state,
 // the console's top problem, and the tank under the pointer or opened in the panel.
 // Page DOM, so tests, screen readers and the Quest's 2D browser can read and click it.
-import { useEffect, useState, type ReactNode } from "react";
-import { glitchFrame } from "@/app/vr/field";
+import type { ReactNode } from "react";
 import { labelRows, type Cluster, type PlacedTank, type TankState, type Tone } from "./model";
-import { glitchSlices } from "./look";
 import css from "./twin.module.css";
 
 export type Anchors = Map<string, HTMLElement>;
@@ -32,43 +30,13 @@ function Anchor({ k, anchors, z, children }: { k: string; anchors: Anchors; z: n
   );
 }
 
-// A faked tank's label breaks up on the /vr cadence (glitchFrame: about 220 ms every 1.4 s):
-// horizontal bands of the same words pushed sideways. With reduced motion it is one frozen frame.
-// The clean copy stays in the page (transparent) so the words are still read once.
-function Glitch({ still, children }: { still: boolean; children: ReactNode }) {
-  const [frame, setFrame] = useState<number | null>(still ? 0 : null);
-  useEffect(() => {
-    if (still) { setFrame(0); return; }
-    let raf = 0;
-    let last: number | null = null;
-    const tick = (t: number) => {
-      const f = glitchFrame(t, false);
-      if (f !== last) { last = f; setFrame(f); }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [still]);
-  // The frozen frame shifts only 2 px, so the words stay readable while it still looks broken.
-  const bands = frame === null ? null : glitchSlices(frame, 6, still ? 2 : 6);
-  return (
-    <span className={css.glitch} data-glitch={bands ? "on" : "off"}>
-      <span className={css.row} style={bands ? { opacity: 0 } : undefined}>{children}</span>
-      {bands?.map((b, i) => (
-        <span key={i} aria-hidden="true" className={css.slice}
-          style={{ clipPath: `inset(${b.top}% 0 ${100 - b.bottom}% 0)`, transform: `translateX(${b.dx}px)` }}>
-          {children}
-        </span>
-      ))}
-    </span>
-  );
-}
 
 export function Labels({ tanks, clusters, states, labelled, faked, selected, top, still, onSelect, onHover, anchors }: {
   tanks: PlacedTank[]; clusters: Cluster[]; states: Map<string, TankState>; labelled: Set<string>; faked: ReadonlySet<string>;
   selected: string | null; top: string | null; still: boolean;
   onSelect(id: string): void; onHover(id: string, on: boolean): void; anchors: Anchors;
 }) {
+  void still;                               // the label glitch is gone (Sui style); kept for callers
   return (
     <div className={css.labels}>
       {clusters.map((c) => (
@@ -105,7 +73,7 @@ export function Labels({ tanks, clusters, states, labelled, faked, selected, top
               onPointerEnter={() => onHover(s.facility_id, true)}
               onPointerLeave={() => onHover(s.facility_id, false)}
             >
-              {faked.has(s.facility_id) ? <Glitch still={still}>{words}</Glitch> : words}
+              {words}
             </button>
             <span data-stem aria-hidden="true" className={css.stem} />
           </Anchor>

@@ -18,6 +18,8 @@ import { useMemo, useRef, useState, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import { AdditiveBlending, Mesh, Vector3, type Group, type MeshBasicMaterial } from "three";
 import { money } from "@/lib/eog/alerts";
+import { useAvonConsoleOrNull } from "@/lib/live";
+import { pumpFacts, type PumpFacts } from "./nav/board";
 import type { PlacedTank, TankState, Tone } from "./model";
 import { C, TONE_COLOR } from "./theme";
 import { usePainted, type Painter } from "./nav/glass";
@@ -44,6 +46,7 @@ interface PanelSpec {
   name: string; short: string; tone: Tone;
   lines: { text: string; tone: Tone }[];
   fix: { headline: string; cost: string } | null;
+  facts: [string, string][] | null;          // this pump's own numbers (nav/board.ts pumpFacts)
   evidence: string[]; bring: string[];
   walk: "walk" | "here" | null;
 }
@@ -59,20 +62,20 @@ function layout(ctx: Ctx, s: PanelSpec, draw: boolean, H = 0): PanelMeta {
   let y = M + 6;
   const close: Rect = { x: W - M - CLOSE + 6, y: M - 4, w: CLOSE, h: CLOSE };
   if (draw) {
-    glass(ctx, 2, 2, W - 4, H - 4, { r: 22, edge: C.holo, edgeAlpha: 0.9, edgePx: 3, glowPx: 14, tintAlpha: 0.18 });
+    glass(ctx, 2, 2, W - 4, H - 4, { r: 16, edge: C.line, edgeAlpha: 1, edgePx: 2 });
     // A dark veil under the words (with the glass, about 93% opaque): the lit desert, the backdrop
     // facility's masts and the dock never show through the text.
     ctx.save();
     ctx.beginPath();
     ctx.roundRect(8, 8, W - 16, H - 16, 18);
-    ctx.fillStyle = rgba(C.skyZenith, 0.68);
+    ctx.fillStyle = C.panel;
     ctx.fill();
     ctx.restore();
     corners(ctx, 2, 2, W - 4, H - 4, 26, rgba(C.holo, 0.95), 4, 10);
     // The state's color along the top edge.
     ctx.save();
     ctx.shadowColor = TONE_COLOR[s.tone];
-    ctx.shadowBlur = 14;
+    ctx.shadowBlur = 0;
     ctx.fillStyle = TONE_COLOR[s.tone];
     ctx.fillRect(M, 10, W - 2 * M - CLOSE, 5);
     ctx.restore();
@@ -94,7 +97,7 @@ function layout(ctx: Ctx, s: PanelSpec, draw: boolean, H = 0): PanelMeta {
     if (draw) text(ctx, str, x, y + lh / 2, style);
     y += lh;
   };
-  put(s.short.toUpperCase(), M, T(24, { color: C.holo, spacing: 4 }), 34);
+  put(s.short.toUpperCase(), M, T(24, { face: "mono", weight: 500, color: C.grey3, spacing: 1 }), 34);
   put(s.name, M, T(52, { weight: 700 }), 62);
   y += 6;
   for (const l of s.lines) {
@@ -102,7 +105,7 @@ function layout(ctx: Ctx, s: PanelSpec, draw: boolean, H = 0): PanelMeta {
       ctx.save();
       ctx.fillStyle = TONE_COLOR[l.tone];
       ctx.shadowColor = TONE_COLOR[l.tone];
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 0;
       ctx.beginPath();
       ctx.arc(M + 9, y + 23, 8, 0, Math.PI * 2);
       ctx.fill();
@@ -113,7 +116,7 @@ function layout(ctx: Ctx, s: PanelSpec, draw: boolean, H = 0): PanelMeta {
   }
   const rule = () => {
     y += 14;
-    if (draw) { ctx.fillStyle = rgba(C.holo, 0.28); ctx.fillRect(M, y, inner, 2); }
+    if (draw) { ctx.fillStyle = C.line; ctx.fillRect(M, y, inner, 2); }
     y += 16;
   };
   if (s.fix) {
@@ -125,6 +128,18 @@ function layout(ctx: Ctx, s: PanelSpec, draw: boolean, H = 0): PanelMeta {
     const rows = wrap(ctx, s.fix.headline, inner - cw - 24, head);
     if (draw) text(ctx, s.fix.cost, W - M, y + 23, { ...cost, align: "right" });
     for (const r of rows) put(r, M, head, 46);
+  }
+  if (s.facts && s.facts.length) {
+    rule();
+    const colW = inner / 3, rowH = 66;
+    s.facts.forEach(([k, v], i) => {
+      const cx = M + (i % 3) * colW, cy = y + Math.floor(i / 3) * rowH;
+      if (draw) {
+        text(ctx, k, cx, cy + 14, T(18, { face: "mono", weight: 500, color: C.grey3, spacing: 1 }));
+        text(ctx, v, cx, cy + 44, T(30, { weight: 600, color: k === "HOURS TO LIMIT" ? C.alert : C.text }));
+      }
+    });
+    y += Math.ceil(s.facts.length / 3) * rowH;
   }
   if (s.evidence.length > 0) {
     if (!s.fix) rule();
@@ -180,23 +195,24 @@ function HitPatch({ name, r, texH, onPress }: { name: string; r: Rect; texH: num
   useFrame(() => {
     const on = state.current.hover;
     if (mesh.current) mesh.current.visible = on;
-    if (glow.current) glow.current.opacity = on ? (state.current.down ? 0.5 : 0.28) : 0;
+    if (glow.current) glow.current.opacity = on ? (state.current.down ? 0.14 : 0.07) : 0;
   });
   const x = (r.x + r.w / 2) / PPM - PANEL_W / 2, y = texH / PPM / 2 - (r.y + r.h / 2) / PPM;
   return (
     <group position={[x, y, 0.002]}>
       <mesh ref={mesh} visible={false} name={name} {...handlers}>
         <planeGeometry args={[r.w / PPM, r.h / PPM]} />
-        <meshBasicMaterial ref={glow} color={C.holo} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} fog={false} />
+        <meshBasicMaterial ref={glow} color={C.text} transparent opacity={0} depthWrite={false} toneMapped={false} fog={false} />
       </mesh>
     </group>
   );
 }
 
-function specOf(s: TankState, walk: PanelSpec["walk"]): PanelSpec {
+function specOf(s: TankState, walk: PanelSpec["walk"], f: PumpFacts | null = null): PanelSpec {
   return {
     name: s.name, short: s.short, tone: s.tone, lines: s.lines,
     fix: s.fix ? { headline: s.fix.headline, cost: money(s.fix.cost) } : null,
+    facts: f ? [["LEVEL", f.level], ["FILL RATE", f.fill], ["HOURS TO LIMIT", f.toLimit], ["LOST REVENUE", f.lostPerHour], ["TRUCK ETA", f.truckEta], ["WELLS AFFECTED", f.wells]] : null,
     evidence: s.evidence, bring: s.bring, walk,
   };
 }
@@ -214,7 +230,14 @@ export function Panel3D({ s, t, tanks, root, still, onClose, onWalk }: {
   const [shown, setShown] = useState<TankState | null>(s);
   if (s && s !== shown) setShown(s);
   const walk: PanelSpec["walk"] = shown ? (t.mode === "ground" && t.focus === shown.facility_id ? "here" : "walk") : null;
-  const spec = useMemo(() => (shown ? specOf(shown, walk) : null), [shown, walk]);
+  const live = useAvonConsoleOrNull();
+  const view = live?.view ?? null, flows = live?.insight.flows, budget = live?.insight.budget;
+  const facts = useMemo(() => {
+    const a = shown ? view?.alerts.find((x) => x.fix && x.event.facility_id === shown.facility_id) : undefined;
+    if (!a) return null;
+    return pumpFacts(a, flows?.find((f) => f.facility_id === a.event.facility_id), budget?.find((b) => b.system_id === a.event.system_id));
+  }, [shown, view, flows, budget]);
+  const spec = useMemo(() => (shown ? specOf(shown, walk, facts) : null), [shown, walk, facts]);
   const painted = usePainted(panelPainter, spec ?? specOf(EMPTY, null));
 
   const group = useRef<Group>(null);

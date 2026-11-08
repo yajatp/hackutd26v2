@@ -75,14 +75,14 @@ void main() {
   }
   // The pool of light under the pointer (or on the top problem).
   vec2 l = p - uLight;
-  col += uHolo * 0.2 * exp(-dot(l, l) / (2.0 * 0.11 * 0.11));
+  col += uHolo * 0.06 * exp(-dot(l, l) / (2.0 * 0.11 * 0.11));
   // The radar sweep: a bright edge and a fading wedge behind it.
   float ang = mod(uTime * 0.45 - a, 2.0 * PI);
   float sweep = exp(-ang * 3.2) * uSweep * smoothstep(uRadius, uRadius * 0.15, r * 0.9);
   col += uHolo * sweep * 0.16;
   // The rim.
   float aa = fwidth(r);
-  col = mix(col, uHolo, smoothstep(uRadius - 0.006 - aa, uRadius - 0.006, r) * 0.95);
+  col = mix(col, uGrid, smoothstep(uRadius - 0.004 - aa, uRadius - 0.004, r) * 0.7);
   gl_FragColor = vec4(col, 1.0);
   #include <colorspace_fragment>
 }`;
@@ -110,7 +110,7 @@ function haloMaterial(color: string, inner: number, outer: number, intensity: nu
 const northPainter: Painter<{ t: string }, null> = {
   size: () => ({ w: 96, h: 96 }),
   paint(ctx, s, W, H) {
-    text(ctx, s.t, W / 2, H / 2 + 2, { size: 72, weight: 700, color: C.holo, align: "center", glow: 14 });
+    text(ctx, s.t, W / 2, H / 2 + 2, { size: 64, weight: 500, face: "mono", color: C.grey3, align: "center" });
     return null;
   },
 };
@@ -118,7 +118,7 @@ const northPainter: Painter<{ t: string }, null> = {
 const sysPainter: Painter<{ t: string }, null> = {
   size: () => ({ w: 200, h: 72 }),
   paint(ctx, s, W, H) {
-    text(ctx, s.t, W / 2, H / 2 + 2, { size: 52, weight: 700, color: C.holo, align: "center", spacing: 4, glow: 10 });
+    text(ctx, s.t, W / 2, H / 2 + 2, { size: 46, weight: 500, face: "mono", color: C.grey3, align: "center", spacing: 2 });
     return null;
   },
 };
@@ -147,9 +147,9 @@ export function HoloTable({ root, pool, tanks, clusters, top, hovered, still, in
 }) {
   const top3 = useMemo(() => new ShaderMaterial({
     uniforms: {
-      uDeep: { value: new Color(C.skyZenith) },
-      uGlass: { value: new Color(C.skyMid) },
-      uGrid: { value: new Color(C.holoDim) },
+      uDeep: { value: new Color(C.page) },
+      uGlass: { value: new Color(C.panel) },
+      uGrid: { value: new Color(C.grey1) },
       uHolo: { value: new Color(C.holo) },
       uLight: { value: new Vector2() },
       uTime: { value: 0 },
@@ -167,7 +167,7 @@ export function HoloTable({ root, pool, tanks, clusters, top, hovered, still, in
   useFrame(({ clock }, dt) => {
     const u = top3.uniforms;
     u.uTime.value = clock.elapsedTime;
-    u.uSweep.value = still ? 0 : 1;
+    u.uSweep.value = 0;                      // Sui style: no radar sweep
     // The attack moment's wave crosses the table: the grid dims to 40% for a moment under it.
     u.uGridK.value = gridDim(performance.now() - WAVE_CLOCK.at, still);
     const n = Math.min(MAX_SYS, clusters.length);
@@ -201,17 +201,17 @@ export function HoloTable({ root, pool, tanks, clusters, top, hovered, still, in
       {/* The slab's edge: night glass going down into the dark. */}
       <mesh position={[0, -SLAB / 2, 0]} raycast={noRay}>
         <cylinderGeometry args={[TURNTABLE_R, TURNTABLE_R * 0.97, SLAB, 128, 1, true]} />
-        <meshBasicMaterial color={C.holoDim} fog={false} />
+        <meshBasicMaterial color={C.raised} fog={false} />
       </mesh>
-      <mesh rotation-x={-Math.PI / 2} position={[0, -0.002, 0]} material={rimHalo} raycast={noRay} renderOrder={1}>
+      <mesh rotation-x={-Math.PI / 2} position={[0, -0.002, 0]} material={rimHalo} raycast={noRay} renderOrder={1} visible={false}>
         <ringGeometry args={[TURNTABLE_R, TURNTABLE_R + 0.07, 128, 1]} />
       </mesh>
       {/* The column and its glow on the floor (the floor is the world's ground at y = 0). */}
       <mesh position={[0, -(TABLE_TOP_Y + SLAB) / 2, 0]} raycast={noRay}>
         <cylinderGeometry args={[COLUMN_R * 0.8, COLUMN_R, TABLE_TOP_Y - SLAB, 24, 1, true]} />
-        <meshLambertMaterial color={C.skyMid} emissive={C.holoDim} emissiveIntensity={0.35} />
+        <meshLambertMaterial color={C.raised} />
       </mesh>
-      <mesh rotation-x={-Math.PI / 2} position={[0, -TABLE_TOP_Y + 0.004, 0]} material={floorHalo} raycast={noRay} renderOrder={1}>
+      <mesh rotation-x={-Math.PI / 2} position={[0, -TABLE_TOP_Y + 0.004, 0]} material={floorHalo} raycast={noRay} renderOrder={1} visible={false}>
         <ringGeometry args={[COLUMN_R, 0.62, 64, 1]} />
       </mesh>
       <FlatText painter={northPainter} t="N" at={[0, 0.0012, -TURNTABLE_R + 0.04]} w={0.045} />

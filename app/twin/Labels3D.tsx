@@ -11,7 +11,7 @@
 //   label or a sign selects its facility.
 import { useMemo, useRef } from "react";
 import { Billboard } from "@react-three/drei";
-import { AdditiveBlending, type Group } from "three";
+import type { Group } from "three";
 import { labelRows, LABEL_ROW_M, type PlacedTank, type TankState, type Tone } from "./model";
 import { C, TONE_COLOR } from "./theme";
 import { usePainted, type Painter } from "./nav/glass";
@@ -59,7 +59,7 @@ const labelPainter: Painter<LabelSpec, null> = {
     });
     ctx.save();
     ctx.shadowColor = TONE_COLOR[s.bar];
-    ctx.shadowBlur = 8;
+    ctx.shadowBlur = 0;
     ctx.fillStyle = TONE_COLOR[s.bar];
     ctx.fillRect(7, PAD_Y, BAR, H - 2 * PAD_Y);
     ctx.restore();
@@ -91,7 +91,7 @@ function Label3D({ spec, at, k, stemTo, faked, still, seed, pick }: {
       {stemTo && stemH > 0.001 && (
         <mesh position={[stemTo[0], stemTo[1] + stemH / 2, stemTo[2]]} raycast={noRay} renderOrder={2}>
           <boxGeometry args={[0.0014 * k, stemH, 0.0014 * k]} />
-          <meshBasicMaterial color={C.holo} transparent opacity={0.55} blending={AdditiveBlending} depthWrite={false} toneMapped={false} fog={false} />
+          <meshBasicMaterial color={C.grey2} transparent opacity={0.7} depthWrite={false} toneMapped={false} fog={false} />
         </mesh>
       )}
       <group position={at}>

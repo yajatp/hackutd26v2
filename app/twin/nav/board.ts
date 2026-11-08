@@ -4,6 +4,8 @@
 // list of facilities, problems first. Unit-tested in board.test.ts.
 import { hhmm, money, prettyId, type Alert, type ConsoleView } from "@/lib/eog/alerts";
 import type { Confirmed, SiteFacility } from "@/lib/live";
+import type { FlowSeries } from "@/lib/eog/flows";
+import type { SystemBudget } from "@/lib/eog/budget";
 import { countdown, tankStates, type Tone } from "../model";
 
 export const CALM = "No pump failures right now. Every tank is draining normally.";
@@ -26,21 +28,69 @@ const SENSOR: Record<string, { word: string; icon: string }> = {
 };
 const BAD = new Set(["dead", "drifting", "lying"]);
 
-// "2 pump failures · doing nothing costs $9,957 · these plans cost $1,810"; null with no failures.
+// "2 pump failures · Cost if unaddressed $9,957 · Response cost $1,810 · Savings $8,147"; null
+// with no failures.
 export function totalsLine(view: ConsoleView): string | null {
   const n = view.alerts.filter((a) => a.fix).length;
   if (n === 0) return null;
-  return `${n} pump failure${n > 1 ? "s" : ""} · doing nothing costs ${money(view.totals.do_nothing)} · these plans cost ${money(view.totals.plans)}`;
+  const save = Math.max(0, view.totals.do_nothing - view.totals.plans);
+  return `${n} pump failure${n > 1 ? "s" : ""} · Cost if unaddressed ${money(view.totals.do_nothing)} · Response cost ${money(view.totals.plans)} · Savings ${money(save)}`;
 }
 
-// The totals line in three parts, for the dashboard's stat tiles; read left to right they are the
-// console's words: "2 pump failures · doing nothing costs $9,957 · these plans cost $1,810".
-export interface Stats { failures: number; failuresWord: string; doNothing: string; plans: string }
+// The totals line in parts, for the dashboard's stat tiles: failures, Cost if unaddressed,
+// Response cost, Savings.
+export interface Stats { failures: number; failuresWord: string; doNothing: string; plans: string; savings: string }
+
+export const STAT_WORDS = { doNothing: "Cost if unaddressed", plans: "Response cost", savings: "Savings", spare: "Spare trucks" } as const;
 
 export function stats(view: ConsoleView): Stats | null {
   const n = view.alerts.filter((a) => a.fix).length;
   if (n === 0) return null;
-  return { failures: n, failuresWord: `pump failure${n > 1 ? "s" : ""}`, doNothing: money(view.totals.do_nothing), plans: money(view.totals.plans) };
+  return {
+    failures: n, failuresWord: `pump failure${n > 1 ? "s" : ""}`, doNothing: money(view.totals.do_nothing), plans: money(view.totals.plans),
+    savings: money(Math.max(0, view.totals.do_nothing - view.totals.plans)),
+  };
+}
+
+// One pump's own numbers, for its card: what differs per pump even when EOG prices every trip
+// the same. "—" when the data does not say.
+export interface PumpFacts {
+  level: string;                         // "62.4%"
+  fill: string;                          // "+3.1 pts/h"
+  toLimit: string;                       // "2h 03m"
+  lostPerHour: string;                   // "$410/h"
+  truckEta: string;                      // "01:35"
+  wells: string;                         // "3 wells"
+  spare: string;                         // "1 of 2"
+}
+
+const DASH = "—";
+
+// Fill rate in level points per hour: the last hour of rate in vs rate out (flow_series), else
+// what the level and the countdown imply against the shutdown line.
+export function fillPtsH(flow: FlowSeries | undefined, level: number | undefined, hours: number | null, shutdownPct = 90): number | null {
+  const last = flow?.points[flow.points.length - 1];
+  if (last && Number.isFinite(last.physics_pts)) return last.physics_pts;
+  if (level !== undefined && hours !== null && hours > 0) return (shutdownPct - level) / hours;
+  return null;
+}
+
+export function pumpFacts(a: Alert, flow?: FlowSeries, budget?: SystemBudget): PumpFacts {
+  const lvl = a.event.level_pct;
+  const f = fillPtsH(flow, lvl, a.hours_to_limit);
+  const eta = (a.fix?.details ?? []).find((d) => /^Trucks? arrives?/.test(d));
+  const wells = a.facility?.wells?.length;
+  const fleet = budget?.fleet ?? a.fix?.fleet;
+  const used = budget?.trucks_used ?? a.fix?.plan.trucks;
+  return {
+    level: lvl !== undefined ? `${lvl.toFixed(1)}%` : DASH,
+    fill: f !== null ? `${f >= 0 ? "+" : ""}${f.toFixed(1)} pts/h` : DASH,
+    toLimit: countdown(a.hours_to_limit).replace(/^trips in /, "") || DASH,
+    lostPerHour: `${money(a.lost_revenue_per_hour)}/h`,
+    truckEta: eta ? eta.replace(/^Trucks? arrives? /, "") : DASH,
+    wells: wells !== undefined ? `${wells} well${wells === 1 ? "" : "s"}` : DASH,
+    spare: fleet !== undefined && used !== undefined ? `${Math.max(0, fleet - used)} of ${fleet}` : DASH,
+  };
 }
 
 export type ConfirmModel =
@@ -73,6 +123,9 @@ export interface FixCardModel {
   canConfirm: boolean;                   // the console offers Confirm only when there were alternatives
   confirm: ConfirmModel;
   details: string;                       // the console's line under the plan: "Truck arrives 01:35 · tank would trip 03:38 · …"
+  assetId: string;                       // the failed pump: what Simulate runs on
+  tankId: string;                        // the facility's tank
+  pump: PumpFacts;
 }
 
 // The console's detail line under a fix card.
@@ -86,23 +139,38 @@ export function fixDetails(a: Alert): string {
   ].filter(Boolean).join(" · ");
 }
 
+export interface InsightLite { flows?: readonly FlowSeries[]; budget?: readonly SystemBudget[] }
+
+// Every pump failure with a plan as a card, the console's order (top problem first).
+export function fixCards(view: ConsoleView, confirmations: Record<string, Confirmed>, clock: (ms: number) => string, insight: InsightLite = {}): FixCardModel[] {
+  return view.alerts.filter((a) => a.fix).map((a) => cardOf(a, confirmations, clock, insight));
+}
+
 // The console's top fix card: its first pump failure with a plan.
-export function topCard(view: ConsoleView, confirmations: Record<string, Confirmed>, clock: (ms: number) => string): FixCardModel | null {
+export function topCard(view: ConsoleView, confirmations: Record<string, Confirmed>, clock: (ms: number) => string, insight: InsightLite = {}): FixCardModel | null {
   const a = view.alerts.find((x) => x.fix);
   if (!a || !a.fix) return null;
+  return cardOf(a, confirmations, clock, insight);
+}
+
+function cardOf(a: Alert, confirmations: Record<string, Confirmed>, clock: (ms: number) => string, insight: InsightLite): FixCardModel {
   const facilityId = a.event.facility_id;
   const s = a.tank_sensor && BAD.has(a.tank_sensor.state) ? a.tank_sensor : null;
+  const fix = a.fix!;
   return {
     alertId: a.id,
     facilityId,
     facility: prettyId(facilityId),
     when: countdown(a.hours_to_limit),
-    headline: a.fix.headline,
-    cost: money(a.fix.plan.cost),
+    headline: fix.headline,
+    cost: money(fix.plan.cost),
     sensorFirst: s ? `CHECK THE TANK SENSOR FIRST: ${SENSOR[s.state]?.word ?? s.state.toUpperCase()}${s.simulated ? " · SIMULATED" : ""}` : null,
-    canConfirm: a.fix.alternatives.length > 0,
+    canConfirm: fix.alternatives.length > 0,
     confirm: confirmModel(a, confirmations[a.id], clock),
     details: fixDetails(a),
+    assetId: a.event.asset_id,
+    tankId: a.facility?.tank?.id ?? facilityId.replace("FACILITY", "TANK"),
+    pump: pumpFacts(a, insight.flows?.find((f) => f.facility_id === facilityId), insight.budget?.find((b) => b.system_id === a.event.system_id)),
   };
 }
 
@@ -167,20 +235,23 @@ export interface BoardModel {
   stats: Stats | null;
   calm: string | null;
   top: FixCardModel | null;
+  cards: FixCardModel[];                 // every pump failure, one card at a time on the dashboard
   others: OtherFix[];
   sensors: SensorLine[];
   goTo: GoRow[];
   now: number | null;                    // the view's clock (unix s)
 }
 
-export function boardModel(view: ConsoleView | null, confirmations: Record<string, Confirmed>, facilities: readonly SiteFacility[], clock: (ms: number) => string): BoardModel {
-  if (!view) return { totals: null, stats: null, calm: null, top: null, others: [], sensors: [], goTo: goToRows(facilities, null), now: null };
+export function boardModel(view: ConsoleView | null, confirmations: Record<string, Confirmed>, facilities: readonly SiteFacility[], clock: (ms: number) => string, insight: InsightLite = {}): BoardModel {
+  if (!view) return { totals: null, stats: null, calm: null, top: null, cards: [], others: [], sensors: [], goTo: goToRows(facilities, null), now: null };
   const totals = totalsLine(view);
+  const cards = fixCards(view, confirmations, clock, insight);
   return {
     totals,
     stats: stats(view),
     calm: totals ? null : CALM,
-    top: topCard(view, confirmations, clock),
+    top: cards[0] ?? null,
+    cards,
     others: otherFixes(view, confirmations),
     sensors: sensorLines(view),
     goTo: goToRows(facilities, view),

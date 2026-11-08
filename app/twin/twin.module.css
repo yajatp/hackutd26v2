@@ -57,7 +57,7 @@
   text-transform: uppercase;
   color: var(--holo);
   text-decoration: none;
-  text-shadow: 0 0 14px color-mix(in srgb, var(--holo) 60%, transparent);
+  text-shadow: none;
 }
 
 .title {
@@ -116,7 +116,7 @@
 
 .hairline:hover {
   border-color: var(--holo);
-  box-shadow: 0 0 14px -4px var(--holo);
+  box-shadow: none;
 }
 
 .primary {
@@ -124,11 +124,11 @@
   color: var(--sky);
   border: 1px solid var(--holo);
   font-weight: 700;
-  box-shadow: 0 0 18px -4px var(--holo);
+  box-shadow: none;
 }
 
 .primary:hover {
-  box-shadow: 0 0 26px -2px var(--holo);
+  box-shadow: none;
 }
 
 .notice {
@@ -212,24 +212,24 @@
 
 .swAlert {
   background: var(--alert-c);
-  box-shadow: 0 0 8px var(--alert-c);
+  box-shadow: none;
 }
 
 .swWarn {
   background: var(--warn-c);
-  box-shadow: 0 0 8px var(--warn-c);
+  box-shadow: none;
 }
 
 .swOk {
   background: var(--ok);
-  box-shadow: 0 0 8px var(--ok);
+  box-shadow: none;
 }
 
 .swRing {
   width: 12px;
   height: 12px;
   border: 2px solid var(--holo);
-  box-shadow: 0 0 8px var(--holo);
+  box-shadow: none;
 }
 
 .hint {
@@ -275,7 +275,7 @@
   transition: border-color 150ms, box-shadow 150ms;
 }
 
-/* The state's color: a glowing bar down the label's left edge. */
+/* The state's color: a flat bar down the label's left edge. */
 .label::before {
   content: "";
   position: absolute;
@@ -285,17 +285,17 @@
   width: 3px;
   border-radius: 2px;
   background: var(--ok);
-  box-shadow: 0 0 6px var(--ok);
+  box-shadow: none;
 }
 
 .label[data-tone="alert"]::before {
   background: var(--alert-c);
-  box-shadow: 0 0 6px var(--alert-c);
+  box-shadow: none;
 }
 
 .label[data-tone="warn"]::before {
   background: var(--warn-c);
-  box-shadow: 0 0 6px var(--warn-c);
+  box-shadow: none;
 }
 
 .label:hover,
@@ -305,7 +305,7 @@
 
 .label[aria-pressed="true"] {
   border-color: var(--holo);
-  box-shadow: 0 0 16px -3px var(--holo);
+  box-shadow: none;
 }
 
 @keyframes labelIn {
@@ -344,7 +344,7 @@
   width: 1px;
   height: 0;
   background: color-mix(in srgb, var(--holo) 75%, transparent);
-  box-shadow: 0 0 4px var(--holo);
+  box-shadow: none;
   pointer-events: none;
 }
 
@@ -357,7 +357,7 @@
   font-size: 0.75rem;
   letter-spacing: 0.16em;
   color: var(--holo);
-  text-shadow: 0 0 8px var(--sky), 0 0 10px color-mix(in srgb, var(--holo) 50%, transparent);
+  text-shadow: none;
   white-space: nowrap;
 }
 
@@ -384,7 +384,7 @@
   background: var(--glass);
   border: 1px solid var(--holo);
   border-radius: 14px;
-  box-shadow: 0 0 30px -8px var(--holo);
+  box-shadow: none;
   backdrop-filter: blur(8px);
   animation: toastIn 260ms var(--ease);
 }
@@ -398,17 +398,17 @@
   width: 4px;
   border-radius: 2px;
   background: var(--warn-c);
-  box-shadow: 0 0 10px var(--warn-c);
+  box-shadow: none;
 }
 
 .toast[data-tone="alert"]::before {
   background: var(--alert-c);
-  box-shadow: 0 0 10px var(--alert-c);
+  box-shadow: none;
 }
 
 .toast[data-tone="ok"]::before {
   background: var(--ok);
-  box-shadow: 0 0 10px var(--ok);
+  box-shadow: none;
 }
 
 .toastText {
@@ -446,7 +446,7 @@
   background: var(--glass);
   border: 1px solid var(--edge);
   border-radius: 16px;
-  box-shadow: 0 0 34px -10px var(--holo), inset 0 1px 0 color-mix(in srgb, var(--text) 18%, transparent);
+  box-shadow: none;
   backdrop-filter: blur(10px);
   animation: panelIn 220ms var(--ease);
 }
@@ -461,17 +461,17 @@
   margin: 0 20px;
   border-radius: 0 0 2px 2px;
   background: var(--ok);
-  box-shadow: 0 0 10px var(--ok);
+  box-shadow: none;
 }
 
 .panel[data-tone="alert"]::before {
   background: var(--alert-c);
-  box-shadow: 0 0 10px var(--alert-c);
+  box-shadow: none;
 }
 
 .panel[data-tone="warn"]::before {
   background: var(--warn-c);
-  box-shadow: 0 0 10px var(--warn-c);
+  box-shadow: none;
 }
 
 @keyframes panelIn {
@@ -619,12 +619,12 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
-  box-shadow: 0 0 18px -4px var(--holo);
+  box-shadow: none;
   transition: box-shadow 150ms;
 }
 
 .walk:hover {
-  box-shadow: 0 0 26px -2px var(--holo);
+  box-shadow: none;
 }
 
 .here {

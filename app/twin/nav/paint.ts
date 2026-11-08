@@ -1,12 +1,13 @@
-// Canvas painting for the menu and the dashboard: holo-glass panels, glowing edges, corner ticks,
-// icons and text, all in the theme's colors and fonts (app/twin/theme.ts). The canvases become
+// Canvas painting for the menu and the dashboard, in the Sui style: flat dark panels with thin
+// borders, one blue accent, no glow. Corner ticks, scanlines and glows are kept as no-ops so old
+// callers still compile. Icons and text are all in the theme's colors and fonts (app/twin/theme.ts). The canvases become
 // textures (glass.tsx), as app/twin/CanvasText.tsx does: no drei <Text>, no font from a CDN.
 import { C, FONT } from "../theme";
 import type { DockId } from "./motion";
 
 export type Ctx = CanvasRenderingContext2D;
 
-// "#4de2ff" + alpha -> "rgba(77,226,255,0.4)". Only theme hexes come in here.
+// "#298DFF" + alpha -> "rgba(41,141,255,0.4)". Only theme hexes come in here.
 export function rgba(hex: string, a: number): string {
   const h = hex.replace("#", "");
   const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h, 16);
@@ -15,7 +16,7 @@ export function rgba(hex: string, a: number): string {
 
 let fontsLoading: Promise<void> | null = null;
 
-// The headset's faces (Chakra Petch 600/700, Barlow 400/500), from /fonts. Resolves once, also on
+// The headset's faces (Hanken Grotesk 400-700, IBM Plex Mono 400/500), from /fonts. Resolves once, also on
 // failure, so a missing file still lets the menu draw.
 export function navFontsReady(): Promise<void> {
   fontsLoading ??= Promise.all(FONT.load.map((f) => document.fonts.load(f))).then(() => undefined, () => undefined);
@@ -45,88 +46,41 @@ export interface GlassStyle {
   fillAlpha?: number;
 }
 
-// Glass: the theme's glass fill, a tint fading down from the top, a bright hairline along the
-// top, and a glowing edge.
+// A flat panel: the theme's panel fill (or a solid fill for active buttons) and a thin border.
+// glowPx, tint and tintAlpha are accepted and ignored (no glow, no wash in the Sui style).
 export function glass(ctx: Ctx, x: number, y: number, w: number, h: number, s: GlassStyle): void {
-  const { r, edge = C.holo, edgeAlpha = 0.75, edgePx = 2, glowPx = 0, tint = C.holo, tintAlpha = 0.12 } = s;
+  const { r, edge = C.holoDim, edgeAlpha = 1 } = s;
+  const edgePx = Math.min(2, s.edgePx ?? 2);
   ctx.save();
-  roundRect(ctx, x, y, w, h, r);
-  if (s.fill) {
-    const g = ctx.createLinearGradient(0, y, 0, y + h);
-    g.addColorStop(0, rgba(s.fill, s.fillAlpha ?? 1));
-    g.addColorStop(1, rgba(s.fill, (s.fillAlpha ?? 1) * 0.72));
-    ctx.fillStyle = g;
-  } else {
-    ctx.fillStyle = C.glass;
-  }
+  roundRect(ctx, x, y, w, h, Math.min(r, 24));
+  ctx.fillStyle = s.fill ? rgba(s.fill, s.fillAlpha ?? 1) : C.glass;
   ctx.fill();
-  if (!s.fill && tintAlpha > 0) {
-    const g = ctx.createLinearGradient(0, y, 0, y + h);
-    g.addColorStop(0, rgba(tint, tintAlpha));
-    g.addColorStop(0.55, rgba(tint, tintAlpha * 0.25));
-    g.addColorStop(1, rgba(tint, 0));
-    ctx.fillStyle = g;
-    ctx.fill();
-  }
-  // The edge, with its glow.
-  if (glowPx > 0) {
-    ctx.shadowColor = rgba(edge, 0.9);
-    ctx.shadowBlur = glowPx;
-  }
-  ctx.strokeStyle = rgba(edge, edgeAlpha);
+  ctx.strokeStyle = rgba(edge, Math.min(1, edgeAlpha));
   ctx.lineWidth = edgePx;
-  roundRect(ctx, x + edgePx / 2, y + edgePx / 2, w - edgePx, h - edgePx, Math.max(0, r - edgePx / 2));
-  ctx.stroke();
-  ctx.restore();
-  // A bright hairline along the top: light catching the glass.
-  ctx.save();
-  roundRect(ctx, x, y, w, h, r);
-  ctx.clip();
-  const hl = ctx.createLinearGradient(x, 0, x + w, 0);
-  hl.addColorStop(0, rgba(C.text, 0));
-  hl.addColorStop(0.5, rgba(C.text, s.fill ? 0.55 : 0.35));
-  hl.addColorStop(1, rgba(C.text, 0));
-  ctx.fillStyle = hl;
-  ctx.fillRect(x + r, y + edgePx + 1, w - 2 * r, Math.max(1, edgePx * 0.6));
-  ctx.restore();
-}
-
-// HUD corner ticks just inside a rectangle.
-export function corners(ctx: Ctx, x: number, y: number, w: number, h: number, len: number, color: string, lw: number, inset = 0): void {
-  ctx.save();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = lw;
-  ctx.lineCap = "square";
-  const L = x + inset, R = x + w - inset, T = y + inset, B = y + h - inset;
-  ctx.beginPath();
-  ctx.moveTo(L, T + len); ctx.lineTo(L, T); ctx.lineTo(L + len, T);
-  ctx.moveTo(R - len, T); ctx.lineTo(R, T); ctx.lineTo(R, T + len);
-  ctx.moveTo(R, B - len); ctx.lineTo(R, B); ctx.lineTo(R - len, B);
-  ctx.moveTo(L + len, B); ctx.lineTo(L, B); ctx.lineTo(L, B - len);
+  roundRect(ctx, x + edgePx / 2, y + edgePx / 2, w - edgePx, h - edgePx, Math.max(0, Math.min(r, 24) - edgePx / 2));
   ctx.stroke();
   ctx.restore();
 }
 
-// Faint horizontal scanlines: the hologram's grain.
-export function scanlines(ctx: Ctx, x: number, y: number, w: number, h: number, every: number, color: string): void {
-  ctx.save();
-  ctx.fillStyle = color;
-  for (let yy = y; yy < y + h; yy += every) ctx.fillRect(x, yy, w, 1);
-  ctx.restore();
-}
+// Corner ticks and scanlines are gone in the Sui style; kept as no-ops for old callers.
+export function corners(...args: [ctx: Ctx, x: number, y: number, w: number, h: number, len: number, color: string, lw: number, inset?: number]): void { void args; }
+
+export function scanlines(...args: [ctx: Ctx, x: number, y: number, w: number, h: number, every: number, color: string]): void { void args; }
 
 export interface TextStyle {
   size: number;                  // px
   weight?: 400 | 500 | 600 | 700;
-  face?: "label" | "body";       // label: Chakra Petch; body: Barlow
+  face?: "label" | "body" | "mono";   // label, body: Hanken Grotesk; mono: IBM Plex Mono (figures, small labels)
   color?: string;
   align?: CanvasTextAlign;
   spacing?: number;              // letter spacing, px
-  glow?: number;                 // shadow blur in the text color
+  glow?: number;                 // ignored: no text glow in the Sui style
 }
 
 export function setFont(ctx: Ctx, s: TextStyle): void {
-  ctx.font = `${s.weight ?? (s.face === "body" ? 400 : 600)} ${s.size}px ${s.face === "body" ? FONT.body : FONT.label}`;
+  const face = s.face === "mono" ? FONT.mono : s.face === "body" ? FONT.body : FONT.label;
+  const weight = s.face === "mono" ? Math.min(500, s.weight ?? 500) : s.weight ?? (s.face === "body" ? 400 : 600);
+  ctx.font = `${weight} ${s.size}px ${face}`;
   const c = ctx as Ctx & { letterSpacing?: string };
   if ("letterSpacing" in c) c.letterSpacing = `${s.spacing ?? 0}px`;
 }
@@ -143,10 +97,6 @@ export function text(ctx: Ctx, str: string, x: number, y: number, s: TextStyle):
   ctx.fillStyle = s.color ?? C.text;
   ctx.textAlign = s.align ?? "left";
   ctx.textBaseline = "middle";
-  if (s.glow) {
-    ctx.shadowColor = s.color ?? C.text;
-    ctx.shadowBlur = s.glow;
-  }
   ctx.fillText(str, x, y);
   const w = ctx.measureText(str).width;
   ctx.restore();
@@ -189,11 +139,9 @@ export function ellipsize(ctx: Ctx, str: string, maxW: number, s: TextStyle): st
   return str.slice(0, lo).trimEnd() + "…";
 }
 
-// A glowing dot (a state light).
+// A flat dot (a state light).
 export function dot(ctx: Ctx, cx: number, cy: number, r: number, color: string): void {
   ctx.save();
-  ctx.shadowColor = color;
-  ctx.shadowBlur = r * 2.5;
   ctx.fillStyle = color;
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -260,20 +208,5 @@ export function icon(ctx: Ctx, id: DockId, cx: number, cy: number, s: number, co
   ctx.restore();
 }
 
-// A soft halo around a rounded rect, white (tinted by the material's color). Only the outside
-// glows: the middle is cut away, so glass in front of it never shows a lighter box.
-export function paintGlow(ctx: Ctx, W: number, H: number, padPx: number, r: number): void {
-  ctx.save();
-  ctx.shadowColor = rgba(C.text, 1);
-  ctx.shadowBlur = padPx * 0.9;
-  ctx.fillStyle = rgba(C.text, 0.9);
-  roundRect(ctx, padPx, padPx, W - 2 * padPx, H - 2 * padPx, r);
-  ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.globalCompositeOperation = "destination-out";
-  ctx.fillStyle = rgba(C.text, 1);
-  const k = Math.max(2, padPx * 0.12);
-  roundRect(ctx, padPx + k, padPx + k, W - 2 * (padPx + k), H - 2 * (padPx + k), Math.max(0, r - k));
-  ctx.fill();
-  ctx.restore();
-}
+// Panels no longer glow: the halo texture is left empty (kept so old callers compile).
+export function paintGlow(...args: [ctx: Ctx, W: number, H: number, padPx: number, r: number]): void { void args; }

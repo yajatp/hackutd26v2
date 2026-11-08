@@ -28,7 +28,7 @@
 
 .btn:hover:not(:disabled) {
   border-color: var(--nav-holo);
-  box-shadow: 0 0 14px -2px var(--nav-holo);
+  box-shadow: none;
 }
 
 .btn:active:not(:disabled) {
@@ -50,7 +50,7 @@
   background: var(--nav-holo);
   color: var(--nav-ink);
   font-weight: 700;
-  box-shadow: 0 0 18px -4px var(--nav-holo);
+  box-shadow: none;
 }
 
 .goto {

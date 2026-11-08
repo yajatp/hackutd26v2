@@ -17,7 +17,8 @@ export function useGlitch(active: boolean, { still = false, seed = 0, target, am
   const out = useRef<GlitchSample>(GLITCH_OFF);
   const base = useRef<number | null>(null);
   useFrame((state) => {
-    const g = active ? glitchSample(state.clock.elapsedTime * 1000, still, seed) : GLITCH_OFF;
+    // Sui style: no glitch jolt. The faked sensor shows in words and amber, not in motion.
+    const g = active && false ? glitchSample(state.clock.elapsedTime * 1000, still, seed) : GLITCH_OFF;
     out.current = g;
     const o = target?.current;
     if (!o) return;

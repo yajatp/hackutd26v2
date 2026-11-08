@@ -142,7 +142,7 @@ export function Shockwave({ origin, trigger, color = C.holo, accent = C.warn, ra
       curtain.current.scale.set(rr, radius * wallK * (1 - 0.5 * w.front), rr);
     }
     if (col.current) {
-      col.current.visible = column && w.column > 0.002;
+      col.current.visible = false && column && w.column > 0.002;   // Sui style: no light column
       const h = radius * 0.55 * (0.4 + 0.6 * Math.min(1, w.front * 3));
       const r = radius * (0.025 + 0.05 * w.front);
       col.current.scale.set(r, h, r);
@@ -154,10 +154,11 @@ export function Shockwave({ origin, trigger, color = C.holo, accent = C.warn, ra
       <mesh rotation-x={-Math.PI / 2} position={[0, radius * 0.002, 0]} material={ring} renderOrder={3}>
         <planeGeometry args={[2 * radius, 2 * radius]} />
       </mesh>
-      <group ref={col}>
+      {/* Sui style: no light column or curtain, only the quiet ring on the ground. */}
+      <group ref={col} visible={false}>
         <mesh geometry={tube} material={beam} renderOrder={3} />
       </group>
-      <group ref={curtain}>
+      <group ref={curtain} visible={false}>
         <mesh geometry={tube} material={wall} renderOrder={3} />
       </group>
     </group>
