@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { buildConsole, type ConsoleView } from "@/lib/eog/alerts";
-import { loadDataset, type DatasetFiles } from "@/lib/eog/load";
+import type { DatasetFiles } from "@/lib/eog/load";
+import { validateFiles, type Validation } from "@/lib/eog/validate";
 import { Board } from "./Board";
 
 type Status = { kind: "idle" } | { kind: "busy"; what: string } | { kind: "error"; msg: string };
@@ -13,11 +14,35 @@ const NAMES = ["network.json", "ops.json", "telemetry.csv"] as const;
 // Then `load` becomes useAvonConsole().load and the view comes from the subscription.
 function useLocalConsole() {
   const [view, setView] = useState<ConsoleView | null>(null);
+  const [validation, setValidation] = useState<Validation | null>(null);
   async function load(files: DatasetFiles) {
     await new Promise((r) => setTimeout(r, 0));    // let "Reading" paint before the heavy work
-    setView(buildConsole(loadDataset(files)));
+    const { validation: v, ds } = validateFiles(files);
+    setValidation(v);
+    if (!ds) throw new Error(v.errors.join("\n"));
+    setView(buildConsole(ds));
   }
-  return { view, load };
+  return { view, validation, load };
+}
+
+function day(unix: number): string {
+  return new Date(unix * 1000).toISOString().slice(5, 16).replace("T", " ");
+}
+
+function Checked({ v }: { v: Validation }) {
+  const s = v.summary!;
+  return (
+    <div className="mt-2 text-xs opacity-70 tabular-nums">
+      Checked: {s.readings.toLocaleString("en-US")} readings · {s.systems} systems · {s.facilities} facilities ·
+      {" "}{s.wells} wells · every {Math.round(s.step_s / 60)} min · {day(s.start)} to {day(s.end)} UTC
+      {v.warnings.length > 0 && (
+        <details className="mt-1">
+          <summary className="cursor-pointer">{v.warnings.length} data warning{v.warnings.length > 1 ? "s" : ""}</summary>
+          <ul className="mt-1 list-disc pl-5">{v.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
+        </details>
+      )}
+    </div>
+  );
 }
 
 export default function ConsolePage() {
@@ -25,7 +50,7 @@ export default function ConsolePage() {
   const [source, setSource] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const pickRef = useRef<HTMLInputElement>(null);
-  const { view, load } = useLocalConsole();
+  const { view, validation, load } = useLocalConsole();
 
   useEffect(() => {
     fetch("/api/eog").then((r) => r.json()).then((j) => setFolders(j.folders ?? [])).catch(() => setFolders([]));
@@ -97,9 +122,13 @@ export default function ConsolePage() {
 
       {status.kind === "busy" && <p className="mt-6 animate-pulse">{status.what}…</p>}
       {status.kind === "error" && (
-        <p className="mt-6 rounded border border-red-500 p-3 text-red-600 dark:text-red-400">{status.msg}</p>
+        <div className="mt-6 rounded border border-red-500 p-3 text-red-600 dark:text-red-400">
+          <p className="font-semibold">This folder can&apos;t be used yet. Nothing was planned from it.</p>
+          <ul className="mt-1 list-disc pl-5 text-sm">{status.msg.split("\n").map((m) => <li key={m}>{m}</li>)}</ul>
+        </div>
       )}
-      {view && status.kind !== "busy" && <Board view={view} />}
+      {view && status.kind === "idle" && validation?.ok && <Checked v={validation} />}
+      {view && status.kind === "idle" && <Board view={view} />}
       {!view && status.kind === "idle" && (
         <p className="mt-10 opacity-60">Pick a site above, or open any folder that holds network.json, ops.json and telemetry.csv.</p>
       )}
