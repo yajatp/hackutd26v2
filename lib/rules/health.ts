@@ -36,7 +36,8 @@ interface Sensor {
   metric: string;
   series: Float64Array;
   lastSeen: number;
-  simFrom: number;            // data time after which an injected fault touches this result
+  simFrom: number;            // data time after which an injected fault touches this result's inputs
+  simSelf: number;            // data time after which an injected fault changed this sensor itself
   tank?: TankPhysics;
   runStart?: Int32Array;      // first tick of the current run over the DRIFTING line, -1 if none
 }
@@ -60,6 +61,7 @@ function model(ds: Dataset): Model {
       key, asset_id: key.slice(0, bar), metric: key.slice(bar + 1), series,
       lastSeen: ds.lastSeen.get(key) ?? -Infinity,
       simFrom: faultFrom(faults, tank ? [tank.keys.level, tank.keys.flow, tank.keys.inflow] : [key]),
+      simSelf: faultFrom(faults, [key]),
     };
     if (tank) {
       s.tank = tank;
@@ -97,7 +99,6 @@ function evaluate(md: Model, s: Sensor, i: number): SensorHealth {
     key: s.key, asset_id: s.asset_id, metric: s.metric, state: "ok", evidence: "",
     ts: t, last_heartbeat_ts: lastReal, value: s.series[i],
   };
-  if (t > s.simFrom) h.simulated = true;
   const tp = s.tank;
   const judge = (m: number) => tp !== undefined && m >= 1 && judgeable(ds, tp, m);
   if (tp && judge(j)) h.error_pts_h = tp.err[j];
@@ -106,11 +107,18 @@ function evaluate(md: Model, s: Sensor, i: number): SensorHealth {
     // Compare from the last tick that agreed with physics, just before this run over the line.
     const a = Math.max(s.runStart![j] - 1, 0);
     const hours = (ts[j] - ts[a]) / 3600;
-    const physics = (freeRun(tp, ts, a, j) - tp.level[a]) / hours;
-    const sensor = (tp.level[j] - tp.level[a]) / hours;
-    const says = round1(sensor) === "0" ? "0" : `${signed(sensor)} pts/h`;
+    const end = freeRun(tp, ts, a, j);
     h.state = "lying";
-    h.evidence = `Physics says ${signed(physics)} pts/h. Sensor says ${says}. Off for ${minutes(ts[j] - ts[a])} min.`;
+    if (end >= tp.shutdown_pct - AT_LIMIT_PTS && tp.level[j] > tp.shutdown_pct + AT_LIMIT_PTS) {
+      // Physics is pinned at the shutdown limit (wells shut in), so a rate comparison would
+      // mislead: say what is impossible about the reading instead.
+      h.evidence = `Sensor says ${round1(tp.level[j])}%, above the ${round1(tp.shutdown_pct)}% shutdown limit the tank holds at. Off for ${minutes(ts[j] - ts[a])} min.`;
+    } else {
+      const physics = (end - tp.level[a]) / hours;
+      const sensor = (tp.level[j] - tp.level[a]) / hours;
+      const says = round1(sensor) === "0" ? "0" : `${signed(sensor)} pts/h`;
+      h.evidence = `Physics says ${signed(physics)} pts/h. Sensor says ${says}. Off for ${minutes(ts[j] - ts[a])} min.`;
+    }
   } else if (t - lastReal >= DEAD_SAMPLES * md.step) {
     h.state = "dead";
     h.evidence = j < 0
@@ -127,6 +135,11 @@ function evaluate(md: Model, s: Sensor, i: number): SensorHealth {
   } else if (tp && judge(j)) {
     h.evidence = `Within ${round1(cal.drift_line)} pts/h of physics (off ${round1(Math.abs(tp.err[j]))}).`;
   }
+  // SIMULATED when the fault changed this sensor, or when a fault on one of its inputs (the pump
+  // flow or facility inflow behind a tank's physics) made it read as a problem. A healthy tank
+  // next to a faked pump is not labeled.
+  const fault = h.state === "dead" || h.state === "drifting" || h.state === "lying";
+  if (t > s.simSelf || (t > s.simFrom && fault)) h.simulated = true;
   return h;
 }
 

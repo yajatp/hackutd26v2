@@ -178,3 +178,47 @@ test("lying wins over dead: a sensor caught lying that then goes silent stays ly
     assert.equal(h.simulated, true);
   }
 });
+
+test("drift on a tank pinned at its shutdown limit: drifting first, then lying with 'above the limit' evidence (skeptic repro: S2_TANK_B mid full_week)", { skip: !hasData(FW) }, () => {
+  const ds = loadFolder(FW);
+  const tank = "S2_TANK_B";
+  const f = Math.floor(ds.ts.length / 2);
+  const limit = ds.network.defaults.tank_limits_pct.shutdown;
+  const L = seriesOf(ds, tank, "level_pct");
+  let reaches = false;
+  for (let k = 0; k <= 40; k++) reaches ||= L[f + k] >= limit - 0.05;
+  assert.ok(reaches, "the clean tank reaches its limit in this window, or the repro does not apply");
+  const { ds: drifted } = injectFault(ds, { kind: "drift", asset_id: tank, from_ts: ds.ts[f] });
+  let drifting = 0, lying = 0;
+  for (let k = 1; k <= 40; k++) {
+    const h = tankHealth(drifted, tank, f + k);
+    assert.notEqual(h.state, "dead", `tick +${k}`);
+    if (h.state === "drifting") { assert.equal(lying, 0, `tick +${k}: drifting after lying`); drifting++; }
+    if (h.state === "lying" && L[f + k] >= limit - 0.05) {
+      // while the real tank is pinned at its limit, the evidence names the impossible reading
+      lying++;
+      assert.match(h.evidence, new RegExp(`^Sensor says \\d+(\\.\\d)?%, above the ${limit}% shutdown limit the tank holds at\\. Off for \\d+ min\\.$`), `tick +${k}`);
+      assert.ok(h.value > limit, `tick +${k}: reading ${h.value}`);
+    }
+  }
+  assert.ok(drifting > 0 && lying > 0, `drifting ${drifting}, lying ${lying}`);
+});
+
+test("a fault on a pump labels the pump SIMULATED, not its healthy tank", { skip: !hasData(FW) }, () => {
+  const ds = loadFolder(FW);
+  const fac = facilities(ds)[0];
+  const f = midTick(ds, fac.tank.id);
+  const { ds: killed } = injectFault(ds, { kind: "kill", asset_id: fac.pump.id, from_ts: ds.ts[f] });
+  let healthy = 0;
+  for (let k = 1; k <= 6; k++) {
+    const t = ds.ts[f + k];
+    for (const h of healthAt(killed, t)) {
+      if (h.asset_id === fac.pump.id) assert.equal(h.simulated, true, `${h.key} +${k}`);
+      if (h.asset_id === fac.tank.id && (h.state === "ok" || h.state === "shut_in")) {
+        healthy++;
+        assert.notEqual(h.simulated, true, `${h.key} +${k} is ${h.state} but labeled simulated`);
+      }
+    }
+  }
+  assert.ok(healthy > 0, "the tank stays healthy in this window");
+});

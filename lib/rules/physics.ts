@@ -46,7 +46,8 @@ export interface TankPhysics {
 
 // Physics run forward from the reported level at tick `from` to tick `to`. The rate at a tick
 // holds until the next one, and the level stays within 0 and the shutdown limit (at shutdown the
-// wells shut in and the level holds, EOG SPEC.md).
+// wells shut in and the level holds, EOG SPEC.md). A reading above the limit is impossible, so a
+// sensor drifting past it builds a growing error here; health.ts words that case as such.
 export function freeRun(tp: TankPhysics, ts: readonly number[], from: number, to: number): number {
   let p = tp.level[from];
   for (let k = from; k < to; k++) {
