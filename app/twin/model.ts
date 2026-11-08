@@ -4,6 +4,7 @@
 // Words match the console (app/console/Board.tsx) so the two screens never disagree.
 import { money, prettyId, type Alert, type ConsoleView, type SensorIssue } from "@/lib/eog/alerts";
 import type { SiteFacility } from "@/lib/live";
+import { tankLabel } from "@/lib/tank-name";
 
 export const TABLE_M = 1;          // the site's longest side, in meters on the table
 export const NEUTRAL_FILL = 0.5;   // drawn when no alert reports the tank's level
@@ -30,11 +31,10 @@ export interface TankState {
   bring: string[];                 // what the crew takes to the site
 }
 
-// "S5_FACILITY_C" in system "S5" -> "S5 · C", for the tank labels. Other naming is kept.
+// "S5_FACILITY_C" in system "S5" -> "S5 · Facility C tank": exactly Phone 1's name for the tank, so
+// a tank called out from the attack phone is the same words on its label in the headset.
 export function shortName(facility_id: string, system_id: string): string {
-  const rest = facility_id.startsWith(system_id + "_") ? facility_id.slice(system_id.length + 1) : facility_id;
-  const tail = rest.replace(/^FACILITY_?/i, "").replace(/_/g, " ") || rest;
-  return `${system_id} · ${tail}`;
+  return tankLabel(facility_id, system_id);
 }
 
 // Same as the console's fix card header.

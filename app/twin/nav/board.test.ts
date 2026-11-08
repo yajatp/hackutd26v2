@@ -143,11 +143,11 @@ test("Go to: the top problem first, then failures, then checks, then the quiet o
   const rows = goToRows(site, v);
   assert.deepEqual(rows.map((r) => r.facility_id), ["S5_FACILITY_C", "S1_FACILITY_B", "S3_FACILITY_A", "S1_FACILITY_A", "S2_FACILITY_A"]);
   assert.deepEqual(rows.map((r) => [r.label, r.state, r.tone]), [
-    ["S5 · C", "PUMP FAILED", "alert"],
-    ["S1 · B", "PUMP FAILED", "alert"],
-    ["S3 · A", "INSPECT", "warn"],
-    ["S1 · A", "OK", "ok"],
-    ["S2 · A", "OK", "ok"],
+    ["S5 · Facility C tank", "PUMP FAILED", "alert"],
+    ["S1 · Facility B tank", "PUMP FAILED", "alert"],
+    ["S3 · Facility A tank", "INSPECT", "warn"],
+    ["S1 · Facility A tank", "OK", "ok"],
+    ["S2 · Facility A tank", "OK", "ok"],
   ]);
   assert.equal(rows[0].top, true);
 });

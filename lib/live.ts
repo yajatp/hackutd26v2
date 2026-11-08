@@ -21,6 +21,7 @@ import type { DetectedEvent } from "./eog/types.ts";
 import { datasetToRows, type WideRow } from "../spacetimedb/src/wide.ts";
 import { DEFAULT_SITE_KEY } from "./sites.ts";
 import { RTT_INTERVAL_MS, RttMeter } from "./rules/darkroom/rtt.ts";
+import { tankLabel as tankName } from "./tank-name";
 
 // The hosted copy (Vercel, https) cannot open ws:// to a laptop, so it is built with
 // NEXT_PUBLIC_AVON_URI (a wss:// SpacetimeDB, e.g. maincloud) and NEXT_PUBLIC_AVON_DB. The demo LAN
@@ -180,11 +181,9 @@ export interface AvonLinkOptions {
   onLockdown?(l: LockdownState | null): void;
 }
 
-// "<SYS>_FACILITY_C" -> "<SYS> · Facility C tank"
+// "<SYS>_FACILITY_C" -> "<SYS> · Facility C tank", the same words the model shows (lib/tank-name.ts).
 function tankLabel(f: Facility): string {
-  const rest = f.facilityId.startsWith(f.systemId + "_") ? f.facilityId.slice(f.systemId.length + 1) : f.facilityId;
-  const nice = rest.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()).replace(/\b(\w)$/, (c) => c.toUpperCase());
-  return `${f.systemId} · ${nice} tank`;
+  return tankName(f.facilityId, f.systemId);
 }
 
 // Tanks whose pump has failed come first, in console order: their level is moving, so a fault

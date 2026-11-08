@@ -77,9 +77,9 @@ function view(alerts: Alert[], sensors: SensorIssue[] = []): ConsoleView {
 const byId = (v: ConsoleView | null, site = SITE) => new Map(tankStates(site, v).map((t) => [t.facility_id, t]));
 
 test("short tank names for labels: system and letter from the ids; other naming kept", () => {
-  assert.equal(shortName("S5_FACILITY_C", "S5"), "S5 · C");
-  assert.equal(shortName("S12_FACILITY_AB", "S12"), "S12 · AB");
-  assert.equal(shortName("NORTH_PAD_7", "EAST"), "EAST · NORTH PAD 7");
+  assert.equal(shortName("S5_FACILITY_C", "S5"), "S5 · Facility C tank");
+  assert.equal(shortName("S12_FACILITY_AB", "S12"), "S12 · Facility AB tank");
+  assert.equal(shortName("NORTH_PAD_7", "EAST"), "EAST · North Pad 7 tank");
 });
 
 test("countdown reads like the console", () => {
@@ -199,7 +199,7 @@ test("no view yet: no state is claimed", () => {
 
 test("short name for labels: system and letter, from the ids alone", () => {
   const t = byId(view([])).get("S5_FACILITY_C")!;
-  assert.equal(t.short, "S5 · C");
+  assert.equal(t.short, "S5 · Facility C tank");
 });
 
 test("the most urgent tank is the console's top fix card, else its top alert, else its top sensor", () => {
@@ -225,14 +225,14 @@ test("label lifts: close labels stack instead of overlapping; lone labels sit on
 test("VR label rows: short name first, a long line breaks after its first ' · ', words unchanged", () => {
   const red = byId(view([pumpFailure("S5_FACILITY_C", 2.052500979878605, 73.47)])).get("S5_FACILITY_C")!;
   assert.deepEqual(labelRows(red), [
-    { text: "S5 · C", tone: "name" },
+    { text: "S5 · Facility C tank", tone: "name" },
     { text: "PUMP FAILED ·", tone: "alert" },
     { text: "trips in 2h 03m", tone: "alert" },
   ]);
   const ok = byId(view([])).get("S1_FACILITY_A")!;
-  assert.deepEqual(labelRows(ok).map((r) => r.text), ["S1 · A", "OK"]);
+  assert.deepEqual(labelRows(ok).map((r) => r.text), ["S1 · Facility A tank", "OK"]);
   const lying = byId(view([], [issue("S1_FACILITY_A", "lying", true, "x")])).get("S1_FACILITY_A")!;
-  assert.deepEqual(labelRows(lying).map((r) => r.text), ["S1 · A", "LYING · SIMULATED"]);
+  assert.deepEqual(labelRows(lying).map((r) => r.text), ["S1 · Facility A tank", "LYING · SIMULATED"]);
   // The box a label takes grows with its rows, and problem labels are wider than OK ones.
   assert.ok(labelSize(red).h > labelSize(ok).h);
   assert.ok(labelSize(red).w > labelSize(ok).w);
