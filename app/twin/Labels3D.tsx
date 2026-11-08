@@ -12,7 +12,7 @@
 import { useMemo, useRef } from "react";
 import { Billboard } from "@react-three/drei";
 import type { Group } from "three";
-import { labelRows, LABEL_ROW_M, type PlacedTank, type TankState, type Tone } from "./model";
+import { labelLifts, labelRows, LABEL_ROW_M, type PlacedTank, type TankState, type Tone } from "./model";
 import { C, TONE_COLOR } from "./theme";
 import { usePainted, type Painter } from "./nav/glass";
 import { glass, measure, text, type TextStyle } from "./nav/paint";
@@ -141,9 +141,23 @@ function Sign({ id, s, at, foot, on, top, faked, still, onSelect, onHover }: {
 }
 
 // In the site root's frame (plan.ts): the table's middle in the table view, the world otherwise.
-export function Labels3D({ t, tanks, states, labelled, lifts, faked, selected, top, still, onSelect, onHover }: LabelsProps) {
+export function Labels3D({ t, tanks, states, labelled, faked, selected, top, still, onSelect, onHover }: LabelsProps) {
   const k = MINI[t.mode].labelK;
   const markers = useMemo(() => (t.mode === "ground" ? groundMarkers(t, tanks) : []), [t, tanks]);
+  // Stack the table and overview labels by their real drawn size (the measured text, the foot row)
+  // and the tanks' real spacing in this view, in label units (k = 1), so neighbours never cover
+  // each other (two failed pumps on one pad, S5 B and S5 C, used to).
+  const stacked = useMemo(() => {
+    if (t.mode === "ground") return new Map<string, number>();
+    const shown = tanks.filter((x) => labelled.has(x.facility_id) && states.has(x.facility_id));
+    const at = shown.map((x) => { const p = sitePos(t, x); return { facility_id: x.facility_id, x: p[0] / k, z: p[2] / k }; });
+    const sizeOf = (s: TankState | undefined, id: string) => {
+      if (!s) return { w: 0.12, h: 0.06 };
+      const px = labelPainter.size(specOf(s, selected === id, top === id));
+      return { w: (px.w / LABEL_PPM) * 1.08 + 0.01, h: px.h / LABEL_PPM + 0.022 };   // room for perspective
+    };
+    return labelLifts(at, [...states.values()], sizeOf);
+  }, [t, k, tanks, states, labelled, selected, top]);
   if (t.mode === "ground") {
     const focus = t.focus;
     const fs = focus ? states.get(focus) : undefined;
@@ -173,7 +187,7 @@ export function Labels3D({ t, tanks, states, labelled, lifts, faked, selected, t
         if (!s || !labelled.has(tank.facility_id)) return null;
         const p = sitePos(t, tank);
         const base: V3 = [p[0], roof, p[2]];
-        const at: V3 = [p[0], roof + 0.014 * k + (lifts.get(tank.facility_id) ?? 0) * k, p[2]];
+        const at: V3 = [p[0], roof + 0.014 * k + (stacked.get(tank.facility_id) ?? 0) * k, p[2]];
         return (
           <TankLabel key={tank.facility_id} id={tank.facility_id} s={s} at={at} k={k} stemTo={base}
             on={selected === tank.facility_id} top={top === tank.facility_id} faked={faked.has(tank.facility_id)} still={still}

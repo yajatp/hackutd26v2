@@ -179,14 +179,19 @@ export function labelSize(s: TankState | undefined): { w: number; h: number } {
 // How far above its tank each VR label floats, so labels of nearby tanks stack instead of
 // covering each other. Problem labels are placed first and stay closest to their tanks. It uses
 // distances on the table only, so the stacking holds from every side as the model turns.
-export function labelLifts(tanks: readonly PlacedTank[], states: readonly TankState[]): Map<string, number> {
+// `sizeOf` gives a label's real drawn box (Labels3D measures its text), and the tanks' x/z must
+// then be in the same units as that box; by default the estimate above and table units.
+export function labelLifts(
+  tanks: readonly Pick<PlacedTank, "facility_id" | "x" | "z">[], states: readonly TankState[],
+  sizeOf: (s: TankState | undefined, id: string) => { w: number; h: number } = (s) => labelSize(s),
+): Map<string, number> {
   const st = new Map(states.map((s) => [s.facility_id, s]));
   const rank = (id: string) => RANK[st.get(id)?.tone ?? "ok"];
   const order = [...tanks].sort((a, b) => rank(b.facility_id) - rank(a.facility_id) || a.facility_id.localeCompare(b.facility_id));
   const placed: { x: number; z: number; w: number; h: number; lift: number }[] = [];
   const out = new Map<string, number>();
   for (const t of order) {
-    const { w, h } = labelSize(st.get(t.facility_id));
+    const { w, h } = sizeOf(st.get(t.facility_id), t.facility_id);
     let lift = 0;
     for (let moved = true; moved;) {
       moved = false;

@@ -1,5 +1,5 @@
 /* The witness phone's own moments: the "witnessed #k" ticks, the one red flash when the record
-   stops matching, and the chime switch. Each animation runs once; under reduced motion the ticks
+   stops matching. Each animation runs once; under reduced motion the ticks
    simply appear and the flash does not exist (the red banner below it is the final state). */
 
 .ticks {
@@ -25,21 +25,6 @@
 
 .flash {
   display: none;
-}
-
-.chime {
-  min-width: 2rem;
-  height: 1.75rem;
-  border: 1px solid rgb(255 255 255 / 0.28);
-  border-radius: 6px;
-  color: #89919f;
-  font-size: 0.95rem;
-  line-height: 1;
-}
-
-.chime[aria-pressed="true"] {
-  border-color: #298dff;
-  color: #298dff;
 }
 
 @media (prefers-reduced-motion: no-preference) {

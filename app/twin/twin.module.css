@@ -673,3 +673,10 @@
     opacity: 0;
   }
 }
+
+/* With the site list open on a wide screen, the map (canvas and its labels) uses the room to the
+   list's right, so the list never covers a site's label (Carlsbad's used to sit under it). */
+@media (min-width: 900px) {
+  .stage[data-picker] { left: 352px; }
+  .page:has(.stage[data-picker]) { background: #000; }
+}

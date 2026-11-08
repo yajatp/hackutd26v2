@@ -281,7 +281,7 @@ function TwinPage({ given, entry, deepLinked, onPick, onBack, onEnterRoom, onLea
     <EntryContext.Provider value={entryValue}>
     <main className={css.page} style={THEME_VARS} data-view={mode} data-entry={entry.at} data-site={siteKey ?? undefined}>
       {atMap && <FleetFeed onSites={setFleet} />}
-      <div className={css.stage}>
+      <div className={css.stage} data-picker={atMap ? "" : undefined}>
         <TwinCanvas
           store={store} facilities={facilities} tanks={tanks} clusters={clusters} states={states} lifts={lifts} labelled={labelled}
           faked={fx.faked} waves={fx.waves} notices={fx.notices} selected={selected} hovered={hovered} top={top} turn={turn}
@@ -296,7 +296,7 @@ function TwinPage({ given, entry, deepLinked, onPick, onBack, onEnterRoom, onLea
         )}
       </div>
 
-      <header className={css.bar}>
+      <header className={css.bar} data-twin-bar>
         <Link href="/" className={css.wordmark}>Avon</Link>
         <h1 className={css.title}>{atRoom ? "Darkroom" : atMap ? "Choose a site" : siteName ?? "Night shift"}</h1>
         {!atMap && <BackToMap onBack={onBack} />}

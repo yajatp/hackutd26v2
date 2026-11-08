@@ -1,6 +1,6 @@
-// The night-shift sound choice (app/ui/NightGate.tsx asks once per browser session). Kept in
-// sessionStorage, with a copy in memory for browsers that refuse storage. Sound helpers ask
-// soundOn() before they play: off unless the person chose With sound.
+// Sound is removed (Mohan, Sun 07:25). Sound helpers still ask soundOn() before they play, and it
+// always answers no. The old per-session choice is kept in sessionStorage (with a copy in memory
+// for browsers that refuse storage) but nothing asks for it any more.
 
 export type SoundChoice = "on" | "off";
 
@@ -22,5 +22,5 @@ export function setSoundChoice(c: SoundChoice): void {
 }
 
 export function soundOn(): boolean {
-  return false;   // sound is removed (Mohan, Sun 07:25); soundChoice() is kept for the gate's wording
+  return false;
 }

@@ -117,26 +117,62 @@ function Projector({ root, points, anchors }: { root: RefObject<Group | null>; p
       });
     }
     items.sort((a, b) => b.p.rank - a.p.rank || b.y - a.y);
+    // The page's header row (buttons and words) wins: a label never rises under it (it wraps to
+    // three rows on a phone and used to cover a Walk label's words).
+    let ceiling = 0;
+    const bar = document.querySelector<HTMLElement>("[data-twin-bar]");
+    const layer = items[0]?.el.offsetParent as HTMLElement | null;
+    if (bar && layer) {
+      const top0 = layer.getBoundingClientRect().top;
+      for (const c of bar.children) {
+        const r = c.getBoundingClientRect();
+        if (r.height > 0) ceiling = Math.max(ceiling, r.bottom - top0 + 6);
+      }
+    }
     const placed: { l: number; r: number; t: number; b: number }[] = [];
+    // An open alert card (the security alert) is an obstacle too: labels stack clear of it
+    // instead of sliding under its edge.
+    if (layer) {
+      const lb = layer.getBoundingClientRect();
+      for (const d of document.querySelectorAll<HTMLElement>('[role="alertdialog"]')) {
+        const r = d.getBoundingClientRect();
+        if (r.height > 0) placed.push({ l: r.left - lb.left - 4, r: r.right - lb.left + 4, t: r.top - lb.top - 4, b: r.bottom - lb.top + 4 });
+      }
+    }
     for (const it of items) {
       let bottom = it.p.free ? it.y : it.y - LEAD_PX;
       if (!it.p.free && !it.hidden && it.chip) {
         const w = it.chip.offsetWidth, h = it.chip.offsetHeight;
-        const l = it.x - w / 2, r = it.x + w / 2;
-        for (let moved = true, n = 0; moved && n < 40; n++) {
-          moved = false;
-          for (const q of placed) {
-            if (l < q.r && r > q.l && bottom - h < q.b && bottom > q.t) {
-              bottom = q.t - 3;
-              moved = true;
-            }
-          }
+        // A chip near the screen's edge slides inward (its stem stays on the anchor) instead of
+        // being cut off; on a phone the right-hand labels used to run off the page.
+        const under = 6 - (it.x - w / 2), over = it.x + w / 2 - (size.width - 6);
+        const dx = under > 0 ? under : over > 0 ? -over : 0;
+        it.chip.style.translate = dx ? `${dx}px 0` : "";
+        const l = it.x - w / 2 + dx, r = it.x + w / 2 + dx;
+        const hit = (b: number) => placed.find((q) => l < q.r && r > q.l && b - h < q.b && b > q.t);
+        // Up first: each covered label pushes it above itself. If that climbs into the header
+        // row, stack downward from the ceiling instead, so it never lands on a placed label.
+        let up = bottom;
+        for (let q = hit(up), n = 0; q && n < 40; q = hit(up), n++) up = q.t - 3;
+        if (up - h >= ceiling) bottom = up;
+        else {
+          let down = Math.max(bottom, ceiling + h);
+          for (let q = hit(down), n = 0; q && n < 40; q = hit(down), n++) down = q.b + 3 + h;
+          bottom = down;
         }
         placed.push({ l, r, t: bottom - h, b: bottom });
       }
-      it.el.style.visibility = it.hidden ? "hidden" : "visible";
       it.el.style.transform = `translate3d(${it.x}px, ${bottom}px, 0)`;
       if (it.stem) it.stem.style.height = `${Math.max(0, it.y - bottom)}px`;
+      // A pad's name (placed last, rank 0) gives way to a tank label that covers it: the label
+      // carries the pad in its own words ("S2 · ..."), and the two used to print on each other.
+      let covered = false;
+      if (it.p.free && !it.hidden && it.chip && layer && placed.length) {
+        const lb = layer.getBoundingClientRect(), b = it.chip.getBoundingClientRect();
+        const l = b.left - lb.left, t = b.top - lb.top;
+        covered = placed.some((q) => l < q.r && l + b.width > q.l && t < q.b && t + b.height > q.t);
+      }
+      it.el.style.visibility = it.hidden || covered ? "hidden" : "visible";
     }
   });
   return null;

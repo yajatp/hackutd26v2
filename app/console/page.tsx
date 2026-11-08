@@ -60,7 +60,6 @@ function Checked({ v }: { v: Validation }) {
 export default function ConsolePage() {
   return (
     <AvonProvider>
-      {/* Once per browser session; With sound also wakes the audio, from the click itself. */}
       <Grain />
       <ConsoleScreen />
     </AvonProvider>

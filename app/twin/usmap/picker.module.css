@@ -29,3 +29,10 @@
   border: 1px solid #298DFF; border-radius: 8px; padding: 8px 12px; cursor: pointer;
 }
 .back:hover, .back:focus-visible { background: #298DFF; outline: none; }
+
+/* On a phone the page's header wraps to two rows and reached under the card's top edge, and the
+   card hid the whole map: it becomes a sheet along the bottom, clear of the header, with the map
+   above it. */
+@media (max-width: 640px) {
+  .picker { top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; max-height: 46dvh; }
+}

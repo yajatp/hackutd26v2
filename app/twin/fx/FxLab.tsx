@@ -18,7 +18,7 @@ import { AlarmBeacon } from "./AlarmBeacon";
 import { Shockwave } from "./Shockwave";
 import { GlitchGauge, useGlitch } from "./Glitch";
 import { Toast } from "./Toast";
-import { audioReady, isMuted, setMuted, unlockAudio } from "./audio";
+import { audioReady, unlockAudio } from "./audio";
 import { useEase, usePolish } from "./ease";
 
 declare global {
@@ -226,7 +226,6 @@ export default function FxLab() {
   const [scenario, setScenario] = useState<Scenario>(QUIET);
   const [auto, setAuto] = useState(true);
   const [still, setStill] = useStillPref();
-  const [muted, setMute] = useState(isMuted());
   const states = useMemo(() => statesOf(scenario), [scenario]);
   const t0 = useRef(0);
 
@@ -268,7 +267,6 @@ export default function FxLab() {
           <button style={{ ...btn, borderColor: C.alert }} onClick={() => manual({ failedR: true })}>Fail R</button>
           <button style={{ ...btn, borderColor: C.ok }} onClick={() => manual({ fakedQ: null, failedR: false })}>Clear all</button>
           <button style={btn} onClick={() => { unlockAudio(); setAuto(true); }}>{auto ? "● Auto" : "Auto"}</button>
-          <button style={btn} onClick={() => { unlockAudio(); setMuted(!muted); setMute(!muted); }}>{muted ? "Sound off" : "Sound on"}</button>
           <button style={btn} onClick={() => setStill(!still)}>{still ? "Comfort on" : "Comfort off"}</button>
         </div>
       </div>
