@@ -2,13 +2,14 @@
 //   node --test 'scripts/smoke/*.test.mjs'
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { SERVER, isProtected, parseArgs, publishArgs, spacetimeArgs } from "./safety.mjs";
+import { DEFAULT_FOLDER, SERVER, isProtected, parseArgs, publishArgs, spacetimeArgs } from "./safety.mjs";
 
 test("defaults: the two smoke databases, mock_test, one run", () => {
   const o = parseArgs([]);
   assert.equal(o.avonDb, "avon-smoke");
   assert.equal(o.darkroomDb, "darkroom-smoke");
-  assert.equal(o.folder, "/home/mohan/hackutd/eog-data/history/mock_test_2026-10-10T1530");
+  assert.equal(o.folder, DEFAULT_FOLDER);
+  assert.match(DEFAULT_FOLDER, /eog-data\/history\/mock_test_2026-10-10T1530$/);
   assert.equal(o.runs, 1);
 });
 
@@ -45,7 +46,7 @@ test("publish wipes the smoke databases and never the real ones", () => {
 });
 
 test("every spacetime command targets the local server", () => {
-  assert.equal(SERVER, "avonlocal");
+  assert.equal(SERVER, "http://127.0.0.1:3001");
   for (const args of [publishArgs("/m", "avon-smoke"), spacetimeArgs("sql", "darkroom-smoke", "SELECT 1"), spacetimeArgs("call", "x", "y")]) {
     const i = args.indexOf("-s");
     assert.ok(i >= 0 && args[i + 1] === SERVER, args.join(" "));

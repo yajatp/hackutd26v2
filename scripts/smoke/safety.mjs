@@ -1,10 +1,14 @@
 // Flags and safety rules for scripts/smoke.mjs. Every spacetime command goes to the LOCAL
 // server; only the smoke databases are ever wiped.
 
-export const SERVER = "avonlocal"; // spacetime server nickname for http://127.0.0.1:3001
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+export const SERVER = "http://127.0.0.1:3001"; // a URL, not a nickname: works without `spacetime server add`
 export const HTTP = "http://127.0.0.1:3001";
 export const WS = "ws://127.0.0.1:3001";
-export const DEFAULT_FOLDER = "/home/mohan/hackutd/eog-data/history/mock_test_2026-10-10T1530";
+// ../eog-data next to the repo, as in `npm run fake:site` (works on Linux and macOS).
+export const DEFAULT_FOLDER = join(dirname(fileURLToPath(import.meta.url)), "../../../eog-data/history/mock_test_2026-10-10T1530");
 
 // The real demo databases. The smoke test never wipes these, even when passed by name.
 const PROTECTED = new Set(["avon", "darkroom"]);
@@ -39,7 +43,7 @@ export function parseArgs(argv) {
   return o;
 }
 
-// spacetime <sub> -s avonlocal <rest...>. Only publish, sql and call; never login.
+// spacetime <sub> -s http://127.0.0.1:3001 <rest...>. Only publish, sql and call; never login.
 export function spacetimeArgs(sub, ...rest) {
   if (!ALLOWED.has(sub)) throw new Error(`spacetime ${sub} is not allowed in the smoke test`);
   return [sub, "-s", SERVER, ...rest];

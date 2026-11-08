@@ -116,3 +116,27 @@ Work down this list:
 - `npm run dev` warns about "multiple lockfiles" (a `package-lock.json` in the parent folder) and "Cross origin request detected" when a phone opens the LAN URL. Both are warnings only in Next 15.5.
 - On the first publish to a fresh server, the CLI prints "logged in directly to your target server". That is a local-only identity, not `spacetime login`.
 - Claude's in-app browser cannot connect to port 3001 from the LAN URL (it blocks those requests), so it shows DISCONNECTED there. That doesn't apply to phones. A WebSocket from another process over the LAN address got through, and its faults showed up on the console.
+
+## Checks, Sun early morning
+
+Sun 2026-11-08, about 00:40-00:50 CST, on L1 (macOS 26.7.1, arm64, Node 22.17.0, SpacetimeDB 2.14.1), branch `yajat/l1-check` from `origin/main` at 405e633, after `npm ci` (8 s). Run the way judging day runs it.
+
+| Step | Result | Time |
+|---|---|---|
+| 1. `npm run demo` | **PASS.** AVON IS UP. SpacetimeDB was already listening on 3001 (`*:3001`), so it used that one. publish 0.3 s, ingest 0.8 s, dev server + pages warm 5.3 s. Printed `http://10.169.150.177:3000/attack` with `en0 ok`. | 6.4 s total |
+| 2. `npm run smoke -- --runs 3` | **FAIL as shipped, PASS after a macOS fix** (below). After the fix: all 7 steps PASS on all 3 runs, SMOKE PASSED. Top alert S5_PUMP_C, 2.05 h, $905. fake_flat evidence AV-1177-2830. `verify.mjs` says ROLLBACK DETECTED AT #2 after the owner delete. | runs 1.6 s, 1.4 s, 1.4 s (4.9 s total) |
+| 3. `npm run fake:site`, then permian_site on `/console` | **PASS.** Wrote `../eog-data/fake/permian_site` (network.json, ops.json, 17.8 MB telemetry.csv). Prints nothing on success, exit 0. Console: "2 pump failures · doing nothing costs $12,421 · these plans cost $4,511". 4 systems, 12 facilities, 36 wells. Top card **FACILITY-3226807A279B · PUMP FAILED · TRIPS IN 2H 03M**, "Do this: Call 1 truck now, 1 trip", $1,266. Second card FACILITY-367BDDB66202, TRIPS IN 3H 26M. | 0.5 s to generate |
+| 4. Phone, `/attack` | **PASS** (Yajat on a real phone). Before this I switched the console back to mock_test. Fake on the first tank (S5 · Facility C): laptop console showed LYING · SIMULATED, and the fix card said CHECK THE TANK SENSOR FIRST. Clear all, then `fault` and `sensor_issue` were both empty. | - |
+| 5. `npm run demo:reset` | **PASS.** READY. Site mock_test_2026-10-10T1530, top card S5_FACILITY_C, 0 active faults, 0 sensor issues, 0 confirmed plans. Ran it twice. | 1.1 s wall, then READY in 0.8 s |
+
+**The macOS fix to the smoke test.** As shipped, every run failed at step 1: `No such saved server configuration: avonlocal`. `scripts/smoke/safety.mjs` used a spacetime server nickname that exists only on the laptop where it was written. Its default data folder was also a Linux path, `/home/mohan/hackutd/eog-data/...`. Two one-line changes in `scripts/smoke/safety.mjs`:
+- `SERVER` is now the URL `http://127.0.0.1:3001`, not a nickname. It works with no `spacetime server add`. It is still checked before every spacetime call, and it is still never maincloud.
+- `DEFAULT_FOLDER` is now `../eog-data/history/mock_test_2026-10-10T1530`, found from the repo's location, the same `../eog-data` that `npm run fake:site` uses. Works on Linux and macOS.
+
+`scripts/smoke/safety.test.mjs` was updated to match (6/6 pass), and a comment in `scripts/smoke.mjs` was updated. No other code changed. `scripts/smoke/acceptance.sh` still uses `/home/mohan/...` for its full_week case. It is Mohan's Linux acceptance script, so I left it alone.
+
+**Odd, harmless.**
+- The 3001 server that was already up had been started by another Claude session, with a data folder in that session's temp scratchpad. On judging day, start from a clean `npm run demo` so 3001 is the script's own server.
+- `fake:site` prints nothing on success, so check `ls ../eog-data/fake/permian_site`.
+- `/console` lists `full_week` and `mock_test_2026-10-10T1530` twice, once from `../eog-data/fake` and once from `history`. Use the second group for the judges' mock_test.
+- Same known noise as section 6: "tsc not found", the Next "multiple lockfiles" warning.
