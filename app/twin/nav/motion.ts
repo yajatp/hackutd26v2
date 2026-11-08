@@ -88,7 +88,7 @@ export const DOCK_BUTTONS: readonly { id: DockId; label: string }[] = [
   { id: "dashboard", label: "Dashboard" },
   { id: "reset", label: "Reset" },
 ];
-export const DOCK_BUTTON = { wM: 0.12, hM: 0.088, gapM: 0.012 } as const;    // Meta: targets at least 0.06 m at 1 m
+export const DOCK_BUTTON = { wM: 0.1, hM: 0.074, gapM: 0.01 } as const;     // Meta: targets at least 0.06 m at 1 m (smaller, quieter: Sun 05:25)
 
 // Button centers along the dock, centered on 0.
 export function dockLayout(n = DOCK_BUTTONS.length, w: number = DOCK_BUTTON.wM, gap: number = DOCK_BUTTON.gapM): number[] {

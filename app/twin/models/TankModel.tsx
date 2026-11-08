@@ -18,7 +18,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { glitchFrame } from "@/app/vr/field";
 import { C, TONE_COLOR } from "../theme";
 import type { Tone } from "../model";
-import { bandGeometry, flatQuad, gaugeGeometry, rimGeometry, tankGeometry, TANK } from "./geometry";
+import { bandGeometry, flatQuad, gaugeGeometry, rimGeometry, tankGeometry, tankGeometryLow, TANK } from "./geometry";
 import { softDisc } from "./kit";
 import {
   bandMaterial, beaconMaterial, gaugeMaterial, gaugeTear, groundGlow, painted, ringMaterial, shadowMaterial, shellTint, statePillar, TIME,
@@ -38,6 +38,9 @@ export interface TankModelProps {
   shadow?: boolean;             // a soft contact shadow (FacilityModel bakes its own into the pad)
   tint?: boolean;               // miniatures: wash the whole shell in the state's color (not OK only)
   pillarM?: number;             // miniatures: a column of the state's light this tall over the roof (0: none)
+  low?: boolean;                // miniatures: the low-detail shell (tankGeometryLow, about 200 triangles)
+  shell?: boolean;              // false: the caller draws the shell (MiniSite instances every tank's in one call)
+  pool?: boolean;               // false: the caller draws the state's ground pool (MiniSite instances them per tone)
 }
 
 const SELECT_R = TANK.R + 0.75;
@@ -68,7 +71,7 @@ function columnGeometry(): BufferGeometry {
   return column;
 }
 
-export function TankModel({ fill, tone, faked = false, selected = false, hovered = false, still = false, beacon = false, shadow = true, tint = false, pillarM = 0 }: TankModelProps) {
+export function TankModel({ fill, tone, faked = false, selected = false, hovered = false, still = false, beacon = false, shadow = true, tint = false, pillarM = 0, low = false, shell = true, pool = true }: TankModelProps) {
   const gauge = useMemo(() => gaugeMaterial(), []);
   const band = useMemo(() => bandMaterial(TONE_COLOR[tone], 0.36, 0.62), [tone]);
   const rim = useMemo(() => bandMaterial(C.holo, 0.32, 0.36), []);
@@ -121,14 +124,14 @@ export function TankModel({ fill, tone, faked = false, selected = false, hovered
 
   return (
     <group name="tank-model">
-      <mesh geometry={tankGeometry()} material={painted()} />
+      {shell && <mesh geometry={low ? tankGeometryLow() : tankGeometry()} material={painted()} />}
       <mesh geometry={gaugeGeometry()} material={gauge} renderOrder={2} />
       <mesh geometry={bandGeometry()} material={band} raycast={noRay} renderOrder={2} />
-      <mesh geometry={flatQuad()} material={groundGlow(tone, softDisc())} position={[0, 0.04, 0]} scale={[10, 1, 10]} raycast={noRay} renderOrder={1} />
+      {pool && <mesh geometry={flatQuad()} material={groundGlow(tone, softDisc())} position={[0, 0.04, 0]} scale={[10, 1, 10]} raycast={noRay} renderOrder={1} />}
       {shadow && <mesh geometry={flatQuad()} material={shadowMaterial(softDisc())} position={[0.25, 0.03, 0.2]} scale={[6.6, 1, 6.6]} raycast={noRay} renderOrder={0} />}
       <mesh ref={rimMesh} geometry={rimGeometry()} material={rim} raycast={noRay} visible={false} renderOrder={2} />
       <mesh ref={ringMesh} material={ring} rotation-x={-Math.PI / 2} position={[0, 0.05, 0]} raycast={noRay} visible={false} renderOrder={2}>
-        <ringGeometry args={[SELECT_R * 0.85, SELECT_R * 1.42, 96, 1]} />
+        <ringGeometry args={[SELECT_R * 0.85, SELECT_R * 1.42, low ? 40 : 96, 1]} />
       </mesh>
       {tint && tone !== "ok" && <mesh geometry={sleeveGeometry()} material={shellTint(tone)} raycast={noRay} renderOrder={1} />}
       {pillarM > 0 && tone !== "ok" && (

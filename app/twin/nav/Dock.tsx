@@ -4,7 +4,7 @@
 // tilted to face them. It follows the judge's yaw lazily (catches up past 40 degrees, eased).
 // Pointing lifts a button toward the judge and lights its glow; pulling the trigger sinks it and
 // flashes. The buttons pop in one after another when the dock appears.
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useSyncExternalStore } from "react";
 import { useFrame } from "@react-three/fiber";
 import { AdditiveBlending, type Group, type Mesh, type MeshBasicMaterial } from "three";
 import { useAvonConsole } from "@/lib/live";
@@ -14,6 +14,7 @@ import { glowTexture, usePainted, type Painter } from "./glass";
 import { corners, dot, fitSize, glass, icon, rgba, scanlines, text } from "./paint";
 import { DOCK, DOCK_BUTTON, DOCK_BUTTONS, dockLayout, ease, stagger, type DockId } from "./motion";
 import { NO_HIT, useFollowHead, usePress } from "./follow";
+import { isMuted, setMuted, subscribeMuted, unlockAudio } from "../fx/audio";
 import { useStill, useView } from "./ViewContext";
 
 const PPM = 2400;                        // texture px per meter on the dock
@@ -81,6 +82,7 @@ function DockButton({ id, label, x, active, index, born, still, onPress }: {
   const glowTex = useMemo(() => glowTexture(256, 200, 40, 34), []);
   const root = useRef<Group>(null);
   const glowMat = useRef<MeshBasicMaterial>(null);
+  const glowMesh = useRef<Mesh>(null);
   const flash = useRef<Mesh>(null);
   const flashMat = useRef<MeshBasicMaterial>(null);
   const { state, handlers } = usePress(onPress);
@@ -101,6 +103,8 @@ function DockButton({ id, label, x, active, index, born, still, onPress }: {
     }
     const breathe = active && !still ? 0.5 + 0.5 * Math.sin(now / 700) : 0.5;
     if (glowMat.current) glowMat.current.opacity = Math.min(1, (active ? 0.3 + 0.15 * breathe : 0.06) + 1.0 * hover + 0.3 * down) * pop;
+    // An idle button's faint glow is not worth a draw call per eye on the Quest: drawn when it shows.
+    if (glowMesh.current && glowMat.current) glowMesh.current.visible = glowMat.current.opacity > 0.08;
     const t = s.flashAt < 0 ? 1 : (now - s.flashAt) / 380;
     if (flash.current && flashMat.current) {
       flash.current.visible = t < 1 && !still;
@@ -112,7 +116,7 @@ function DockButton({ id, label, x, active, index, born, still, onPress }: {
   if (!face) return null;
   return (
     <group ref={root} visible={false}>
-      <mesh position={[0, 0, -0.004]} raycast={NO_HIT} scale={[1.42, 1.55, 1]}>
+      <mesh ref={glowMesh} position={[0, 0, -0.004]} raycast={NO_HIT} scale={[1.42, 1.55, 1]}>
         <planeGeometry args={[W, H]} />
         <meshBasicMaterial ref={glowMat} map={glowTex} color={C.holo} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} fog={false} />
       </mesh>
@@ -125,6 +129,36 @@ function DockButton({ id, label, x, active, index, born, still, onPress }: {
         <meshBasicMaterial map={face.texture} transparent depthWrite={false} toneMapped={false} fog={false} />
       </mesh>
     </group>
+  );
+}
+
+// The sound toggle: a sixth button at the dock's right end, as tall as the others (Meta: targets
+// at least 6 cm at 1 m). It reads the one shared mute state (fx/audio subscribeMuted).
+const SOUND = { w: 0.074, h: DOCK_BUTTON.hM } as const;
+const soundPainter: Painter<{ on: boolean }, null> = {
+  size: () => ({ w: SOUND.w * PPM, h: SOUND.h * PPM }),
+  paint(ctx, s, W, H) {
+    glass(ctx, 3, 3, W - 6, H - 6, { r: 22, edge: C.holo, edgeAlpha: s.on ? 0.7 : 0.35, edgePx: 3, tintAlpha: 0.18 });
+    dot(ctx, W / 2, H * 0.36, 11, s.on ? C.ok : C.textDim);
+    text(ctx, s.on ? "SOUND" : "MUTED", W / 2, H * 0.68, { size: 30, weight: 700, color: s.on ? C.text : C.textDim, align: "center", spacing: 3 });
+    return null;
+  },
+};
+
+export function useSoundOn(): boolean {
+  return !useSyncExternalStore(subscribeMuted, isMuted, () => false);
+}
+
+function SoundToggle({ x, y }: { x: number; y: number }) {
+  const on = useSoundOn();
+  const face = usePainted(soundPainter, { on });
+  const { handlers } = usePress(() => { unlockAudio(); setMuted(on); });
+  if (!face) return null;
+  return (
+    <mesh {...handlers} position={[x, y, 0.004]} renderOrder={3} name="nav-dock-sound">
+      <planeGeometry args={[SOUND.w, SOUND.h]} />
+      <meshBasicMaterial map={face.texture} transparent depthWrite={false} toneMapped={false} fog={false} />
+    </mesh>
   );
 }
 
@@ -170,6 +204,7 @@ export function Dock({ onReset, still: stillProp, aheadM = DOCK.aheadM, downM = 
           onPress={() => press(b.id)}
         />
       ))}
+      <SoundToggle x={RAIL.w / 2 + 0.01 + SOUND.w / 2} y={BUTTON_Y} />
     </group>
   );
 }

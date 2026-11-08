@@ -204,6 +204,7 @@ function TwinPage({ given }: { given?: XRStore }) {
           store={store} facilities={avon.facilities} tanks={tanks} clusters={clusters} states={states} lifts={lifts} labelled={labelled}
           faked={fx.faked} waves={fx.waves} notices={fx.notices} selected={selected} hovered={hovered} top={top} turn={turn}
           viewKey={viewKey} still={still} onSelect={select} onHover={hover} onTurn={turnBy} onReset={resetView} anchors={anchors}
+          locked={!!avon.lockdown?.active}
         />
         <Labels
           tanks={tanks} clusters={clusters} states={states} labelled={labelled} faked={fx.faked}

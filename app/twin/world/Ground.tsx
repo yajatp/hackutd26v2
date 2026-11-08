@@ -11,8 +11,9 @@ import { C, SIZE } from "../theme";
 import { duneCrest, fbm2, groundHeight, radialGrid, smoothstep, FLAT_R, DUNE_R, type XZ } from "./terrain";
 
 export const MAX_PADS = 12;
-const RINGS = 96;
-const SEGS = 160;
+// 72 x 112 (about 16k triangles): the Quest 3S budget (docs/TWIN-THEME.md "Scope"); was 96 x 160.
+const RINGS = 72;
+const SEGS = 112;
 
 function buildGround(): BufferGeometry {
   const { positions, index } = radialGrid(RINGS, SEGS);

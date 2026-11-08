@@ -2,7 +2,8 @@
 // The three views as page buttons, for /twin on a screen (or the Quest browser in 2D): Table,
 // Overview, Walk, with the same fade and rules as the headset's dock (useView). In Walk, a select
 // picks the facility pad. Colors and fonts come from the theme through CSS variables.
-import type { CSSProperties } from "react";
+import { useSyncExternalStore, type CSSProperties } from "react";
+import { isMuted, setMuted, subscribeMuted, unlockAudio } from "../fx/audio";
 import { useAvonConsole } from "@/lib/live";
 import { C, FONT, VIEW, type ViewMode } from "../theme";
 import { goToRows } from "./board";
@@ -30,6 +31,7 @@ export function ViewButtons({ className, showGoTo = true }: { className?: string
           {VIEW[m].label}
         </button>
       ))}
+      <SoundButton />
       {rows.length > 0 && (
         <label className={css.goto}>
           <span>Go to</span>
@@ -39,5 +41,17 @@ export function ViewButtons({ className, showGoTo = true }: { className?: string
         </label>
       )}
     </div>
+  );
+}
+
+// Sound on or off: the site's ambience (fx/Ambience) and the attack's chirp share one switch.
+function SoundButton() {
+  // One mute state for both toggles (this one and the VR dock's), so neither goes stale.
+  const on = !useSyncExternalStore(subscribeMuted, isMuted, () => false);
+  return (
+    <button type="button" data-testid="twin-sound" aria-pressed={on} className={css.btn}
+      onClick={() => { unlockAudio(); setMuted(on); }}>
+      {on ? "Sound on" : "Muted"}
+    </button>
   );
 }

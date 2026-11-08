@@ -8,9 +8,21 @@ let ctx: AudioContext | null = null;
 let muted = false;
 let lastAt = -Infinity;
 
-export function setMuted(m: boolean): void { muted = m; }
+const muteListeners = new Set<() => void>();
+export function setMuted(m: boolean): void {
+  if (m === muted) return;
+  muted = m;
+  for (const f of muteListeners) f();
+}
 export function isMuted(): boolean { return muted; }
+// For useSyncExternalStore: every sound toggle (2D button, VR dock) reads the one mute state.
+export function subscribeMuted(f: () => void): () => void {
+  muteListeners.add(f);
+  return () => { muteListeners.delete(f); };
+}
 export function audioReady(): boolean { return ctx !== null && ctx.state === "running"; }
+// The shared context (null until a gesture unlocked it), for the site's ambience (ambience.ts).
+export function audioContext(): AudioContext | null { return ctx; }
 
 // Call from inside a click, tap or key handler.
 export function unlockAudio(): void {

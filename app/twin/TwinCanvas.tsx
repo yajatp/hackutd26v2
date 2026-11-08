@@ -21,14 +21,16 @@ import { MODEL_CENTER, SNAP_RAD } from "./stage";
 import { easeTurn, TURN_MS, turnGoal } from "./look";
 import { systemKey, tankKey, type Anchors } from "./Labels";
 import { camera2D, groundPlaces, useView, ViewFade, ViewOrigin, type SiteTransform } from "./nav";
-import { World, type XZ as WorldXZ } from "./world";
-import { FacilityModel, TANK } from "./models";
+import { groundHeight, World, type XZ as WorldXZ } from "./world";
+import { FacilityModel, jackSlots, TANK } from "./models";
 import type { FxNotice } from "./fx";
 import { HoloTable, newPool } from "./HoloTable";
 import { GroundSite, MiniSite, PadLamp } from "./Site";
 import { Labels3D } from "./Labels3D";
 import { VrStage } from "./VrStage";
-import { BACKDROP, groundMarkers, siteRoot, sitePos, type V3 } from "./plan";
+import { StrobeLight } from "./fx/SiteEvents";
+import { Ambience } from "./fx/Ambience";
+import { BACKDROP, groundMarkers, groundSystem, siteRoot, sitePos, type V3 } from "./plan";
 
 const RANK: Record<Tone, number> = { alert: 3, warn: 2, ok: 1 };
 const LEAD_PX = 14;                      // a screen label sits this far above its anchor, on a stem
@@ -76,6 +78,7 @@ export interface TwinCanvasProps {
   turn: number;                       // snap turn, in 30 degree steps
   viewKey: number;                    // changes when the 2D camera should go back to its start
   still: boolean;                     // prefers-reduced-motion or the menu's comfort setting
+  locked?: boolean;                   // LOCKDOWN is active (the pad's lights fade to red in Walk)
   onSelect(id: string | null): void;
   onHover(id: string, on: boolean): void;
   onTurn(dir: 1 | -1): void;
@@ -223,7 +226,7 @@ function useTableTurn(root: RefObject<Group | null>, turn: number, table: boolea
 
 function TwinScene(props: Omit<TwinCanvasProps, "store">) {
   const { facilities, tanks, clusters, states, lifts, labelled, faked, waves, notices, selected, hovered, top, turn, viewKey, still,
-    onSelect, onHover, onTurn, onReset, anchors } = props;
+    onSelect, onHover, onTurn, onReset, anchors, locked = false } = props;
   const { mode, transform: t } = useView();
   const inXR = useXR((x) => x.session != null);
   const root = useRef<Group>(null);
@@ -249,29 +252,40 @@ function TwinScene(props: Omit<TwinCanvasProps, "store">) {
   }, [facilities, states]);
   const tablePads = useMemo<WorldXZ[]>(() => [[BACKDROP.at[0], BACKDROP.at[2]]], []);
   const picked = selected ? states.get(selected) ?? null : null;
-  const siteProps = { t, facilities, tanks, clusters, states, selected, hovered, top, faked, waves, still, inXR, originYaw, onSelect, onHover };
+  // The site's sound (fx/Ambience): the focus pad's units and its system's flare in Walk.
+  const sound = useMemo(() => {
+    const f = mode === "ground" ? facilities.find((x) => x.facility_id === t.focus) : undefined;
+    const jacks = f ? jackSlots(f.well_ids.length).map((j) => ({ x: j.x, z: j.z, phase: j.phase })) : [];
+    const sys = mode === "ground" ? groundSystem(t, clusters, tanks, groundHeight) : null;
+    return { jacks, flare: sys ? sys.flare : null };
+  }, [mode, facilities, t, clusters, tanks]);
+  const focusFailed = mode === "ground" && !!t.focus && states.get(t.focus)?.tone === "alert";
+  const siteProps = { t, facilities, tanks, clusters, states, selected, hovered, top, faked, waves, still, inXR, originYaw, locked, onSelect, onHover };
 
   return (
     <>
       <ViewOrigin yaw={originYaw} />
-      <World mode={mode} pads={mode === "table" ? tablePads : pads} padScale={mode === "overview" ? t.modelScale : 1} still={still} maxRealLights={2}
+      <World mode={mode} pads={mode === "table" ? tablePads : pads} padScale={mode === "overview" ? t.modelScale : 1} still={still} maxRealLights={1}
         posts={mode === "overview" ? OVERVIEW_POSTS : mode === "table" ? NO_POSTS : undefined} />
       {mode === "table" && backdrop && (
         <Backdrop facility={backdrop} s={states.get(backdrop.facility_id)} still={still} />
       )}
-      <PadLamp on={mode === "ground"} />
+      <PadLamp on={mode === "ground"} locked={locked} still={still} />
       <group ref={root} name="site-root" position={siteRoot(t)}>
         {mode === "table" && (
           <HoloTable root={root} pool={pool} tanks={tanks} clusters={clusters} top={top} hovered={hovered} still={still} inXR={inXR}
             onEmptyClick={() => onSelect(null)} />
         )}
         {mode === "ground" ? <GroundSite {...siteProps} /> : <MiniSite {...siteProps} />}
+        {/* Always mounted (the light count never changes): lit only in Walk when the pad's pump failed. */}
+        <StrobeLight on={focusFailed} still={still} />
         {inXR && (
           <Labels3D t={t} tanks={tanks} states={states} labelled={labelled} lifts={lifts} faked={faked} selected={selected} top={top}
             still={still} onSelect={onSelect} onHover={onHover} />
         )}
       </group>
       <VrStage s={picked} t={t} tanks={tanks} root={root} notices={notices} still={still} onSelect={onSelect} onTurn={onTurn} onReset={onReset} />
+      <Ambience walk={mode === "ground"} jacks={sound.jacks} running={!focusFailed} flare={sound.flare} />
       <ViewFade />
       <Controls2D t={t} viewKey={viewKey} />
       <Labels2D root={root} t={t} tanks={tanks} clusters={clusters} states={states} selected={selected} top={top} anchors={anchors} />

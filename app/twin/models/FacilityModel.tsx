@@ -42,6 +42,7 @@ export interface FacilityModelProps {
   onSelect?(facilityId: string): void;
   onHover?(facilityId: string, on: boolean): void;
   children?: ReactNode;           // anything to ride along in pad space (labels, effects)
+  pipeWrap?(pipes: ReactNode): ReactNode; // wraps the pad's flowlines (Walk: the pipe popout)
 }
 
 const LAMP = new Color(C.duskGlow).lerp(new Color(C.stars), 0.6);
@@ -65,7 +66,7 @@ function ledAt(s: JackSlot): V3 {
 
 export function FacilityModel({
   facility, state, fill, faked = false, selected = false, hovered = false, still = false, beacon = false, pad = true,
-  padLight = false, onSelect, onHover, children,
+  padLight = false, onSelect, onHover, children, pipeWrap,
 }: FacilityModelProps) {
   const tone = state?.tone ?? "ok";
   const failed = tone === "alert";          // tankStates: "alert" is only ever PUMP FAILED
@@ -99,8 +100,12 @@ export function FacilityModel({
         <mesh geometry={furniture.solid} material={painted()} />
         <mesh geometry={furniture.lit} material={lit()} />
         <Pumpjacks items={jacks} />
-        <PipeBundle paths={flows} flowing={!failed} radius={0.09} dashSpacing={1.8} speed={1.2} />
-        <PipeBundle paths={TRANSFER} flowing={!failed} failed={failed} radius={0.14} />
+        {(pipeWrap ?? ((p: ReactNode) => p))(
+          <>
+            <PipeBundle paths={flows} flowing={!failed} radius={0.09} dashSpacing={1.8} speed={1.2} />
+            <PipeBundle paths={TRANSFER} flowing={!failed} failed={failed} radius={0.14} />
+          </>,
+        )}
         {/* A generous unseen target round the tank, so a ray from across the pad finds it. */}
         <mesh position={[0, 3.6, 0]} visible={false}>
           <cylinderGeometry args={[TANK.R + 0.8, TANK.R + 0.8, 7.4, 12]} />

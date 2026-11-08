@@ -14,14 +14,21 @@
 // their real direction, and the pad as a teleport target.
 //
 // Selection: pick.ts (a trigger pull and release over any part of a facility, or a screen click).
-import { useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { AdditiveBlending, Color, type Mesh, type MeshBasicMaterial } from "three";
+import { AdditiveBlending, Color, Matrix4, type InstancedMesh, type Mesh, type MeshBasicMaterial, type PointLight } from "three";
 import type { SiteFacility } from "@/lib/live";
 import type { Cluster, PlacedTank, TankState } from "./model";
 import { C, TONE_COLOR, type ViewMode } from "./theme";
-import { FacilityModel, FlareStackModel, Glows, noRay, PipeBundle, PipeModel, Pumpjacks, TankModel, TANK, type GlowItem, type JackItem } from "./models";
+import { FacilityModel, FlareStackModel, FlareStacks, Glows, noRay, PipeBundle, PipeModel, Pumpjacks, TankModel, TANK, tankGeometryLow, type GlowItem, type JackItem } from "./models";
+import { groundGlow, painted } from "./models/shaders";
+import { flatQuad } from "./models/geometry";
+import { softDisc } from "./models/kit";
 import { AlarmBeacon, Shockwave } from "./fx";
+import { SiteEvents, useLockdownLight } from "./fx/SiteEvents";
+import { Battery, Dike, LeaseSign, Scrub } from "./models/Lease";
+import { PipePopout } from "./PipePopout";
+import { shortName } from "./model";
 import { GroundTeleport, type SiteTransform } from "./nav";
 import { groundHeight } from "./world";
 import { groundMarkers, groundSystem, hitRadius, miniJacks, miniPipe, MINI, modelPos, type V3 } from "./plan";
@@ -42,6 +49,7 @@ export interface SiteProps {
   still: boolean;
   inXR: boolean;
   originYaw: number;                       // the XR origin's snap turn (ground teleport needs it)
+  locked?: boolean;                        // LOCKDOWN is active (Walk: red emergency light)
   onSelect(id: string | null): void;
   onHover(id: string, on: boolean): void;
 }
@@ -74,7 +82,7 @@ function MiniTank({ id, at, s, hitR, beaconSize, pillarM, selected, hovered, top
   return (
     <group name={`tank:${id}`} position={[at.x, 0, at.z]} {...pick}>
       <TankModel fill={s?.fill ?? null} tone={s?.tone ?? "ok"} faked={faked} selected={selected} hovered={hovered} still={still} shadow={false}
-        tint pillarM={pillarM} />
+        tint pillarM={pillarM} low shell={false} pool={false} />
       {/* A generous unseen target, so a first-time user's ray finds the tank. */}
       <mesh position={[0, (TANK.railY + 1) / 2, 0]} visible={false}>
         <cylinderGeometry args={[hitR, hitR, TANK.railY + 1, 12]} />
@@ -86,6 +94,36 @@ function MiniTank({ id, at, s, hitR, beaconSize, pillarM, selected, hovered, top
       </group>
     </group>
   );
+}
+
+// Every miniature tank's shell in one instanced draw (the low-detail shell; the gauge, band and
+// glow stay per tank because they carry its state). Never takes the ray: each MiniTank has its own
+// unseen hit cylinder.
+function TankShells({ at }: { at: { x: number; z: number }[] }) {
+  const ref = useRef<InstancedMesh>(null);
+  useLayoutEffect(() => {
+    const mesh = ref.current, m = new Matrix4();
+    if (!mesh) return;
+    at.forEach((p, i) => mesh.setMatrixAt(i, m.makeTranslation(p.x, 0, p.z)));
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  }, [at]);
+  if (at.length === 0) return null;
+  return <instancedMesh key={at.length} ref={ref} args={[tankGeometryLow(), painted(), at.length]} raycast={noRay} name="tank-shells" />;
+}
+
+// The state's glow on the ground under each miniature tank, one instanced draw per tone.
+function TonePools({ at, tone }: { at: { x: number; z: number }[]; tone: TankState["tone"] }) {
+  const ref = useRef<InstancedMesh>(null);
+  useLayoutEffect(() => {
+    const mesh = ref.current, m = new Matrix4();
+    if (!mesh) return;
+    at.forEach((p, i) => mesh.setMatrixAt(i, m.makeScale(10, 1, 10).setPosition(p.x, 0.04, p.z)));
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  }, [at]);
+  if (at.length === 0) return null;
+  return <instancedMesh key={at.length} ref={ref} args={[flatQuad(), groundGlow(tone, softDisc()), at.length]} raycast={noRay} renderOrder={1} />;
 }
 
 export function MiniSite({ t, facilities, tanks, clusters, states, selected, hovered, top, faked, waves, still, inXR, onSelect, onHover }: SiteProps) {
@@ -113,6 +151,17 @@ export function MiniSite({ t, facilities, tanks, clusters, states, selected, hov
     return { ok, failed };
   }, [tanks, at, centres, states]);
 
+  const shells = useMemo(() => [...at.values()], [at]);
+  const pools = useMemo(() => {
+    const out: Record<TankState["tone"], { x: number; z: number }[]> = { ok: [], warn: [], alert: [] };
+    for (const tank of tanks) out[states.get(tank.facility_id)?.tone ?? "ok"].push(at.get(tank.facility_id)!);
+    return out;
+  }, [tanks, states, at]);
+  const flares = useMemo(() => clusters.map((c) => {
+    const p = centres.get(c.system_id)!;
+    return { x: p.x, z: p.z, s: mode === "table" ? 0.8 : 1 };
+  }), [clusters, centres, mode]);
+
   return (
     <group name="site-mini" scale={ms}>
       {tanks.map((tank) => (
@@ -123,19 +172,14 @@ export function MiniSite({ t, facilities, tanks, clusters, states, selected, hov
           onSelect={onSelect} onHover={onHover}
         />
       ))}
+      <TankShells at={shells} />
+      {(["ok", "warn", "alert"] as const).map((tone) => <TonePools key={tone} tone={tone} at={pools[tone]} />)}
       <group scale={look.jackScale}>
         <Pumpjacks items={jacks} shadow={mode === "overview"} />
       </group>
       <PipeBundle paths={pipes.ok} flowing radius={look.pipeR} dashSpacing={2.2} speed={1.4} />
       <PipeBundle paths={pipes.failed} flowing={false} failed radius={look.pipeR} />
-      {clusters.map((c, i) => {
-        const p = centres.get(c.system_id)!;
-        return (
-          <group key={c.system_id} position={[p.x, 0, p.z]} scale={mode === "table" ? 0.8 : 1}>
-            <FlareStackModel seed={FLARE_SEED * (i + 1)} still={still} />
-          </group>
-        );
-      })}
+      <FlareStacks items={flares} seed={FLARE_SEED} />
       {Object.entries(waves).map(([id, n]) => {
         const p = at.get(id);
         // The attack moment's ring in warn amber with an alert echo: it must stand out on the
@@ -148,11 +192,15 @@ export function MiniSite({ t, facilities, tanks, clusters, states, selected, hov
 
 // A warm light over the life-size pad. Always mounted (intensity 0 off the pad), so changing view
 // never changes the scene's light count, and no material recompiles mid-fade.
-export function PadLamp({ on }: { on: boolean }) {
-  return <pointLight color={C.duskGlow} intensity={on ? 30 : 0} distance={52} decay={1.3} position={[-1.5, 11, 6]} />;
+// LOCKDOWN: its color (and the masts' beams) ease to red emergency light over about 1 s.
+const PAD_WARM = new Color(C.duskGlow);
+export function PadLamp({ on, locked = false, still = false }: { on: boolean; locked?: boolean; still?: boolean }) {
+  const lamp = useRef<PointLight>(null);
+  useLockdownLight(lamp, locked, PAD_WARM, still);
+  return <pointLight ref={lamp} color={C.duskGlow} intensity={on ? 30 : 0} distance={52} decay={1.3} position={[-1.5, 11, 6]} />;
 }
 
-export function GroundSite({ t, facilities, tanks, clusters, states, selected, hovered, faked, waves, still, inXR, originYaw, onSelect, onHover }: SiteProps) {
+export function GroundSite({ t, facilities, tanks, clusters, states, selected, hovered, faked, waves, still, inXR, originYaw, locked = false, onSelect, onHover }: SiteProps) {
   const focus = t.focus;
   const facility = facilities.find((f) => f.facility_id === focus);
   const s = focus ? states.get(focus) : undefined;
@@ -174,15 +222,27 @@ export function GroundSite({ t, facilities, tanks, clusters, states, selected, h
           facility={facility} state={s} fill={s?.fill ?? null} faked={faked.has(focus)}
           selected={selected === focus} hovered={hovered === focus} still={still}
           onSelect={(id) => onSelect(id)} onHover={onHover}
+          pipeWrap={(pipes) => <PipePopout facility={facility} failed={failed}>{pipes}</PipePopout>}
         >
           <group position={[0, TANK.railY + 0.4, 0]}>
             <AlarmBeacon active={faked.has(focus)} size={MINI.ground.beaconM} still={still} light={false} />
           </group>
+          <SiteEvents failed={failed} faked={faked.has(focus)} locked={locked} still={still} />
+          <Dike />
+          <Battery />
+          <LeaseSign name={shortName(facility.facility_id, facility.system_id)} />
         </FacilityModel>
       </group>
       <Shockwave origin={[0, 0.08, 0]} trigger={waves[focus] ?? 0} radius={MINI.ground.waveM} color={C.warn} accent={C.alert} wall={MINI.ground.wallK} still={still} />
       <GroundTeleport still={still} yaw={originYaw} />
-      {sys && <PipeModel points={sys.pipe} flowing={!failed} failed={failed} radius={0.16} />}
+      <Scrub />
+      {sys && (
+        <PipePopout facility={facility} failed={failed}>
+          <PipeModel points={sys.pipe} flowing={!failed} failed={failed} radius={0.16} />
+          {/* A fatter unseen target along the pipe, so a ray from standing height finds it. */}
+          <group visible={false}><PipeModel points={sys.pipe} flowing={false} radius={0.55} /></group>
+        </PipePopout>
+      )}
       {sys && (
         <group position={sys.flare} scale={1.8}>
           <FlareStackModel seed={FLARE_SEED} still={still} />

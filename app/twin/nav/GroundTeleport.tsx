@@ -17,6 +17,7 @@ import { type XRStoreOptions } from "@react-three/xr";
 import { AdditiveBlending, Matrix4, Object3D, Vector3, type Group, type InstancedMesh, type MeshBasicMaterial } from "three";
 import { C, SIZE } from "../theme";
 import { landing, teleportArc, type V3 } from "../plan";
+import { crunch } from "../fx/Ambience";
 import { stickX, stickY, teleportAim } from "../stage";
 import { NO_HIT } from "./follow";
 import { clampToPad } from "./views";
@@ -69,7 +70,7 @@ export function GroundTeleport({ children, radius = SIZE.padRadius, still = fals
   return (
     <>
       {children}
-      <StickTeleport radius={radius} still={still} busy={busy} onLand={(hit, head) => teleport(landing(hit, head, faceYaw + yaw))} />
+      <StickTeleport radius={radius} still={still} busy={busy} onLand={(hit, head) => { crunch(); teleport(landing(hit, head, faceYaw + yaw)); }} />
       <group rotation-x={-Math.PI / 2} position={[0, 0.03, 0]}>
         <mesh raycast={NO_HIT}>
           <ringGeometry args={[radius - 0.12, radius, 128]} />

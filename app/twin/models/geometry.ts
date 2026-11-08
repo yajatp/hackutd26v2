@@ -18,15 +18,20 @@ const PAL = () => ({
   plate: mix(C.steel, C.skyMid, 0.1),
   seam: mix(C.steel, C.ground, 0.45),
   concrete: mix(C.ground, C.steel, 0.38),
-  blue: color(C.pumpjack),
-  blueDark: mix(C.pumpjack, C.skyZenith, 0.38),
-  white: color(C.pumpjackLight),
+  // Field paint, not toy paint: a faded olive drab beam and a dirty cream horsehead, as on the
+  // older units across the Permian (verifier, Sun 05:40). The keys keep their old names.
+  blue: color("#6d7457"),
+  blueDark: mix("#6d7457", C.ground, 0.4),
+  white: color("#c4bca6"),
   housing: mix(C.skyZenith, C.steel, 0.2),
   wall: mix(C.steel, C.pumpjack, 0.16),
   wallDark: mix(C.steel, C.skyZenith, 0.3),
   lamp: mix(C.duskGlow, C.stars, 0.6),
   window: mix(C.duskGlow, C.stars, 0.35),
   screen: mix(C.holo, C.skyZenith, 0.25),
+  // Permian stock tanks are painted desert tan (docs/TWIN-THEME.md "Realism pass"), courses a shade apart.
+  tan: color("#b9a37f"),
+  tanDark: color("#a8916c"),
 });
 
 const cache: Record<string, BufferGeometry> = {};
@@ -54,7 +59,7 @@ export function tankGeometry(): BufferGeometry {
     const P = PAL(), p = new Parts(), R = TANK.R;
     p.add(new CylinderGeometry(R + 0.2, R + 0.26, TANK.base, 32), P.concrete, at([0, TANK.base / 2, 0]));
     for (let k = 0; k < 4; k++) {
-      p.add(new CylinderGeometry(R, R, COURSE, 32, 1, true), k % 2 ? P.steel : P.plate, at([0, TANK.base + COURSE * (k + 0.5), 0]));
+      p.add(new CylinderGeometry(R, R, COURSE, 32, 1, true), k % 2 ? P.tan : P.tanDark, at([0, TANK.base + COURSE * (k + 0.5), 0]));
       for (let j = 0; j < 8; j++) {
         const a = ((j + (k % 2) * 0.5) * Math.PI * 2) / 8 + 0.2;
         p.box(0.035, COURSE, 0.02, P.seam, at([Math.sin(a) * (R + 0.004), TANK.base + COURSE * (k + 0.5), Math.cos(a) * (R + 0.004)], [0, a, 0]));
@@ -110,6 +115,23 @@ export function tankGeometry(): BufferGeometry {
     // Nozzles where the transfer lines meet the shell.
     p.rod([R - 0.05, 0.5, -0.55], [R + 0.14, 0.5, -0.55], 0.13, P.steelDark, 10);
     p.rod([1.32, 1.25, -1.18], [1.45, 1.25, -1.3], 0.13, P.steelDark, 10);
+    return p.merge();
+  });
+}
+
+// The tank for the miniatures (Table, Overview): the same silhouette in about 200 triangles (shell
+// in two tones, roof, top ring, gauge housing), since the ladder, cage, seams and rail are under a
+// pixel at table scale. Level of detail for the Quest's budget (docs/TWIN-THEME.md "Scope").
+export function tankGeometryLow(): BufferGeometry {
+  return once("tank-low", () => {
+    const P = PAL(), p = new Parts(), R = TANK.R;
+    p.add(new CylinderGeometry(R + 0.2, R + 0.26, TANK.base, 12, 1, true), P.concrete, at([0, TANK.base / 2, 0]));
+    p.add(new CylinderGeometry(R, R, (TANK.top - TANK.base) / 2, 14, 1, true), P.tanDark, at([0, TANK.base + (TANK.top - TANK.base) * 0.25, 0]));
+    p.add(new CylinderGeometry(R, R, (TANK.top - TANK.base) / 2, 14, 1, true), P.tan, at([0, TANK.base + (TANK.top - TANK.base) * 0.75, 0]));
+    p.add(new ConeGeometry(R + 0.07, TANK.roofH, 14, 1, true), P.steelLight, at([0, TANK.top + TANK.roofH / 2, 0]));
+    p.add(new CylinderGeometry(R - 0.12, R - 0.12, 0.08, 14, 1, true), P.white, at([0, TANK.railY, 0]));
+    p.box(GAUGE.bar + 0.16, GAUGE.height + 0.2, 0.09, P.housing, at([0, GAUGE.bottom + GAUGE.height / 2, R + 0.015]));
+    p.box(0.34, 0.3, 0.26, P.housing, at([0, TANK.top + 0.02, R + 0.16]));
     return p.merge();
   });
 }

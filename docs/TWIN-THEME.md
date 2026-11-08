@@ -184,3 +184,31 @@ Whoever puts on the headset should feel they are standing on a lease at night. R
   - text only where it informs.
 
   The drama is in the world, not in the interface.
+
+## Immersion pass, what landed (Sun 05:20)
+
+Measured with renderer.info on the dev server (2D, 1280x720, the seeded state with S5 · C PUMP FAILED):
+
+| View | Before (2D) | After (2D) | After, iwer Quest 3 emulator (stereo) |
+| --- | --- | --- | --- |
+| Table | 105 calls, 164k tris | 78 calls, 99k tris | 184 to 202 calls, 209k tris (with the VR dock, labels, how-to card) |
+| Overview | 91 calls, 160k tris | 64 calls, 96k tris | not measured (the 2D view buttons are hidden in XR) |
+| Walk | 36 calls, 71k tris | 46 calls, 62k tris (61 while a sensor is faked: beacon, tag) | not measured |
+
+- **Level of detail and instancing:** the miniatures use a 200-triangle tank (`tankGeometryLow`), every miniature shell is one instanced draw, the state glow pools are one instanced draw per tone, and the flare stacks are instanced (`FlareStacks`: 3 + n calls instead of 5 per stack). The desert floor grid went from 96 x 160 to 72 x 112.
+- **Lights:** three point lights in every view, always mounted so the count never changes (one pad post light, PadLamp, the strobe), plus the hemisphere and the moon.
+- **Events in Walk (`fx/SiteEvents.tsx`):** pump failed: the amber strobe on the alarm pole outside the dike flashes once a second and its real light hits the tank; the pumpjacks coast down as before. Sensor faked: the level transmitter's LED blinks fast and wrong (red and amber), one red tag hangs under it. LOCKDOWN (`locked` from `useAvonConsole().lockdown`): PadLamp, the mast beams and the mast heads ease to red over about 1 s and back on end. Comfort or reduced motion: the strobe holds a steady glow.
+- **Realism:** the stock tank painted desert tan (courses a shade apart), a 0.6 m containment dike with a dark liner round the tank, about 240 instanced scrub bushes off the pad (one draw), and a lease sign by the start (facility name, DANGER H2S GAS, NO SMOKING, EMERGENCY 911).
+- **Sound (`fx/Ambience.tsx`, on the shared context in `fx/audio.ts`):** wind in every view; in Walk, insects, each pumpjack's thump and creak on its stroke (positional, HRTF for the nearest two), the motor hum at the nearest unit (fades over 3 s when the pump fails), the flare's roar, and a gravel crunch on teleport. Mute: "Sound on / Muted" in the 2D view bar and a SOUND pill at the dock's right end.
+- **Pipe popout (`PipePopout.tsx`):** click or trigger on the system pipeline in Walk: a small card at that point with IN and OUT bpd (the last hour of `insight.flows`), FLOWING or STOPPED · PUMP FAILED, and the facilities on the line. A second press closes it.
+- **Dock:** buttons shrunk from 12 x 8.8 cm to 10 x 7.4 cm (still over Meta's 6 cm minimum).
+- **Not done yet:** the dock as icon-only buttons with labels on hover, the dashboard one card at a time, the second stock tank (a fourth tank needs the pad's flowlines re-routed to a header), the separator, heater-treater, VRU, LACT and combustor, the rectangular pad and lease road, fence, power poles, procedural tank-paint textures, dust motes, heat shimmer, the gas-plant glow.
+
+## Fix round (Sun 05:40-05:50)
+
+- **Tank battery:** a stock tank and a smaller produced-water tank (grey-green fiberglass) in a row west of the monitored tank, one instanced draw of the tank's own geometry (`Battery` in `models/Lease.tsx`); the dike now runs round all three (x -9.65 to 3.3 m). Placed clear of the western units' flowlines.
+- **Pumpjacks:** field paint, a faded olive drab beam and frame and a dirty cream horsehead, in place of the toy blue and white (`PAL` in `models/geometry.ts`).
+- **Sensor faked:** the transmitter now has a small dial whose needle twitches between wrong readings about 7 times a second (`needleAngle`, tested) while the float keeps rising; comfort or reduced motion holds it at one wrong reading.
+- **Pipe popout:** the pad's flowlines and transfer lines open the card too (`pipeWrap` on `FacilityModel`), not just the system pipeline.
+- **Sound:** both toggles (2D bar, VR dock) read one mute state (`subscribeMuted` + `useSyncExternalStore`); the dock's toggle is now a sixth button as tall as the others (7.4 x 7.4 cm). The ambience stops its loops and oscillators on unmount and forgets its stroke schedule when Walk ends.
+- **Measured (2D, 1280x720):** Table 78 calls / 99k tris, Overview 64 / 96k, Walk at S5 · C 50 / 72k (61 / 73k with a faked sensor). Stereo roughly doubles Walk to about 100 calls / 145k, under the 200 / 250k budget.
