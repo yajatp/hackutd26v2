@@ -128,7 +128,7 @@ export default function ConsolePage() {
         </div>
       )}
       {view && status.kind === "idle" && validation?.ok && <Checked v={validation} />}
-      {view && status.kind === "idle" && <Board view={view} />}
+      {view && status.kind === "idle" && <Board view={view} dataset={source} />}
       {!view && status.kind === "idle" && (
         <p className="mt-10 opacity-60">Pick a site above, or open any folder that holds network.json, ops.json and telemetry.csv.</p>
       )}

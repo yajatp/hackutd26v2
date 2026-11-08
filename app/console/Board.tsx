@@ -1,6 +1,11 @@
+"use client";
+
+import { useState } from "react";
+import { hhmm, money, type Alert, type ConsoleView } from "@/lib/eog/alerts";
+import { evidenceFor } from "@/lib/evidence";
+
 // The alerts view. Renders whatever ConsoleView it is given; where the view comes from
 // (Spacetime subscription) is the page's job.
-import { hhmm, money, type Alert, type ConsoleView } from "@/lib/eog/alerts";
 
 export type Conn = "connecting" | "connected" | "disconnected";
 
@@ -19,7 +24,35 @@ function stamp(unix: number): string {
   return new Date(unix * 1000).toISOString().slice(5, 16).replace("T", " ");
 }
 
-function FixCardView({ a, top }: { a: Alert; top: boolean }) {
+// A person carries this from the console to the Darkroom box; nothing is sent over the network.
+function SendToDarkroom({ a, dataset, now }: { a: Alert; dataset: string; now: number }) {
+  const [open, setOpen] = useState(false);
+  const ev = evidenceFor(a, dataset, now);
+  if (!ev) return null;
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} className="mt-2 rounded border border-current px-3 py-1.5 text-sm font-semibold hover:bg-current/10">
+        Open an incident in the Darkroom
+      </button>
+    );
+  }
+  return (
+    <div className="mt-2 rounded border border-current/40 p-3">
+      <p className="text-xs font-semibold uppercase tracking-wide opacity-70">Carry this to the Darkroom box</p>
+      <p className="mt-1 text-sm">
+        A sensor that disagrees with physics can mean someone is inside the network. Nothing is sent from here:
+        a person types this reference on the Darkroom box, and the box logs who brought it and when.
+      </p>
+      <p className="mt-2 font-mono text-3xl font-bold tracking-wider">{ev.ref}</p>
+      <p className="mt-1 break-all font-mono text-xs opacity-70">Fingerprint (SHA-256): {ev.hash}</p>
+      <p className="mt-1 text-xs opacity-70">
+        {ev.record.asset_id} {ev.record.metric} · {dataset} at {hhmm(now)} UTC{ev.record.simulated ? " · SIMULATED fault" : ""}
+      </p>
+    </div>
+  );
+}
+
+function FixCardView({ a, top, dataset, now }: { a: Alert; top: boolean; dataset: string; now: number }) {
   const fix = a.fix!;
   const big = top ? "text-2xl" : "text-xl";
   return (
@@ -37,6 +70,7 @@ function FixCardView({ a, top }: { a: Alert; top: boolean }) {
             )}
           </p>
           <p>{a.tank_sensor.evidence} This plan uses its reading.</p>
+          <SendToDarkroom a={a} dataset={dataset} now={now} />
         </div>
       )}
       <div className="mt-3 flex items-baseline justify-between gap-4">
@@ -104,7 +138,7 @@ export function ConnBanner({ conn }: { conn: Conn }) {
     : <p className="mt-4 text-sm opacity-60">Connecting to Spacetime…</p>;
 }
 
-export function Board({ view }: { view: ConsoleView }) {
+export function Board({ view, dataset }: { view: ConsoleView; dataset: string }) {
   const failures = view.alerts.filter((a) => a.fix);
   const inspections = view.alerts.filter((a) => !a.fix);
   return (
@@ -116,7 +150,7 @@ export function Board({ view }: { view: ConsoleView }) {
         </p>
       )}
       <div className="mt-3 flex flex-col gap-4">
-        {failures.map((a, i) => <FixCardView key={a.id} a={a} top={i === 0} />)}
+        {failures.map((a, i) => <FixCardView key={a.id} a={a} top={i === 0} dataset={dataset} now={view.now} />)}
       </div>
       {failures.length === 0 && (
         <p className="mt-6 rounded-lg border border-current/15 p-4">No pump failures right now. Every tank is draining normally.</p>
