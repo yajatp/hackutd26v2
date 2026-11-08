@@ -10,6 +10,9 @@ import { Badge, type Tone } from "@/app/ui/Badge";
 import { LogEntries } from "@/app/ui/LogEntries";
 import { ConnectionChip, StatusBanner } from "./StatusBanner";
 import { ThreatModelCard } from "./ThreatModelCard";
+import { AddMemberPanel } from "./AddMemberPanel";
+import { BringEvidence } from "./BringEvidence";
+import { Choice } from "./Choice";
 
 const SUGGESTED_SYSTEMS = ["Tank level sensor", "SCADA historian", "Field VPN credentials", "Royalty owner records", "Billing database"];
 
@@ -45,26 +48,6 @@ function useAction() {
   return { busy, error, run };
 }
 
-function Choice<T extends string>({ label, options, value, onChange, disabled }: { label: string; options: readonly T[]; value: T; onChange: (v: T) => void; disabled: boolean }) {
-  return (
-    <fieldset className="flex flex-wrap items-center gap-2" disabled={disabled}>
-      <legend className="mb-1 w-full text-sm font-medium">{label}</legend>
-      {options.map(o => (
-        <button
-          key={o}
-          type="button"
-          aria-pressed={value === o}
-          onClick={() => onChange(o)}
-          className={`btn ${value === o ? "btn-primary" : ""}`}
-        >
-          {value === o && <span aria-hidden="true">✓</span>}
-          {o}
-        </button>
-      ))}
-    </fieldset>
-  );
-}
-
 export default function BoxScreen() {
   const s = useDarkroom();
   const incidents = useMemo(() => replayIncidents(s.events), [s.events]);
@@ -76,7 +59,8 @@ export default function BoxScreen() {
   const closure = useMemo(() => (current ? replayClosure(s.events, current.id) : null), [s.events, current]);
 
   const broken = s.status.kind === "rollback" || s.status.kind === "tampering";
-  const writable = s.connection === "live" && s.ready && !broken && !!s.me && !closure;
+  const canWrite = s.connection === "live" && s.ready && !broken && !!s.me;
+  const writable = canWrite && !closure;
   const role = s.me?.role ?? null;
 
   const [title, setTitle] = useState("");
@@ -85,12 +69,7 @@ export default function BoxScreen() {
   const [certainty, setCertainty] = useState<Certainty>("SUSPECTED");
   const [note, setNote] = useState("");
   const [message, setMessage] = useState("");
-  const [ref, setRef] = useState("");
-  const [fingerprint, setFingerprint] = useState("");
-  const [source, setSource] = useState("Avon console");
-  const [evNote, setEvNote] = useState("");
   const [resolution, setResolution] = useState("");
-  const evidenceAction = useAction();
   const closeAction = useAction();
   const openAction = useAction();
   const scopeAction = useAction();
@@ -98,7 +77,7 @@ export default function BoxScreen() {
 
   async function openIncident(e: FormEvent) {
     e.preventDefault();
-    if (await openAction.run(() => darkroom.openIncident(title))) {
+    if (await openAction.run(async () => { await darkroom.openIncident(title); })) {
       setTitle("");
       setChosen(null);
     }
@@ -117,16 +96,6 @@ export default function BoxScreen() {
     e.preventDefault();
     if (!current) return;
     if (await chatAction.run(() => darkroom.append(current.id, "chat", { text: message }))) setMessage("");
-  }
-
-  async function logEvidence(e: FormEvent) {
-    e.preventDefault();
-    if (!current) return;
-    if (await evidenceAction.run(() => darkroom.append(current.id, "evidence_imported", { ref, fingerprint, source, note: evNote }))) {
-      setRef("");
-      setFingerprint("");
-      setEvNote("");
-    }
   }
 
   async function closeIncident(e: FormEvent) {
@@ -149,10 +118,18 @@ export default function BoxScreen() {
           <p className="flex flex-wrap items-center gap-2 font-semibold">
             <Badge tone="warn" icon="●">READ ONLY</Badge> This screen can read the record but cannot write to it.
           </p>
-          <p className="mt-1">The box owner adds it from a terminal on the box:</p>
-          <pre className="mt-2 overflow-x-auto rounded bg-surface p-2 text-xs">{`node scripts/darkroom-seed.mjs --add ${s.identity} --name "Box screen" --role Commander`}</pre>
+          <p className="mt-1">
+            To join, ask a Commander for a join code, then open <a className="font-semibold underline" href="/join">/join</a> on this device and type it with your name.
+          </p>
+          <details className="mt-2">
+            <summary className="cursor-pointer">A box screen that needs to be a Commander</summary>
+            <p className="mt-1">The box owner adds it from a terminal on the box:</p>
+            <pre className="mt-2 overflow-x-auto rounded bg-surface p-2 text-xs">{`node scripts/darkroom-seed.mjs --add ${s.identity} --name "Box screen" --role Commander`}</pre>
+          </details>
         </div>
       )}
+
+      {s.me && can(role, "evidence_imported") && <BringEvidence s={s} shownId={current?.id ?? null} writable={canWrite} />}
 
       <section aria-labelledby="incident" className="card">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -220,8 +197,9 @@ export default function BoxScreen() {
         <section aria-labelledby="evidence" className="card">
           <h2 id="evidence" className="section-title">Evidence</h2>
           <p className="mt-1 text-sm text-muted">
-            Nothing reaches this box over the network. A person carries the reference from the Avon console and types it here;
-            the log records who brought it and when. This proves the record was not changed later (integrity), not that the reading was true.
+            Nothing reaches this box over the network. A person carries the reference from the Avon console and types it in
+            Bring evidence from the console, above; the log records who brought it and when. This proves the record was not changed later
+            (integrity), not that the reading was true.
           </p>
           <ul className="mt-3 space-y-2 text-sm">
             {evidence.length === 0 && <li className="text-muted">No evidence logged yet.</li>}
@@ -236,34 +214,6 @@ export default function BoxScreen() {
               </li>
             ))}
           </ul>
-          {can(role, "evidence_imported") && !closure && (
-            <form onSubmit={logEvidence} className="mt-3 flex flex-wrap items-end gap-2 border-t border-line-soft pt-3">
-              <label className="text-sm">
-                <span className="block font-semibold">Reference from the console</span>
-                <input className="field mt-1 w-60 max-w-full font-mono text-xl uppercase" placeholder="AV-1A2B-3C4D" value={ref}
-                  maxLength={20} onChange={e => setRef(e.target.value)} disabled={!writable || evidenceAction.busy} />
-              </label>
-              <label className="text-sm">
-                <span className="block font-medium">Source</span>
-                <input className="field mt-1 w-40" value={source} maxLength={LIMITS.system}
-                  onChange={e => setSource(e.target.value)} disabled={!writable || evidenceAction.busy} />
-              </label>
-              <label className="min-w-0 flex-1 text-sm">
-                <span className="block font-medium">Full fingerprint (optional)</span>
-                <input className="field mt-1 w-full font-mono text-xs" placeholder="64 characters, if you have it" value={fingerprint}
-                  maxLength={64} onChange={e => setFingerprint(e.target.value)} disabled={!writable || evidenceAction.busy} />
-              </label>
-              <label className="w-full text-sm">
-                <span className="block font-medium">Note (optional)</span>
-                <input className="field mt-1 w-full" value={evNote} maxLength={LIMITS.note}
-                  onChange={e => setEvNote(e.target.value)} disabled={!writable || evidenceAction.busy} />
-              </label>
-              <button type="submit" className="btn btn-primary text-base" disabled={!writable || evidenceAction.busy || !ref.trim()}>
-                Log evidence
-              </button>
-              {evidenceAction.error && <p role="alert" className="w-full text-sm font-semibold text-alert">▲ {evidenceAction.error}</p>}
-            </form>
-          )}
           {can(role, "incident_closed") && !closure && (
             <form onSubmit={closeIncident} className="mt-3 flex flex-wrap items-end gap-2 border-t border-line-soft pt-3">
               <label className="min-w-0 flex-1 text-sm">
@@ -405,6 +355,7 @@ export default function BoxScreen() {
         </div>
         <div className="space-y-5">
           <LogEntries events={s.events} max={10} />
+          {role === "Commander" && <AddMemberPanel s={s} writable={canWrite} />}
           <section aria-labelledby="team" className="card text-sm">
             <h2 id="team" className="section-title">Team</h2>
             <ul className="mt-2 space-y-1">

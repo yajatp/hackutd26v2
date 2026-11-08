@@ -16,7 +16,7 @@ export function ThreatModelCard() {
           Someone quietly editing or deleting log entries afterward. The log is tamper-evident: each entry carries the fingerprint (hash) of the one before it, every screen and witness phone remembers the newest entry it saw, and a separate verifier laptop checks the chain.
         </li>
         <li>
-          People writing to the record without being let in. Only members the box owner added can write, and the server checks each member&apos;s role (Commander, Responder, Viewer). The server stamps who wrote each entry; a screen cannot choose that name.
+          People writing to the record without being let in. Only members can write. The box owner adds them, or a Commander gives a one-use code in person that works for 60 seconds. The server checks each member&apos;s role (Commander, Responder, Viewer) and stamps who wrote each entry; a screen cannot choose that name.
         </li>
       </ul>
 
@@ -30,7 +30,16 @@ export function ThreatModelCard() {
         <li>
           Root on the box deleting or rewriting entries. We do not stop that; we detect it on every device that already saw those entries. A device that never saw an entry cannot miss it.
         </li>
-        <li>Anyone who gets onto the Darkroom network reading the record. Its tables can be read without signing in; the verifier laptop relies on that.</li>
+        <li>
+          Someone in control of the box adding a new entry (or a new member) in another member&apos;s name. Entries are not signed per device yet. Rewriting or deleting entries that already exist is still caught.
+        </li>
+        <li>
+          Someone watching the box&apos;s network. The connection to the box is not encrypted (ws://), so the box must stay on its own network.
+        </li>
+        <li>Anyone on the box&apos;s network reading its tables. They can be read without signing in; the verifier laptop relies on that.</li>
+        <li>
+          Changes on the company side. The company-side (Avon) database trusts its own network in this prototype: any screen that reaches it can load a site or add a simulated fault.
+        </li>
       </ul>
     </section>
   );
