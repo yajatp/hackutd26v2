@@ -23,7 +23,10 @@ import { C, FONT, TONE_COLOR } from "./theme";
 import { useStill, useView, ViewButtons, ViewProvider } from "./nav";
 import { confirmedFacilities, useAttackFx, type FxNotice } from "./fx";
 import { twinXR } from "./xr";
-import { backToMap, BackToMap, EntryContext, entrySearch, FleetFeed, initialEntry, pickSite, SiteData, SitePicker, type Entry, type EntryValue } from "./usmap";
+import { backToMap, BackToMap, EntryContext, enterDarkroom, entrySearch, entrySite, FleetFeed, initialEntry, leaveDarkroom, pickSite, SiteData, SitePicker, type Entry, type EntryValue, type RoomValue } from "./usmap";
+import { alertVisible, attackSignal, dismissAlert, NO_ALERT, settleAlert, type AlertState } from "./darkroom/logic";
+import { incidentEvidence } from "./darkroom/evidence";
+import { DarkroomPanel, SecurityAlert } from "./darkroom/Page";
 import css from "./twin.module.css";
 
 const NO_FACILITIES: SiteFacility[] = [];
@@ -146,7 +149,8 @@ export default function TwinScreen({ store }: { store?: XRStore } = {}) {
   // The database the layout's <AvonProvider> already reads (from the URL at load).
   const [home] = useState(() => siteDatabase(new URLSearchParams(window.location.search).get("site")));
   const [bridged, setBridged] = useState(true);
-  const db = entry.at === "site" ? siteDatabase(entry.site) : home;
+  const here = entrySite(entry);
+  const db = here ? siteDatabase(here) : home;
 
   useEffect(() => {
     const next = entrySearch(window.location.search, entry);
@@ -161,22 +165,25 @@ export default function TwinScreen({ store }: { store?: XRStore } = {}) {
     setEntry((cur) => pickSite(cur, key));
   }, [bridged, home]);
   const back = useCallback(() => setEntry(backToMap()), []);
+  const enterRoom = useCallback(() => setEntry(enterDarkroom), []);
+  const leaveRoom = useCallback(() => setEntry(leaveDarkroom), []);
 
   return (
     <SiteData db={db} home={home} onBridge={setBridged}>
       <ViewProvider>
-        <TwinPage given={store} entry={entry} deepLinked={deepLinked} onPick={pick} onBack={back} />
+        <TwinPage given={store} entry={entry} deepLinked={deepLinked} onPick={pick} onBack={back} onEnterRoom={enterRoom} onLeaveRoom={leaveRoom} />
       </ViewProvider>
     </SiteData>
   );
 }
 
-function TwinPage({ given, entry, deepLinked, onPick, onBack }: {
-  given?: XRStore; entry: Entry; deepLinked: boolean; onPick(key: string): void; onBack(): void;
+function TwinPage({ given, entry, deepLinked, onPick, onBack, onEnterRoom, onLeaveRoom }: {
+  given?: XRStore; entry: Entry; deepLinked: boolean; onPick(key: string): void; onBack(): void; onEnterRoom(): void; onLeaveRoom(): void;
 }) {
   const avon = useAvonConsole();
   const atMap = entry.at === "map";
-  const siteKey = entry.at === "site" ? entry.site : null;
+  const atRoom = entry.at === "darkroom";
+  const siteKey = entrySite(entry);
   const siteName = SITES.find((x) => x.key === siteKey)?.name ?? null;
   const facilities = atMap ? NO_FACILITIES : avon.facilities;
   const [fleet, setFleet] = useState<SiteSummary[]>([]);
@@ -204,6 +211,28 @@ function TwinPage({ given, entry, deepLinked, onPick, onBack }: {
   const confirmed = useMemo(() => confirmedFacilities(avon.view, avon.confirmations), [avon.view, avon.confirmations]);
   const fx = useAttackFx(list, { confirmed, faultAssets });
   const picked = selected ? states.get(selected) ?? null : null;
+
+  // The Darkroom (darkroom/): an attack signal on the site being viewed (a tank sensor reporting
+  // false data, or LOCKDOWN active) raises the security alert once; "Not now" holds until the
+  // signal changes. The incident's AV- reference is computed as the console computes it.
+  const lock = avon.lockdown;
+  const signal = useMemo(() => (atMap ? null : attackSignal({
+    faked: [...fx.faked].map((id) => ({ facility_id: id, name: states.get(id)?.name ?? id })),
+    lockdown: lock,
+  })), [atMap, fx.faked, states, lock]);
+  const [alertSt, setAlertSt] = useState<AlertState>(NO_ALERT);
+  useEffect(() => { setAlertSt((st) => settleAlert(st, signal)); }, [signal]);
+  const showAlert = alertVisible(alertSt, signal) && !atRoom;
+  const dataset = avon.source?.datasetId ?? "";
+  const ev = useMemo(() => (signal || atRoom ? incidentEvidence(avon.view, dataset, signal?.facilityId ?? null, lock?.active ? lock.evidenceRef : null) : null),
+    [signal, atRoom, avon.view, dataset, lock]);
+  const dismiss = useCallback(() => setAlertSt((st) => dismissAlert(st, signal)), [signal]);
+  const enterRoom = useCallback(() => { setAlertSt((st) => dismissAlert(st, signal)); onEnterRoom(); }, [signal, onEnterRoom]);
+  const room = useMemo<RoomValue>(() => ({
+    in: atRoom, enter: enterRoom, leave: onLeaveRoom, dismiss,
+    alert: signal ? { line: signal.line, visible: showAlert } : null,
+    incident: { line: signal?.line ?? null, ref: ev?.ref ?? null, simulated: !!ev?.record.simulated },
+  }), [atRoom, enterRoom, onLeaveRoom, dismiss, signal, showAlert, ev]);
 
   // A new view starts facing north: the table's turn and the judge's snap turn go back to 0 (while
   // the view is faded out).
@@ -233,8 +262,8 @@ function TwinPage({ given, entry, deepLinked, onPick, onBack }: {
     setDashboard(false);
     if (modeRef.current !== "table") setMode("table");
   }, [atMap, siteKey, setMode, setDashboard]);
-  const entryValue = useMemo<EntryValue>(() => ({ atMap, site: siteName ?? siteKey, siteKey, sites: fleet, pick: onPick, back: onBack }),
-    [atMap, siteName, siteKey, fleet, onPick, onBack]);
+  const entryValue = useMemo<EntryValue>(() => ({ atMap, site: siteName ?? siteKey, siteKey, sites: fleet, pick: onPick, back: onBack, room }),
+    [atMap, siteName, siteKey, fleet, onPick, onBack, room]);
 
   const turnBy = useCallback((dir: 1 | -1) => setTurn((t) => (t + dir + 12) % 12), []);
   const resetView = useCallback(() => { setTurn(0); setViewKey((k) => k + 1); }, []);
@@ -250,7 +279,7 @@ function TwinPage({ given, entry, deepLinked, onPick, onBack }: {
 
   return (
     <EntryContext.Provider value={entryValue}>
-    <main className={css.page} style={THEME_VARS} data-view={mode} data-entry={atMap ? "map" : "site"} data-site={siteKey ?? undefined}>
+    <main className={css.page} style={THEME_VARS} data-view={mode} data-entry={entry.at} data-site={siteKey ?? undefined}>
       {atMap && <FleetFeed onSites={setFleet} />}
       <div className={css.stage}>
         <TwinCanvas
@@ -259,21 +288,24 @@ function TwinPage({ given, entry, deepLinked, onPick, onBack }: {
           viewKey={viewKey} still={still} onSelect={select} onHover={hover} onTurn={turnBy} onReset={resetView} anchors={anchors}
           locked={!!avon.lockdown?.active}
         />
-        <Labels
-          tanks={tanks} clusters={clusters} states={states} labelled={labelled} faked={fx.faked}
-          selected={selected} top={top} still={still} onSelect={setSelected} onHover={hover} anchors={anchors}
-        />
+        {!atRoom && (
+          <Labels
+            tanks={tanks} clusters={clusters} states={states} labelled={labelled} faked={fx.faked}
+            selected={selected} top={top} still={still} onSelect={setSelected} onHover={hover} anchors={anchors}
+          />
+        )}
       </div>
 
       <header className={css.bar}>
         <Link href="/" className={css.wordmark}>Avon</Link>
-        <h1 className={css.title}>{atMap ? "Choose a site" : siteName ?? "Night shift"}</h1>
+        <h1 className={css.title}>{atRoom ? "Darkroom" : atMap ? "Choose a site" : siteName ?? "Night shift"}</h1>
         {!atMap && <BackToMap onBack={onBack} />}
-        {!atMap && <ViewButtons className={css.views} />}
+        {!atMap && !atRoom && <ViewButtons className={css.views} />}
+        {!atRoom && <button type="button" data-testid="twin-darkroom-open" className={css.hairline} onClick={enterRoom}>Darkroom</button>}
         <Link href="/" className={css.quiet}>Home</Link>
         <div className={css.actions}>
           {vr && <button type="button" className={css.primary} onClick={enterVR}>Enter VR</button>}
-          {!atMap && <button type="button" className={css.hairline} onClick={resetView}>Reset view</button>}
+          {!atMap && !atRoom && <button type="button" className={css.hairline} onClick={resetView}>Reset view</button>}
           <ConnBadge state={connState(avon.status)} />
         </div>
       </header>
@@ -283,7 +315,9 @@ function TwinPage({ given, entry, deepLinked, onPick, onBack }: {
       )}
       {vrError && <p role="alert" className={css.notice}>Could not enter VR: {vrError}</p>}
       {atMap && <SitePicker sites={fleet} onPick={onPick} />}
-      {!atMap && tanks.length === 0 && (
+      {showAlert && signal && <SecurityAlert line={signal.line} onEnter={enterRoom} onDismiss={dismiss} />}
+      {atRoom && <DarkroomPanel room={room} onMap={onBack} />}
+      {!atMap && !atRoom && tanks.length === 0 && (
         <p className={css.empty}>
           {avon.status === "connecting" ? "Connecting to the live data…"
             : avon.status === "connected" ? <>No site loaded yet. Load one on the <Link href="/console">console</Link>.</>
@@ -291,8 +325,8 @@ function TwinPage({ given, entry, deepLinked, onPick, onBack }: {
         </p>
       )}
       <PageToast latest={fx.latest} />
-      {!atMap && <Foot hint={HINT[mode]} />}
-      {picked && (
+      {!atMap && !atRoom && <Foot hint={HINT[mode]} />}
+      {picked && !atRoom && (
         <Panel
           s={picked} here={mode === "ground" && focus === picked.facility_id}
           onWalk={() => setMode("ground", picked.facility_id)} onClose={() => setSelected(null)}

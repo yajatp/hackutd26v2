@@ -30,6 +30,8 @@ import { Labels3D } from "./Labels3D";
 import { VrStage } from "./VrStage";
 import { StrobeLight } from "./fx/SiteEvents";
 import { Ambience } from "./fx/Ambience";
+import { useEntry } from "./usmap";
+import { DarkroomRoom } from "./darkroom/Room3D";
 import { BACKDROP, groundMarkers, groundSystem, siteRoot, sitePos, type V3 } from "./plan";
 
 const RANK: Record<Tone, number> = { alert: 3, warn: 2, ok: 1 };
@@ -229,6 +231,7 @@ function TwinScene(props: Omit<TwinCanvasProps, "store">) {
     onSelect, onHover, onTurn, onReset, anchors, locked = false } = props;
   const { mode, transform: t } = useView();
   const inXR = useXR((x) => x.session != null);
+  const entry = useEntry();
   const root = useRef<Group>(null);
   const [pool] = useState(newPool);
   useTableTurn(root, turn, mode === "table", still);
@@ -261,6 +264,10 @@ function TwinScene(props: Omit<TwinCanvasProps, "store">) {
   }, [mode, facilities, t, clusters, tanks]);
   const focusFailed = mode === "ground" && !!t.focus && states.get(t.focus)?.tone === "alert";
   const siteProps = { t, facilities, tanks, clusters, states, selected, hovered, top, faked, waves, still, inXR, originYaw, locked, onSelect, onHover };
+
+  // The Darkroom (darkroom/): the isolated room in place of the site and its world. Same canvas
+  // and XR session, no reload.
+  if (entry?.room?.in) return <DarkroomRoom room={entry.room} onMap={entry.back} />;
 
   return (
     <>

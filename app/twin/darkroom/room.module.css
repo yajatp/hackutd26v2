@@ -1,0 +1,77 @@
+/* The Darkroom on the flat page (Sui style): panels #131518, thin borders, white type, one blue
+   accent, red only for the alert. No glow. */
+.alert {
+  position: absolute;
+  z-index: 30;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, calc(100% - 32px));
+  box-sizing: border-box;
+  padding: 20px 22px;
+  background: #131518;
+  border: 1px solid #ef4444;
+  border-radius: 12px;
+  color: #fff;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
+}
+.kicker {
+  margin: 0 0 6px;
+  font: 500 11px/1.4 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #f87171;
+}
+.title { margin: 0 0 8px; font-size: 20px; font-weight: 700; }
+.line { margin: 0 0 6px; font-size: 15px; font-weight: 600; line-height: 1.45; }
+.sub { margin: 0 0 16px; font-size: 14px; line-height: 1.5; color: #a1a7b2; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.primary, .ghost {
+  font: 600 14px/1 "Hanken Grotesk", system-ui, sans-serif;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.primary { background: #298dff; border: 1px solid #298dff; color: #fff; }
+.primary:hover { background: #4da1ff; }
+.ghost { background: transparent; border: 1px solid #222529; color: #fff; }
+.ghost:hover { border-color: #298dff; color: #298dff; }
+
+.room {
+  position: absolute;
+  z-index: 20;
+  top: 72px;
+  right: 16px;
+  width: min(440px, calc(100% - 32px));
+  max-height: calc(100% - 96px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 20px 22px;
+  background: #131518;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  color: #fff;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
+}
+.label {
+  margin: 16px 0 6px;
+  font: 500 11px/1.4 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #6c7584;
+}
+.label:first-child { margin-top: 0; }
+.ref { margin: 0; font: 500 26px/1.2 "IBM Plex Mono", ui-monospace, monospace; color: #298dff; }
+.muted { margin: 4px 0 0; font-size: 13px; color: #a1a7b2; line-height: 1.5; }
+.status { margin: 0; font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #298dff; }
+.status[data-tone="alert"] { color: #f87171; }
+.status[data-tone="alert"]::before { background: #ef4444; }
+.status[data-tone="idle"]::before { background: #6c7584; }
+.entries { list-style: none; margin: 0; padding: 0; font: 500 12px/1.9 "IBM Plex Mono", ui-monospace, monospace; color: #a1a7b2; }
+.entries li { display: grid; grid-template-columns: 40px 1fr 90px 72px; gap: 8px; border-top: 1px solid #222529; }
+.entries li span:nth-child(2) { color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.entries li span:nth-child(3) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list { list-style: disc; margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; color: #a1a7b2; }
+.list li { margin-bottom: 4px; }
+.controls { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }

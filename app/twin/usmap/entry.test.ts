@@ -47,3 +47,22 @@ test("status line in plain words", () => {
   assert.equal(siteStatusText({ ...base, lockdown: true, pumpFailures: 1 }), "Lockdown active");
   assert.equal(siteStatusText({ ...base, sensorIssues: 1 }), "1 sensor issue");
 });
+
+test("the Darkroom: in from a site or the map, back to where the judge came from", async () => {
+  const { enterDarkroom, leaveDarkroom, entrySite } = await import("./entry");
+  const site = pickSite(MAP, "permian");
+  const room = enterDarkroom(site);
+  assert.deepEqual(room, { at: "darkroom", site: "permian" });
+  assert.equal(enterDarkroom(room), room);
+  assert.deepEqual(leaveDarkroom(room), { at: "site", site: "permian" });
+  assert.deepEqual(enterDarkroom(MAP), { at: "darkroom", site: null });
+  assert.deepEqual(leaveDarkroom(enterDarkroom(MAP)), MAP);
+  assert.equal(leaveDarkroom(site), site);
+  assert.deepEqual(backToMap(), MAP);
+  assert.equal(entrySite(room), "permian");
+  assert.equal(entrySite(MAP), null);
+  // The URL keeps ?site= in the Darkroom, so a reload comes back to the site.
+  assert.equal(entrySearch("?x=1", room), "?x=1&site=permian");
+  assert.equal(entrySearch("?site=permian", enterDarkroom(MAP)), "");
+  assert.deepEqual(pickSite(room, "williston"), { at: "site", site: "williston" });
+});

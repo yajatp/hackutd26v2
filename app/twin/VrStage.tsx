@@ -23,6 +23,7 @@ import { Toast, type FxNotice } from "./fx";
 import { noRay } from "./models";
 import { Panel3D } from "./Panel3D";
 import { BackButton3D, MapStage, useEntry } from "./usmap";
+import { SecurityAlert3D } from "./darkroom/Alert3D";
 
 // Each controller's thumbstick: one sideways push past the threshold is one step (stage.ts snapTurn,
 // turnAxis: a mostly forward push is the Walk view's teleport aim, not a turn); it fires again only
@@ -122,11 +123,14 @@ export function VrStage({ s, t, tanks, root, notices, still, onSelect, onTurn, o
   // The entry map (usmap/): on the page and in the headset, in place of the site's cards and dock.
   if (entry?.atMap) return <MapStage sites={entry.sites} inXR={inXR} onPick={entry.pick} />;
   const table = mode === "table";
-  const back = entry && table ? <BackButton3D onBack={entry.back} site={entry.site ?? ""} /> : null;
+  const back = entry && table ? <BackButton3D onBack={entry.back} site={entry.site ?? ""} onDarkroom={entry.room?.enter} /> : null;
   if (!inXR) return back;
+  // The security alert (darkroom/): in front of the judge once per new attack signal.
+  const alert = entry?.room?.alert?.visible ? entry.room : null;
   return (
     <>
       {back}
+      {alert && <SecurityAlert3D key={alert.alert!.line} line={alert.alert!.line} onEnter={alert.enter} onDismiss={alert.dismiss} />}
       {table && !dashboard && <HowTo still={still} />}
       {/* The dashboard takes the space in front: the panel steps out while it is open. */}
       <Panel3D s={dashboard ? null : s} t={t} tanks={tanks} root={root} still={still} onClose={() => onSelect(null)} onWalk={(id) => setMode("ground", id)} />

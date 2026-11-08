@@ -7,6 +7,7 @@ import type { SiteSummary } from "@/lib/fleet";
 import { facing, HOW_TO, type P3 } from "../stage";
 import { UsMap3D } from "./UsMap3D";
 import { canvasTexture, dot, loadFonts, panel, SUI, write } from "./paint";
+import { Button3D } from "../darkroom/Button3D";
 
 function useFonts() {
   const [ok, setOk] = useState(false);
@@ -51,7 +52,8 @@ export function MapStage({ sites, inXR, onPick }: { sites: SiteSummary[]; inXR: 
 // Back to map: a small button at the table's front left, by the judge's left hand, facing them.
 export const BACK_AT: P3 = [-0.58, 1.0, -0.52];
 const BW = 0.2, BPX = 520, BPY = 140;
-export function BackButton3D({ onBack, site }: { onBack(): void; site: string }) { // site: its display name
+// The Darkroom button sits just under it (darkroom/: the isolated incident room).
+export function BackButton3D({ onBack, site, onDarkroom }: { onBack(): void; site: string; onDarkroom?(): void }) { // site: its display name
   const fonts = useFonts();
   const [hot, setHot] = useState(false);
   const tex = useMemo(() => canvasTexture(BPX, BPY, (ctx) => {
@@ -72,6 +74,10 @@ export function BackButton3D({ onBack, site }: { onBack(): void; site: string })
         <planeGeometry args={[BW, (BW * BPY) / BPX]} />
         <meshBasicMaterial map={tex} transparent toneMapped={false} fog={false} />
       </mesh>
+      {onDarkroom && (
+        <Button3D name="twin-darkroom-button" label="Darkroom" width={0.2} onPress={onDarkroom}
+          position={[0, -0.068, 0.025]} rotation={[-(20 * Math.PI) / 180, 0, 0]} />
+      )}
     </group>
   );
 }

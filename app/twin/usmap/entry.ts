@@ -4,7 +4,9 @@
 import { SITES } from "@/lib/sites";
 import type { SiteSummary } from "@/lib/fleet";
 
-export type Entry = { at: "map" } | { at: "site"; site: string };
+// The Darkroom (app/twin/darkroom/): the isolated incident room. `site` is where the judge came
+// from (null from the map), so "Return to the site" goes back there.
+export type Entry = { at: "map" } | { at: "site"; site: string } | { at: "darkroom"; site: string | null };
 
 export const MAP: Entry = { at: "map" };
 
@@ -31,11 +33,29 @@ export function backToMap(): Entry {
   return MAP;
 }
 
+// Into the Darkroom from the map or a site; entering again keeps the state.
+export function enterDarkroom(cur: Entry): Entry {
+  if (cur.at === "darkroom") return cur;
+  return { at: "darkroom", site: cur.at === "site" ? cur.site : null };
+}
+
+// "Return to the site": back to the site the judge came from, or the map if none.
+export function leaveDarkroom(cur: Entry): Entry {
+  if (cur.at !== "darkroom") return cur;
+  return cur.site ? { at: "site", site: cur.site } : MAP;
+}
+
+// The site whose live data stays connected: the site, or the one the Darkroom was entered from.
+export function entrySite(e: Entry): string | null {
+  return e.at === "map" ? null : e.site;
+}
+
 // The query string for history.replaceState: ?site=<key> at a site, no site parameter at the map.
 // Every other parameter is kept as it was.
 export function entrySearch(search: string, e: Entry): string {
   const q = new URLSearchParams(search);
-  if (e.at === "site") q.set("site", e.site);
+  const site = entrySite(e);
+  if (site) q.set("site", site);
   else q.delete("site");
   const s = q.toString();
   return s ? `?${s}` : "";
