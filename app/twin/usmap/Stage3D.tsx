@@ -1,6 +1,6 @@
 "use client";
-// The 3D parts of the entry flow that VrStage renders: the map scene with its welcome card, and
-// the "Back to map" button at a site. Sui style (paint.ts).
+// The 3D parts of the entry flow that VrStage renders: the map with its welcome card and exit
+// button, and the "Back to map" button at a site. Sui style (paint.ts).
 import { useEffect, useMemo, useState } from "react";
 import type { ThreeEvent } from "@react-three/fiber";
 import type { SiteSummary } from "@/lib/fleet";
@@ -40,11 +40,23 @@ function MapCard() {
   );
 }
 
-export function MapStage({ sites, inXR, onPick }: { sites: SiteSummary[]; inXR: boolean; onPick(key: string): void }) {
+// Just below the welcome card, clear of the table and site targets.
+const EXIT_AT: P3 = [HOW_TO.at[0], HOW_TO.at[1] - 0.21, HOW_TO.at[2]];
+
+export function MapStage({ sites, session, onPick }: { sites: SiteSummary[]; session?: XRSession; onPick(key: string): void }) {
   return (
     <>
       <UsMap3D sites={sites} onPick={onPick} />
-      {inXR && <MapCard />}
+      {session && (
+        <>
+          <MapCard />
+          <Button3D name="twin-exit-vr" label="Exit VR" width={0.32}
+            position={EXIT_AT} rotation={[0, facing(EXIT_AT), 0]}
+            onPress={() => {
+              session.end().catch((error: unknown) => console.warn("Could not exit VR", error));
+            }} />
+        </>
+      )}
     </>
   );
 }

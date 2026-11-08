@@ -117,14 +117,14 @@ export function VrStage({ s, t, tanks, root, notices, still, onSelect, onTurn, o
   onTurn(dir: 1 | -1): void;
   onReset(): void;
 }) {
-  const inXR = useXR((x) => x.session != null);
+  const session = useXR((x) => x.session);
   const { mode, dashboard, setMode } = useView();
   const entry = useEntry();
   // The entry map (usmap/): on the page and in the headset, in place of the site's cards and dock.
-  if (entry?.atMap) return <MapStage sites={entry.sites} inXR={inXR} onPick={entry.pick} />;
+  if (entry?.atMap) return <MapStage sites={entry.sites} session={session} onPick={entry.pick} />;
   const table = mode === "table";
   const back = entry && table ? <BackButton3D onBack={entry.back} site={entry.site ?? ""} onDarkroom={entry.room?.enter} /> : null;
-  if (!inXR) return back;
+  if (!session) return back;
   // The security alert (darkroom/): in front of the judge once per new attack signal.
   const alert = entry?.room?.alert?.visible ? entry.room : null;
   return (
