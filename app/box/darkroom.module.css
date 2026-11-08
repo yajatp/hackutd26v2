@@ -103,6 +103,12 @@
   letter-spacing: 0.02em;
 }
 
+/* Numbers inside pixel type: Pixelify's 5 is an S, so "AT #5" read "AT #S" (Digits.tsx). */
+.room :global(.dr-num) {
+  font-family: "Chakra Petch", ui-monospace, monospace;
+  font-weight: 700;
+}
+
 .room :global([data-chain-status="verified"] .dr-status) {
   color: var(--verified);
 }
@@ -120,19 +126,14 @@
   color: #fca5a5;
 }
 
-/* ---- Three animations. Each runs once when its element mounts, never loops, and none of them
-   exist under prefers-reduced-motion: the final state shows at once. ---- */
+/* ---- Two banner animations. Each runs once when its element mounts, never loops, and neither
+   exists under prefers-reduced-motion: the final state shows at once. The log itself is a drawn
+   chain now (Chain.tsx, chain.module.css), with its own drop-in, seal and crack. ---- */
 
 @media (prefers-reduced-motion: no-preference) {
   /* LOG VERIFIED lands. StatusBanner keys the headline by its text, so a new status remounts it. */
   .room :global(.dr-status) {
     animation: dr-stamp 260ms ease-out both;
-  }
-
-  /* A new log entry: the newest row (first in the list) slides down and fades in, with one mint
-     flash of its left edge. Rows are keyed by seq, so only a new entry mounts a new first row. */
-  .room :global(section[aria-labelledby="log-entries"] ol > li:first-child) {
-    animation: dr-entry 240ms ease-out both, dr-edge 900ms ease-out both;
   }
 
   /* ROLLBACK DETECTED or TAMPERING: the banner shakes once and its red rule pulses once. */
@@ -149,32 +150,6 @@
   to {
     opacity: 1;
     transform: scale(1);
-  }
-}
-
-@keyframes dr-entry {
-  from {
-    opacity: 0;
-    transform: translateY(-0.6rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes dr-edge {
-  from {
-    box-shadow: inset 3px 0 0 #3dff9a;
-    padding-left: 0.5rem;
-  }
-  70% {
-    box-shadow: inset 3px 0 0 #3dff9a;
-    padding-left: 0.5rem;
-  }
-  to {
-    box-shadow: inset 3px 0 0 transparent;
-    padding-left: 0;
   }
 }
 

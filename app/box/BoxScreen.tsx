@@ -7,12 +7,14 @@ import { CERTAINTIES, LIMITS, SCOPE_STATES, type Certainty, type ScopeState } fr
 import { can } from "@/lib/rules/darkroom/roles";
 import { AppHeader } from "@/app/ui/AppHeader";
 import { Badge, type Tone } from "@/app/ui/Badge";
-import { LogEntries } from "@/app/ui/LogEntries";
 import { ConnectionChip, StatusBanner } from "./StatusBanner";
 import { ThreatModelCard } from "./ThreatModelCard";
 import { AddMemberPanel } from "./AddMemberPanel";
 import { BringEvidence } from "./BringEvidence";
 import { Choice } from "./Choice";
+import { Chain } from "./Chain";
+import { IncidentStamp } from "./IncidentStamp";
+import { useFresh } from "./useFresh";
 
 const SUGGESTED_SYSTEMS = ["Tank level sensor", "SCADA historian", "Field VPN credentials", "Royalty owner records", "Billing database"];
 
@@ -57,6 +59,8 @@ export default function BoxScreen() {
   const chat = useMemo(() => (current ? replayChat(s.events, current.id) : []), [s.events, current]);
   const evidence = useMemo(() => (current ? replayEvidence(s.events, current.id) : []), [s.events, current]);
   const closure = useMemo(() => (current ? replayClosure(s.events, current.id) : null), [s.events, current]);
+  // Entries that arrived while this screen was open: their links drop in and the stamp stamps.
+  const fresh = useFresh(s.events, s.ready);
 
   const broken = s.status.kind === "rollback" || s.status.kind === "tampering";
   const canWrite = s.connection === "live" && s.ready && !broken && !!s.me;
@@ -137,6 +141,8 @@ export default function BoxScreen() {
             <h2 id="incident" className="section-title">Incident</h2>
             {current ? (
               <>
+                <IncidentStamp key={`${current.id}:${closure ? "closed" : "open"}`} id={current.id} closed={!!closure}
+                  fresh={!broken && fresh.seqs.has(closure ? closure.seq : current.seq)} broken={broken} />
                 <p className="text-2xl font-semibold">
                   {current.id} · {current.title}
                 </p>
@@ -229,6 +235,26 @@ export default function BoxScreen() {
           )}
         </section>
       )}
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <ThreatModelCard />
+        </div>
+        <div className="space-y-5">
+          <Chain events={s.events} status={s.status} witness={s.witness} fresh={fresh.seqs} batch={fresh.batch.seqs} max={10} />
+          {role === "Commander" && <AddMemberPanel s={s} writable={canWrite} />}
+          <section aria-labelledby="team" className="card text-sm">
+            <h2 id="team" className="section-title">Team</h2>
+            <ul className="mt-2 space-y-1">
+              {s.members.filter(m => m.active).map(m => (
+                <li key={m.identity}>
+                  {m.name} · {m.role} <span className="font-mono text-xs text-muted">{m.identity.slice(0, 8)}…</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
+      </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
         <section aria-labelledby="scope" className="card lg:col-span-2">
@@ -349,25 +375,6 @@ export default function BoxScreen() {
         </section>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <ThreatModelCard />
-        </div>
-        <div className="space-y-5">
-          <LogEntries events={s.events} max={10} />
-          {role === "Commander" && <AddMemberPanel s={s} writable={canWrite} />}
-          <section aria-labelledby="team" className="card text-sm">
-            <h2 id="team" className="section-title">Team</h2>
-            <ul className="mt-2 space-y-1">
-              {s.members.filter(m => m.active).map(m => (
-                <li key={m.identity}>
-                  {m.name} · {m.role} <span className="font-mono text-xs text-muted">{m.identity.slice(0, 8)}…</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        </div>
-      </div>
     </main>
   );
 }

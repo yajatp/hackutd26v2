@@ -1,0 +1,463 @@
+/* The drawn hash chain (Chain.tsx) and the incident stamp (IncidentStamp.tsx), inside the
+   secure-room theme (darkroom.module.css). At rest the chain is moonlight; mint only when the
+   newest entry sealed it; red only where the status says it broke. Every animation and
+   transition sits under prefers-reduced-motion: no-preference and runs once; with reduced motion
+   the final state shows at once. */
+
+.chain {
+  --gap: 14px;
+  --chain-line: rgb(230 242 238 / 0.3);
+  --chain-ink: #e6f2ee;
+  --chain-hash: #9fc4b9;
+  --mint: #3dff9a;
+  --red: #ef4444;
+  --red-ink: #fca5a5;
+}
+
+.chain[data-chain="sealed"] {
+  --chain-line: rgb(61 255 154 / 0.5);
+  --chain-hash: #3dff9a;
+}
+
+.links {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+}
+
+.link {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--chain-line);
+  border-radius: 2px;
+  background: rgb(230 242 238 / 0.025);
+  overflow-wrap: anywhere;
+}
+
+.seq {
+  flex: none;
+  min-width: 2.2rem;
+  font-family: "Chakra Petch", ui-monospace, monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--chain-ink);
+}
+
+.what {
+  min-width: 0;
+}
+
+.hash {
+  white-space: nowrap;
+  color: var(--chain-hash);
+}
+
+/* The joint: a 2 px rail from the top of this link up to the bottom of the one above. */
+.connector {
+  position: absolute;
+  left: calc(0.6rem + 0.7rem);
+  top: calc(-1 * var(--gap) - 1px);
+  width: 2px;
+  height: var(--gap);
+  overflow: visible;
+  color: var(--chain-line);
+}
+
+.connector line {
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+/* ---- Sealed: the newest link closed the last open incident. ---- */
+
+.sealed {
+  padding-right: 2.4rem;
+  border-color: var(--mint);
+  box-shadow: 0 0 0 3px rgb(61 255 154 / 0.14);
+}
+
+.seal {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  width: 1.4rem;
+  height: 1.4rem;
+  margin-top: -0.7rem;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--mint);
+  border-radius: 50%;
+  color: var(--mint);
+  font-family: system-ui, sans-serif;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.seal::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border: 2px solid var(--mint);
+  border-radius: 50%;
+  opacity: 0;
+}
+
+/* ---- Broken: the crack and everything after it. ---- */
+
+.cracked {
+  border-color: var(--red);
+  background: rgb(239 68 68 / 0.1);
+  color: var(--red-ink);
+}
+
+.cracked .seq,
+.cracked .hash {
+  color: var(--red-ink);
+}
+
+/* The words stay readable over the fracture: above it, with a halo in the room's teal. */
+.cracked .seq,
+.cracked .what {
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 0 3px #0b191b, 0 0 6px #0b191b, 0 0 1px #0b191b;
+}
+
+.fracture {
+  position: absolute;
+  left: -6px;
+  top: -2px;
+  width: calc(100% + 12px);
+  height: calc(100% + 4px);
+  overflow: visible;
+  pointer-events: none;
+  filter: drop-shadow(0 0 3px rgb(239 68 68 / 0.75));
+}
+
+.fracture polyline {
+  fill: none;
+  stroke: var(--red);
+  stroke-width: 2.5;
+  stroke-linejoin: miter;
+}
+
+/* Out of line: everything after the break drops 6 px and dims. */
+.below {
+  transform: translate(3px, 6px);
+  opacity: 0.42;
+}
+
+/* The joint into the break is no longer whole. */
+.cracked + .below .connector,
+.ghost.cracked .connector,
+.rupture .connector {
+  color: var(--red);
+}
+
+.cracked + .below .connector line,
+.ghost.cracked .connector line,
+.rupture .connector line {
+  stroke-dasharray: 0.22 0.16;
+}
+
+/* What this device saw that the box no longer has: empty dashed links. */
+.ghost {
+  border-style: dashed;
+  background: none;
+}
+
+.ghost:not(.cracked) {
+  border-color: rgb(239 68 68 / 0.6);
+}
+
+.ghost .seq {
+  color: var(--red-ink);
+}
+
+.skip {
+  margin-top: 0.9rem;
+}
+
+.skip::before {
+  content: "⋮";
+  position: absolute;
+  left: 1.1rem;
+  top: calc(-1 * var(--gap) - 0.95rem);
+  color: var(--red-ink);
+  font-family: system-ui, sans-serif;
+}
+
+/* A break past the newest link with nothing to show (the member list): a bare fracture. */
+.rupture {
+  position: relative;
+  height: 0.9rem;
+}
+
+/* ---- The witness phone's compact chain. ---- */
+
+.compact {
+  --gap: 10px;
+}
+
+.compact .links {
+  font-size: 0.75rem;
+  line-height: 1.1rem;
+}
+
+.compact .link {
+  padding: 0.3rem 0.5rem;
+}
+
+.compact .seq {
+  min-width: 1.9rem;
+  font-size: 0.9rem;
+}
+
+.compact .connector {
+  left: calc(0.5rem + 0.6rem);
+}
+
+/* ---- The incident stamp. ---- */
+
+.stamp {
+  display: inline-block;
+  margin: 0.5rem 0 0.35rem;
+  padding: 0.05rem 0.55rem 0.15rem;
+  border: 2px solid var(--red, #ef4444);
+  box-shadow: inset 0 0 0 2px #0b191b, inset 0 0 0 3px rgb(239 68 68 / 0.5);
+  color: #fca5a5;
+  font-family: "Pixelify Sans", "Barlow", system-ui, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.06em;
+  transform: rotate(-2deg);
+  transform-origin: left center;
+}
+
+.stampClosed {
+  border-color: #3dff9a;
+  box-shadow: inset 0 0 0 2px #0b191b, inset 0 0 0 3px rgb(61 255 154 / 0.45);
+  color: #3dff9a;
+}
+
+.stampBroken {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .link {
+    transition:
+      border-color 0.25s ease,
+      background-color 0.4s ease,
+      box-shadow 0.25s ease,
+      transform 0.4s cubic-bezier(0.3, 1.5, 0.5, 1) 0.25s,
+      opacity 0.4s ease 0.25s;
+  }
+
+  .connector,
+  .hash,
+  .seq {
+    transition: color 0.25s ease;
+  }
+
+  /* The slow ease to mint runs only on the way into the seal. A transition takes its timing from
+     the state it moves to, so leaving the seal uses the faster timing above. */
+  .chain[data-chain="sealed"] .link {
+    transition:
+      border-color 1.2s ease 0.45s,
+      background-color 0.4s ease,
+      box-shadow 1.2s ease 0.45s,
+      transform 0.4s cubic-bezier(0.3, 1.5, 0.5, 1) 0.25s,
+      opacity 0.4s ease 0.25s;
+  }
+
+  .chain[data-chain="sealed"] .connector,
+  .chain[data-chain="sealed"] .hash,
+  .chain[data-chain="sealed"] .seq {
+    transition: color 1.2s ease 0.45s;
+  }
+
+  /* A break: mint means verified, so every colour changes at once. Only the drop out of line
+     below the crack still moves. */
+  .chain[data-chain="rollback"] .link,
+  .chain[data-chain="tampering"] .link {
+    transition:
+      transform 0.4s cubic-bezier(0.3, 1.5, 0.5, 1) 0.25s,
+      opacity 0.4s ease 0.25s;
+  }
+
+  .chain[data-chain="rollback"] .connector,
+  .chain[data-chain="rollback"] .hash,
+  .chain[data-chain="rollback"] .seq,
+  .chain[data-chain="tampering"] .connector,
+  .chain[data-chain="tampering"] .hash,
+  .chain[data-chain="tampering"] .seq {
+    transition: none;
+  }
+
+  /* A link that arrived live: it drops in from above, its hash rolls from the one above, its
+     joint draws up to the link above, and its edge flashes mint once as it locks. */
+  .fresh {
+    animation:
+      chain-drop 300ms cubic-bezier(0.2, 0.9, 0.3, 1.1) var(--d, 0ms) backwards,
+      chain-lock 900ms ease-out calc(var(--d, 0ms) + 420ms);
+  }
+
+  .fresh .connector line {
+    stroke-dasharray: 1;
+    animation: chain-draw 220ms ease-out calc(var(--d, 0ms) + 260ms) backwards;
+  }
+
+  .fresh .hcIn {
+    animation: chain-roll 280ms cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--d, 0ms) + 120ms + var(--k, 0) * 24ms) backwards;
+  }
+
+  /* The fracture runs left to right through the link. A clip wipe, not stroke-dashoffset:
+     Chrome dashes a non-scaling-stroke polyline against the wrong length and left a hole. */
+  .fracture {
+    animation: chain-crack 420ms cubic-bezier(0.6, 0, 0.4, 1) backwards;
+  }
+
+  .fresh.sealed .seal {
+    animation: chain-seal 480ms cubic-bezier(0.2, 1.3, 0.4, 1) calc(var(--d, 0ms) + 420ms) backwards;
+  }
+
+  .fresh.sealed .seal::after {
+    animation: chain-ripple 800ms ease-out calc(var(--d, 0ms) + 820ms);
+  }
+
+  .stampFresh {
+    animation: chain-stamp 300ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  }
+}
+
+/* The hash characters: each sits in a one-line window; the link above's character waits above
+   it (data-from) and the pair scrolls up into place. Only links that arrived live get these. */
+.hc {
+  display: inline-block;
+  height: 1.25rem;
+  overflow: hidden;
+  vertical-align: top;
+}
+
+.compact .hc {
+  height: 1.1rem;
+}
+
+.hcIn {
+  position: relative;
+  display: block;
+}
+
+.hcIn::before {
+  content: attr(data-from);
+  position: absolute;
+  left: 0;
+  top: -100%;
+  opacity: 0.5;
+}
+
+@keyframes chain-drop {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--gap) - 12px));
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes chain-lock {
+  from {
+    border-color: var(--mint);
+    box-shadow: inset 3px 0 0 var(--mint);
+  }
+  to {
+    border-color: var(--chain-line);
+    box-shadow: inset 3px 0 0 transparent;
+  }
+}
+
+@keyframes chain-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes chain-crack {
+  from {
+    clip-path: inset(-20% 100% -20% 0);
+  }
+  to {
+    clip-path: inset(-20% 0 -20% 0);
+  }
+}
+
+@keyframes chain-roll {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes chain-seal {
+  from {
+    opacity: 0;
+    transform: scale(1.8) rotate(-25deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.92) rotate(0deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes chain-ripple {
+  from {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+@keyframes chain-stamp {
+  0% {
+    opacity: 0;
+    transform: rotate(-2deg) scale(1.15);
+  }
+  55% {
+    opacity: 1;
+    transform: rotate(-2deg) scale(0.985) translateX(-2px);
+  }
+  78% {
+    transform: rotate(-2deg) scale(1) translateX(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-2deg) scale(1) translateX(0);
+  }
+}

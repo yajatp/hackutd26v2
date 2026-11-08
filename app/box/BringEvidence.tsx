@@ -48,6 +48,8 @@ export function BringEvidence({ s, shownId, writable }: { s: DarkroomSnapshot; s
   const logged = done ? replayEvidence(s.events, done.incidentId).filter(x => x.ref === done.ref).pop() : undefined;
   const openedAt = done?.opened ? s.events.find(x => x.type === "incident_opened" && x.incident_id === done.incidentId) : undefined;
   const typedRef = ref.trim().toUpperCase();
+  // The confirmation belongs to its incident: once that incident is closed it no longer applies (QA bug 8).
+  const current = done && open.some((i) => i.id === done.incidentId) ? done : null;
 
   return (
     <section aria-labelledby="bring-evidence" className="card">
@@ -78,12 +80,12 @@ export function BringEvidence({ s, shownId, writable }: { s: DarkroomSnapshot; s
             : <>No incident is open yet. Only a Commander can open one; ask them first.</>}
       </p>
       {error && <p role="alert" className="mt-2 text-sm font-semibold text-alert">▲ {error}</p>}
-      {done && (
+      {current && (
         <p role="status" className="mt-2 text-base font-semibold" data-evidence-done>
           <span aria-hidden="true">✓ </span>
-          {done.opened && <>Opened {done.incidentId}{openedAt ? ` (entry #${openedAt.seq})` : ""} and logged </>}
-          {!done.opened && <>Logged </>}
-          {done.ref}{logged ? ` (entry #${logged.seq})` : ""}{done.opened ? "." : ` in ${done.incidentId}.`}
+          {current.opened && <>Opened {current.incidentId}{openedAt ? ` (entry #${openedAt.seq})` : ""} and logged </>}
+          {!current.opened && <>Logged </>}
+          {current.ref}{logged ? ` (entry #${logged.seq})` : ""}{current.opened ? "." : ` in ${current.incidentId}.`}
         </p>
       )}
     </section>

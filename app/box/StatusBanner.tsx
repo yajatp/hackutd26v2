@@ -2,6 +2,7 @@
 
 import { darkroom, type DarkroomSnapshot } from "@/lib/darkroom-live";
 import { ConnBadge, connState } from "@/app/ui/Badge";
+import { Digits } from "./Digits";
 
 function short(hash: string | undefined): string {
   return hash ? `${hash.slice(0, 8)}…` : "-";
@@ -27,7 +28,7 @@ export function StatusBanner({ s, large = false }: { s: DarkroomSnapshot; large?
     return (
       <div key={st.text} role="alert" data-chain-status={st.kind} className="rounded-lg border-4 border-alert-solid bg-alert-solid p-4 text-white">
         <p className={`dr-status font-bold tracking-wide ${large ? "text-3xl sm:text-4xl" : "text-3xl"}`}>
-          <span aria-hidden="true">▲ </span>{st.text}
+          <span aria-hidden="true">▲ </span><Digits text={st.text} />
         </p>
         <p className="mt-2 text-lg">{why}</p>
         <p className="mt-1">
