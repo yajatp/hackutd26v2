@@ -211,7 +211,7 @@ export default function BoxScreen() {
             {evidence.length === 0 && <li className="text-muted">No evidence logged yet.</li>}
             {evidence.map(ev => (
               <li key={ev.seq} className="rounded-md border border-line-soft p-2">
-                <span className="font-mono text-base font-bold">{ev.ref}</span> · from {ev.source}
+                <span className="font-mono text-base font-bold">{ev.ref}</span> · from {ev.source.replace(/^Avon /, "Brine ")}
                 <span className="text-muted"> · logged by {ev.collector}{ev.role ? ` (${ev.role})` : ""} at {time(ev.ts)}, entry #{ev.seq}</span>
                 {ev.fingerprint
                   ? <p className="break-all font-mono text-xs text-muted">Fingerprint {ev.fingerprint}</p>

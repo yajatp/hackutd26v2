@@ -210,7 +210,7 @@ function EvidenceSection({ evidence }: { evidence: ReturnType<typeof replayEvide
           {evidence.map(ev => (
             <li key={ev.seq} className="r-row r-evidence">
               <p className="r-ref r-mono">{ev.ref}</p>
-              <p>Brought by <strong>{who(ev.collector, ev.role)}</strong> from {ev.source}, {when(ev.ts)}, entry #{ev.seq}.</p>
+              <p>Brought by <strong>{who(ev.collector, ev.role)}</strong> from {ev.source.replace(/^Avon /, "Brine ")}, {when(ev.ts)}, entry #{ev.seq}.</p>
               {ev.note && <p>{ev.note}</p>}
               <p className="r-fp">
                 {ev.fingerprint
