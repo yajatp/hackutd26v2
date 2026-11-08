@@ -25,8 +25,8 @@ export function StatusBanner({ s, large = false }: { s: DarkroomSnapshot; large?
         ? `Entries from #${st.at} on were removed after this device saw them.`
         : `Entry #${st.at} no longer matches the record this device saw.`;
     return (
-      <div role="alert" data-chain-status={st.kind} className="rounded-lg border-4 border-alert-solid bg-alert-solid p-4 text-white">
-        <p className={`font-bold tracking-wide ${large ? "text-3xl sm:text-4xl" : "text-3xl"}`}>
+      <div key={st.text} role="alert" data-chain-status={st.kind} className="rounded-lg border-4 border-alert-solid bg-alert-solid p-4 text-white">
+        <p className={`dr-status font-bold tracking-wide ${large ? "text-3xl sm:text-4xl" : "text-3xl"}`}>
           <span aria-hidden="true">▲ </span>{st.text}
         </p>
         <p className="mt-2 text-lg">{why}</p>
@@ -49,13 +49,14 @@ export function StatusBanner({ s, large = false }: { s: DarkroomSnapshot; large?
   if (st.kind === "empty") {
     return (
       <div className="card">
-        <p className={`font-bold tracking-wide ${large ? "text-3xl" : "text-2xl"}`}><span aria-hidden="true">○ </span>NO ENTRIES YET</p>
+        <p className={`dr-status font-bold tracking-wide ${large ? "text-3xl" : "text-2xl"}`}><span aria-hidden="true">○ </span>NO ENTRIES YET</p>
       </div>
     );
   }
   return (
     <div data-chain-status="verified" className="card">
-      <p className={`font-bold tracking-wide ${large ? "text-3xl sm:text-4xl" : "text-2xl"}`}>
+      {/* Keyed by the status text, so a new status remounts the headline and its stamp-in plays. */}
+      <p key={st.text} className={`dr-status font-bold tracking-wide ${large ? "text-3xl sm:text-4xl" : "text-2xl"}`}>
         <span aria-hidden="true">✓ </span>{st.text}
       </p>
       <p className="mt-1 text-muted">
