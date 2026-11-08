@@ -1,6 +1,6 @@
 # Runbook: Laptop 1 (EOG console + Phone 1 remote)
 
-Laptop 1 runs the Avon side of the demo: SpacetimeDB (database `avon`), the console at `/console`, and Phone 1's fault remote at `/attack`. Tested on Yajat's laptop: macOS 26.7.1, Apple Silicon (arm64), Node 22.17.0, SpacetimeDB 2.14.1. Three cold boots in a row on 2026-11-08, each up in about 4 seconds.
+Laptop 1 runs the Avon side of the demo: SpacetimeDB (database `avon`), the console at `/console`, and Phone 1's fault remote at `/attack`. Tested on Yajat's laptop: macOS 26.7.1, Apple Silicon (arm64), Node 22.17.0, SpacetimeDB 2.14.1. Three cold boots in a row on 2026-11-08, each up in about 4 seconds. A real phone on the same network opened the printed `/attack` URL; tapping Fake showed LYING · SIMULATED on the laptop console.
 
 ## 1. One-time setup (macOS)
 
