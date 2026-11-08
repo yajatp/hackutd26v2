@@ -71,6 +71,13 @@ function actorOf(ctx: Ctx): string {
   return actorString(m.name, m.role, ctx.sender.toHexString());
 }
 
+function incidentClosed(ctx: Ctx, incidentId: string): boolean {
+  for (const e of ctx.db.eventLog.incidentId.filter(incidentId)) {
+    if (e.type === 'incident_closed') return true;
+  }
+  return false;
+}
+
 function incidentExists(ctx: Ctx, incidentId: string): boolean {
   for (const e of ctx.db.eventLog.incidentId.filter(incidentId)) {
     if (e.type === 'incident_opened') return true;
@@ -151,6 +158,7 @@ export const appendEvent = spacetimedb.reducer(
     if (expectedSeq !== nextSeq) throw new SenderError(`stale head: next seq is ${nextSeq}, got ${expectedSeq}`);
     if (expectedPrev !== prev) throw new SenderError('stale head: prev_hash does not match');
     if (!incidentExists(ctx, incidentId)) throw new SenderError(`no incident ${incidentId}`);
+    if (incidentClosed(ctx, incidentId)) throw new SenderError(`${incidentId} is closed`);
     let raw: unknown;
     try { raw = JSON.parse(payloadJson); } catch { throw new SenderError('payload is not JSON'); }
     const p = validatePayload(type, raw);

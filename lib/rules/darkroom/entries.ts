@@ -51,6 +51,30 @@ export function validatePayload(type: string, p: unknown): PayloadCheck {
     }
     return { ok: true, payload: { system, state, certainty, note } };
   }
+  if (type === "evidence_imported") {
+    // A person carried this reference from the Avon console (lib/evidence.ts): AV- plus the
+    // first 8 hex characters of the record's SHA-256. The full fingerprint is optional to type.
+    const r = text(p, "ref", 20, true);
+    if (typeof r !== "string") return { ok: false, reason: r.reason };
+    const ref = r.toUpperCase().replace(/\s/g, "");
+    if (!/^AV-[0-9A-F]{4}-[0-9A-F]{4}$/.test(ref)) return { ok: false, reason: "ref must look like AV-1A2B-3C4D" };
+    const f = text(p, "fingerprint", 64, false);
+    if (typeof f !== "string") return { ok: false, reason: f.reason };
+    const fingerprint = f.toLowerCase();
+    if (fingerprint && !/^[0-9a-f]{64}$/.test(fingerprint)) return { ok: false, reason: "fingerprint must be 64 hex characters" };
+    if (fingerprint && `AV-${fingerprint.slice(0, 4)}-${fingerprint.slice(4, 8)}`.toUpperCase() !== ref) {
+      return { ok: false, reason: "fingerprint does not match the reference" };
+    }
+    const source = text(p, "source", LIMITS.system, true);
+    if (typeof source !== "string") return { ok: false, reason: source.reason };
+    const note = text(p, "note", LIMITS.note, false);
+    if (typeof note !== "string") return { ok: false, reason: note.reason };
+    return { ok: true, payload: { ref, fingerprint, source, note } };
+  }
+  if (type === "incident_closed") {
+    const r = text(p, "resolution", LIMITS.note, true);
+    return typeof r === "string" ? { ok: true, payload: { resolution: r } } : { ok: false, reason: r.reason };
+  }
   return { ok: false, reason: `unknown entry type ${type}` };
 }
 

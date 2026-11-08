@@ -5,19 +5,23 @@ export const ROLES = ["Commander", "Responder", "Viewer"] as const;
 export type Role = (typeof ROLES)[number];
 
 // Entry types a member can cause. Server-only types (member_added) are not here.
-export const WRITE_TYPES = ["incident_opened", "scope_update", "chat"] as const;
+export const WRITE_TYPES = ["incident_opened", "scope_update", "chat", "evidence_imported", "incident_closed"] as const;
 export type WriteType = (typeof WRITE_TYPES)[number];
 
 const ALLOWED: Record<WriteType, readonly Role[]> = {
   incident_opened: ["Commander"],
   scope_update: ["Commander", "Responder"],
   chat: ROLES,
+  evidence_imported: ["Commander", "Responder"],
+  incident_closed: ["Commander"],
 };
 
 const VERB: Record<WriteType, string> = {
   incident_opened: "open an incident",
   scope_update: "update the scope board",
   chat: "post in chat",
+  evidence_imported: "log evidence",
+  incident_closed: "close an incident",
 };
 
 export function isRole(x: unknown): x is Role {

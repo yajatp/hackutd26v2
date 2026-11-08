@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { appendEvent, type LogEvent, type NewEvent } from "../../chain.ts";
-import { replayChat, replayIncidents, replayScope, rowToEvent, SCOPE_STATES } from "./replay.ts";
+import { appendEvent, type Json, type LogEvent, type NewEvent } from "../../chain.ts";
+import { replayChat, replayClosure, replayEvidence, replayIncidents, replayScope, rowToEvent, SCOPE_STATES } from "./replay.ts";
+import { checkWrite } from "./roles.ts";
 import { nextIncidentId, validatePayload } from "./entries.ts";
 
 const DANA = "Dana|Commander|aa11";
@@ -89,4 +90,31 @@ test("payloads are validated and normalized per entry type", () => {
   assert.equal(validatePayload("chat", "not an object").ok, false);
   assert.equal(nextIncidentId(1), "INC-0001");
   assert.equal(nextIncidentId(12), "INC-0012");
+});
+
+test("evidence and closing: who may log them, what a valid reference is, and replay", () => {
+  // roles
+  assert.equal(checkWrite({ role: "Responder", active: true }, "evidence_imported").ok, true);
+  assert.equal(checkWrite({ role: "Viewer", active: true }, "evidence_imported").ok, false);
+  assert.equal(checkWrite({ role: "Responder", active: true }, "incident_closed").ok, false);
+  assert.equal(checkWrite({ role: "Commander", active: true }, "incident_closed").ok, true);
+  // payloads
+  const fp = "1a2b3c4d" + "e".repeat(56);
+  const ok = validatePayload("evidence_imported", { ref: " av-1a2b-3c4d ", fingerprint: fp.toUpperCase(), source: "Avon console" });
+  assert.deepEqual(ok, { ok: true, payload: { ref: "AV-1A2B-3C4D", fingerprint: fp, source: "Avon console", note: "" } });
+  assert.equal(validatePayload("evidence_imported", { ref: "AV-1A2B-3C4D", source: "Avon console" }).ok, true);
+  assert.match((validatePayload("evidence_imported", { ref: "1A2B3C4D", source: "x" }) as { reason: string }).reason, /AV-1A2B-3C4D/);
+  assert.match((validatePayload("evidence_imported", { ref: "AV-FFFF-3C4D", fingerprint: fp, source: "x" }) as { reason: string }).reason, /does not match/);
+  assert.equal(validatePayload("incident_closed", { resolution: "" }).ok, false);
+  // replay
+  let log: LogEvent[] = [];
+  const add = (type: string, payload: Json, actor = "Dana|Commander|aa") =>
+    (log = [...log, appendEvent(log, { incident_id: "INC-0001", ts: String(log.length), actor, type, payload })]);
+  add("incident_opened", { title: "Tank sensor disagrees" });
+  add("evidence_imported", { ref: "AV-1A2B-3C4D", fingerprint: fp, source: "Avon console", note: "" }, "Sam|Responder|bb");
+  assert.equal(replayClosure(log, "INC-0001"), null);
+  add("incident_closed", { resolution: "sensor replaced" });
+  const ev = replayEvidence(log, "INC-0001");
+  assert.deepEqual([ev.length, ev[0].ref, ev[0].collector, ev[0].role], [1, "AV-1A2B-3C4D", "Sam", "Responder"]);
+  assert.deepEqual(replayClosure(log, "INC-0001"), { seq: 2, ts: "2", by: "Dana", resolution: "sensor replaced" });
 });

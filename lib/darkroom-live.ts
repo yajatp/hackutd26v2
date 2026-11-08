@@ -9,6 +9,7 @@ import { useSyncExternalStore } from "react";
 import { DbConnection, tables } from "./darkroom_bindings";
 import { GENESIS_PREV, type Json, type LogEvent, type Witness } from "./chain";
 import { rowToEvent } from "./rules/darkroom/replay";
+import type { WriteType } from "./rules/darkroom/roles";
 import { advanceWitness, chainStatus, parseWitness, type ChainStatus } from "./rules/darkroom/status";
 
 export const DARKROOM_DB = "darkroom";
@@ -212,7 +213,7 @@ class DarkroomStore {
   }
 
   // The server rejects a write if another screen wrote first; retry with the new head.
-  async append(incidentId: string, type: "scope_update" | "chat", payload: Json) {
+  async append(incidentId: string, type: Exclude<WriteType, "incident_opened">, payload: Json) {
     const conn = this.requireConn();
     for (let attempt = 0; ; attempt++) {
       const h = [...conn.db.chainHead.iter()][0];
@@ -258,7 +259,7 @@ export function useDarkroom(): DarkroomSnapshot {
 
 export const darkroom = {
   openIncident: (title: string) => getStore().openIncident(title),
-  append: (incidentId: string, type: "scope_update" | "chat", payload: Json) => getStore().append(incidentId, type, payload),
+  append: (incidentId: string, type: Exclude<WriteType, "incident_opened">, payload: Json) => getStore().append(incidentId, type, payload),
   forgetWitness: () => getStore().forgetWitness(),
   // For headless checks (spacetimedb-darkroom/test/reconnect.ts); screens use useDarkroom.
   subscribe: (fn: () => void) => getStore().subscribe(fn),

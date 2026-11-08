@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import { darkroom, useDarkroom } from "@/lib/darkroom-live";
-import { replayChat, replayIncidents, replayScope } from "@/lib/rules/darkroom/replay";
+import { replayChat, replayClosure, replayEvidence, replayIncidents, replayScope } from "@/lib/rules/darkroom/replay";
 import { CERTAINTIES, LIMITS, SCOPE_STATES, type Certainty, type ScopeState } from "@/lib/rules/darkroom/entries";
 import { can, parseActor } from "@/lib/rules/darkroom/roles";
 import { ConnectionChip, StatusBanner } from "./StatusBanner";
@@ -15,6 +15,8 @@ const TYPE_LABEL: Record<string, string> = {
   incident_opened: "incident opened",
   scope_update: "scope update",
   chat: "chat",
+  evidence_imported: "evidence logged",
+  incident_closed: "incident closed",
 };
 
 function time(ts: string): string {
@@ -67,9 +69,11 @@ export default function BoxScreen() {
   const current = incidents.find(i => i.id === chosen) ?? incidents[incidents.length - 1] ?? null;
   const scope = useMemo(() => (current ? replayScope(s.events, current.id) : []), [s.events, current]);
   const chat = useMemo(() => (current ? replayChat(s.events, current.id) : []), [s.events, current]);
+  const evidence = useMemo(() => (current ? replayEvidence(s.events, current.id) : []), [s.events, current]);
+  const closure = useMemo(() => (current ? replayClosure(s.events, current.id) : null), [s.events, current]);
 
   const broken = s.status.kind === "rollback" || s.status.kind === "tampering";
-  const writable = s.connection === "live" && s.ready && !broken && !!s.me;
+  const writable = s.connection === "live" && s.ready && !broken && !!s.me && !closure;
   const role = s.me?.role ?? null;
 
   const [title, setTitle] = useState("");
@@ -78,6 +82,13 @@ export default function BoxScreen() {
   const [certainty, setCertainty] = useState<Certainty>("SUSPECTED");
   const [note, setNote] = useState("");
   const [message, setMessage] = useState("");
+  const [ref, setRef] = useState("");
+  const [fingerprint, setFingerprint] = useState("");
+  const [source, setSource] = useState("Avon console");
+  const [evNote, setEvNote] = useState("");
+  const [resolution, setResolution] = useState("");
+  const evidenceAction = useAction();
+  const closeAction = useAction();
   const openAction = useAction();
   const scopeAction = useAction();
   const chatAction = useAction();
@@ -103,6 +114,22 @@ export default function BoxScreen() {
     e.preventDefault();
     if (!current) return;
     if (await chatAction.run(() => darkroom.append(current.id, "chat", { text: message }))) setMessage("");
+  }
+
+  async function logEvidence(e: FormEvent) {
+    e.preventDefault();
+    if (!current) return;
+    if (await evidenceAction.run(() => darkroom.append(current.id, "evidence_imported", { ref, fingerprint, source, note: evNote }))) {
+      setRef("");
+      setFingerprint("");
+      setEvNote("");
+    }
+  }
+
+  async function closeIncident(e: FormEvent) {
+    e.preventDefault();
+    if (!current) return;
+    if (await closeAction.run(() => darkroom.append(current.id, "incident_closed", { resolution }))) setResolution("");
   }
 
   const recent = s.events.slice(-10).reverse();
@@ -144,6 +171,14 @@ export default function BoxScreen() {
                 <p className="text-sm text-neutral-600">
                   Opened by {current.openedBy} at {time(current.openedAt)} (entry #{current.seq})
                 </p>
+                {closure ? (
+                  <p className="mt-1 text-sm">
+                    <span className="rounded border border-neutral-900 px-1.5 py-0.5 text-xs font-bold">CLOSED</span>{" "}
+                    by {closure.by} at {time(closure.ts)} (entry #{closure.seq}): {closure.resolution}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm"><span className="rounded border border-neutral-400 px-1.5 py-0.5 text-xs font-bold">OPEN</span></p>
+                )}
               </>
             ) : (
               <p className="text-xl">{s.ready ? "No incident open yet." : "…"}</p>
@@ -182,6 +217,70 @@ export default function BoxScreen() {
           )}
         </div>
       </section>
+
+      {current && (
+        <section aria-labelledby="evidence" className="rounded-lg border border-neutral-300 p-4">
+          <h2 id="evidence" className="text-lg font-semibold">Evidence</h2>
+          <p className="text-sm text-neutral-600">
+            Nothing reaches this box over the network. A person carries the reference from the Avon console and types it here;
+            the log records who brought it and when. This proves the record was not changed later (integrity), not that the reading was true.
+          </p>
+          <ul className="mt-3 space-y-2 text-sm">
+            {evidence.length === 0 && <li className="text-neutral-600">No evidence logged yet.</li>}
+            {evidence.map(ev => (
+              <li key={ev.seq} className="rounded border border-neutral-200 p-2">
+                <span className="font-mono text-base font-bold">{ev.ref}</span> · from {ev.source}
+                <span className="text-neutral-600"> · logged by {ev.collector}{ev.role ? ` (${ev.role})` : ""} at {time(ev.ts)}, entry #{ev.seq}</span>
+                {ev.fingerprint
+                  ? <p className="break-all font-mono text-xs text-neutral-600">Fingerprint {ev.fingerprint}</p>
+                  : <p className="text-xs text-neutral-600">Reference only; full fingerprint not typed.</p>}
+                {ev.note && <p>{ev.note}</p>}
+              </li>
+            ))}
+          </ul>
+          {can(role, "evidence_imported") && !closure && (
+            <form onSubmit={logEvidence} className="mt-3 flex flex-wrap items-end gap-2 border-t border-neutral-200 pt-3">
+              <label className="text-sm">
+                <span className="block font-medium">Reference from the console</span>
+                <input className="mt-1 w-44 rounded border border-neutral-300 p-2 font-mono uppercase" placeholder="AV-1A2B-3C4D" value={ref}
+                  maxLength={20} onChange={e => setRef(e.target.value)} disabled={!writable || evidenceAction.busy} />
+              </label>
+              <label className="text-sm">
+                <span className="block font-medium">Source</span>
+                <input className="mt-1 w-40 rounded border border-neutral-300 p-2" value={source} maxLength={LIMITS.system}
+                  onChange={e => setSource(e.target.value)} disabled={!writable || evidenceAction.busy} />
+              </label>
+              <label className="min-w-0 flex-1 text-sm">
+                <span className="block font-medium">Full fingerprint (optional)</span>
+                <input className="mt-1 w-full rounded border border-neutral-300 p-2 font-mono text-xs" placeholder="64 characters, if you have it" value={fingerprint}
+                  maxLength={64} onChange={e => setFingerprint(e.target.value)} disabled={!writable || evidenceAction.busy} />
+              </label>
+              <label className="w-full text-sm">
+                <span className="block font-medium">Note (optional)</span>
+                <input className="mt-1 w-full rounded border border-neutral-300 p-2" value={evNote} maxLength={LIMITS.note}
+                  onChange={e => setEvNote(e.target.value)} disabled={!writable || evidenceAction.busy} />
+              </label>
+              <button type="submit" className="rounded bg-neutral-900 px-4 py-2 text-white disabled:opacity-40" disabled={!writable || evidenceAction.busy || !ref.trim()}>
+                Log evidence
+              </button>
+              {evidenceAction.error && <p className="w-full text-sm text-red-700">{evidenceAction.error}</p>}
+            </form>
+          )}
+          {can(role, "incident_closed") && !closure && (
+            <form onSubmit={closeIncident} className="mt-3 flex flex-wrap items-end gap-2 border-t border-neutral-200 pt-3">
+              <label className="min-w-0 flex-1 text-sm">
+                <span className="block font-medium">Close this incident: what was decided</span>
+                <input className="mt-1 w-full rounded border border-neutral-300 p-2" placeholder="e.g. Sensor replaced; no data left the site" value={resolution}
+                  maxLength={LIMITS.note} onChange={e => setResolution(e.target.value)} disabled={!writable || closeAction.busy} />
+              </label>
+              <button type="submit" className="rounded border border-neutral-900 px-4 py-2 disabled:opacity-40" disabled={!writable || closeAction.busy || !resolution.trim()}>
+                Close incident
+              </button>
+              {closeAction.error && <p className="w-full text-sm text-red-700">{closeAction.error}</p>}
+            </form>
+          )}
+        </section>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-3">
         <section aria-labelledby="scope" className="rounded-lg border border-neutral-300 p-4 lg:col-span-2">

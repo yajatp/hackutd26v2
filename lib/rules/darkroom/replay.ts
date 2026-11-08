@@ -89,6 +89,37 @@ export function replayChat(log: readonly LogEvent[], incidentId: string): ChatLi
     });
 }
 
+export interface EvidenceItem {
+  seq: number;
+  ts: string;
+  ref: string;
+  fingerprint: string;   // "" when only the reference was typed
+  source: string;
+  note: string;
+  collector: string;     // the member who logged it (from the server, not the client)
+  role: string;
+}
+
+export function replayEvidence(log: readonly LogEvent[], incidentId: string): EvidenceItem[] {
+  return bySeq(log)
+    .filter(e => e.type === "evidence_imported" && e.incident_id === incidentId)
+    .map(e => {
+      const a = parseActor(e.actor);
+      return {
+        seq: e.seq, ts: e.ts, ref: field(e.payload, "ref"), fingerprint: field(e.payload, "fingerprint"),
+        source: field(e.payload, "source"), note: field(e.payload, "note"), collector: a.name, role: a.role,
+      };
+    });
+}
+
+export interface Closure { seq: number; ts: string; by: string; resolution: string }
+
+// The first close counts; the module refuses every write to a closed incident.
+export function replayClosure(log: readonly LogEvent[], incidentId: string): Closure | null {
+  const e = bySeq(log).find(x => x.type === "incident_closed" && x.incident_id === incidentId);
+  return e ? { seq: e.seq, ts: e.ts, by: parseActor(e.actor).name, resolution: field(e.payload, "resolution") } : null;
+}
+
 // A row as the database or the generated bindings hand it over.
 export interface LogRow {
   seq: bigint | number;
