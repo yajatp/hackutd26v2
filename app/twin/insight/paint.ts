@@ -166,7 +166,7 @@ export function paintInsight(ctx: Ctx, s: InsightSpec, area: { x0: number; x1: n
   // Footnote and pager on the bottom line.
   const py = bottom - PAGER.h;
   const shown = s.total ? `${s.pageIndex * INSIGHT_PER_PAGE + 1}-${s.pageIndex * INSIGHT_PER_PAGE + s.rows.length} of ${s.total} pumps` : "";
-  const note = `${shown}${shown ? " · " : ""}failed first · running pumps: to limit if stopped now`;
+  const note = `${shown}${shown ? " · " : ""}failed first · running pumps: time to limit if stopped now`;
   let prev: Rect | null = null, next: Rect | null = null;
   const pagerW = s.pageCount > 1 ? 2 * PAGER.w + 110 : 0;
   text(ctx, ellipsize(ctx, note, x1 - x0 - pagerW - 20, MONO(17)), x0, py + PAGER.h / 2, MONO(17, { color: C.grey2 }));

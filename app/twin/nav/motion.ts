@@ -13,8 +13,10 @@ export const DOCK_TILT = -Math.atan2(DOCK.downM, DOCK.aheadM);
 // The dashboard: about 1.19 x 0.74 m (the theme's 1.0 x 0.62 m shape, drawn larger after the
 // Quest review found its 30 px words under the theme's 0.022 m-at-1 m floor), 1.0 m ahead, its
 // middle just under eye level so its bottom edge clears the dock (0.45 m under the eyes, 0.9 m
-// ahead). Its texture stays 1400 x 868 px, so its body text is 0.0255 m tall.
-export const BOARD = { wM: 1.19, hM: 0.7378, aheadM: 1.0, downM: 0.02, followDeg: 40, texW: 1400, texH: 868 } as const;
+// ahead). Its texture stays 1400 x 868 px, so its body text is 0.0255 m tall. Its middle sits 4 cm
+// over eye level (Sun 07:10: at 2 cm under, its bottom edge read as lying on the dock's top), so
+// its bottom edge is about 4-5 degrees above the dock's top edge.
+export const BOARD = { wM: 1.19, hM: 0.7378, aheadM: 1.0, downM: -0.04, followDeg: 40, texW: 1400, texH: 868 } as const;
 export const BOARD_TILT = -Math.atan2(BOARD.downM, BOARD.aheadM);
 
 // (-pi, pi]

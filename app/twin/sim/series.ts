@@ -26,7 +26,7 @@ const LABEL: Record<string, { key: LineKey; label: string; dashed?: boolean }> =
   plan: { key: "plan", label: "With plan" },
   ignored: { key: "noplan", label: "Without plan", dashed: true },
   flag: { key: "noplan", label: "Without plan", dashed: true },
-  lie: { key: "lie", label: "Sensor believed", dashed: true },
+  lie: { key: "lie", label: "Sensor reading", dashed: true },
 };
 
 function range(vals: number[], pad = 0): [number, number] {
@@ -75,7 +75,7 @@ export function levelFallback(flow: FlowSeries | undefined, level: number | unde
   const from = past.length ? past[0][0] : 0;
   return {
     title: "Tank level", unit: "%", x: [from, hours * 60], y: [0, 100], lines, marks, rule: shutdownPct,
-    note: "Simulate to see the curve with the plan.",
+    note: "Press Simulate to see the level with the plan.",
   };
 }
 
@@ -147,11 +147,11 @@ export function simResult(r: Ripple): SimResult {
     lines.push(head ? head[0].toUpperCase() + head.slice(1) : "The pump has already failed");
     if (r.summary) lines.push(r.summary.replace(/^This pump is already down on the console: /, "Console plan: "));
   } else if (r.kind === "pump_fail" || r.kind === "pipeline_leak") {
-    lines.push(`Response cost change ${signedMoney(r.cost_delta)}`);
+    lines.push(`Change in response cost ${signedMoney(r.cost_delta)}`);
     lines.push(`Cost if unaddressed ${money(r.do_nothing_cost)} · Spare trucks ${Math.max(0, r.fleet - r.trucks_after)} of ${r.fleet}`);
   } else {
     lines.push(`Exposure ${money(r.exposure ?? r.cost_delta)}`);
-    if (r.believed_cost !== null && r.honest_cost !== null) lines.push(`Sensor believed ${money(r.believed_cost)} · Checked first ${money(r.honest_cost)}`);
+    if (r.believed_cost !== null && r.honest_cost !== null) lines.push(`Trusting the sensor ${money(r.believed_cost)} · Checking it first ${money(r.honest_cost)}`);
   }
   return { title: r.title, lines, chart: r.projection ? levelFromProjection(r.projection) : null };
 }

@@ -64,10 +64,10 @@ test("simulate: two choices, newest run per facility, signed cost change", () =>
 test("sim result: pump failure reads cost change and spare trucks; spoof reads exposure", () => {
   const base = { title: "T", cost_delta: 905, do_nothing_cost: 4000, fleet: 2, trucks_after: 1, exposure: null, believed_cost: null, honest_cost: null, projection: proj } as unknown as Ripple;
   const a = simResult({ ...base, kind: "pump_fail" });
-  assert.deepEqual(a.lines, ["Response cost change +$905", "Cost if unaddressed $4,000 · Spare trucks 1 of 2"]);
+  assert.deepEqual(a.lines, ["Change in response cost +$905", "Cost if unaddressed $4,000 · Spare trucks 1 of 2"]);
   assert.equal(a.chart!.lines.length, 3);
   const b = simResult({ ...base, kind: "sensor_spoof", exposure: 3000, believed_cost: 4000, honest_cost: 1000, projection: null });
-  assert.deepEqual(b.lines, ["Exposure $3,000", "Sensor believed $4,000 · Checked first $1,000"]);
+  assert.deepEqual(b.lines, ["Exposure $3,000", "Trusting the sensor $4,000 · Checking it first $1,000"]);
   assert.equal(b.chart, null);
 });
 
@@ -87,7 +87,7 @@ test("sim result: 'Pump fails' on a pump that is already down shows the engine's
   assert.deepEqual(b.lines, ["The pump fails now", "Console plan: Send 2 trucks ($9,957)."]);
   // A healthy pump with real trucks still reads the cost lines.
   const c = simResult({ ...down, title: "T", trucks_before: 1, trucks_after: 2, cost_delta: 905, do_nothing_cost: 4000 });
-  assert.equal(c.lines[0], "Response cost change +$905");
+  assert.equal(c.lines[0], "Change in response cost +$905");
 });
 
 test("implied limit: level + fill x hours to limit, so the chart agrees with the card", () => {

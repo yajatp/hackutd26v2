@@ -67,6 +67,16 @@ test("dock placement: 0.45 m under the eyes, 0.9 m ahead along the yaw, tilted u
   assert.ok((30 * BOARD.wM) / BOARD.texW >= 0.022 * BOARD.aheadM, "30 px body text reads at the dashboard's distance");
 });
 
+test("the open dashboard's bottom edge clears the dock's top edge by at least 4 degrees", () => {
+  // The dock's rail (Dock.tsx): buttons, a 0.036 m title strip and 0.011 m pads, tilted to face the eyes.
+  const railH = DOCK_BUTTON.hM + 0.036 + 2 * 0.011;
+  const dockTop = Math.atan2(DOCK.downM - (railH / 2) * Math.cos(DOCK_TILT), DOCK.aheadM - (railH / 2) * Math.sin(DOCK_TILT));
+  const boardTilt = -Math.atan2(BOARD.downM, BOARD.aheadM);
+  const boardBottom = Math.atan2(BOARD.downM + (BOARD.hM / 2) * Math.cos(boardTilt), BOARD.aheadM + (BOARD.hM / 2) * Math.sin(boardTilt));
+  assert.ok(dockTop - boardBottom >= 4 * DEG, `gap ${((dockTop - boardBottom) / DEG).toFixed(1)} deg`);
+  assert.ok(Math.atan2(BOARD.hM / 2 - BOARD.downM, BOARD.aheadM) < 25 * DEG, "its top edge stays within a comfortable look up");
+});
+
 test("positions ease, and jump after a teleport", () => {
   const a = followPos([0, 0, 0], [0.1, 0, 0], 14, 260);
   assert.ok(a[0] > 0 && a[0] < 0.1);

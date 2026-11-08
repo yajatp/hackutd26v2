@@ -35,8 +35,9 @@ export function paintChart(ctx: Ctx, chart: Chart, b: Box): void {
   // under the title (left aligned, labels that still do not fit are dropped).
   mono(ctx, 18, C.grey3);
   const items = chart.lines.map((l) => ({ l, w: ctx.measureText(l.label).width }));
-  const total = items.reduce((a, it) => a + it.w + 40, 0) - 14;
-  const oneRow = b.x + 14 + titleW + 24 + total <= b.x + b.w - 14;
+  // Each item: an 18 px swatch, 8 px, the label, then 30 px before the next swatch.
+  const total = items.reduce((a, it) => a + it.w + 56, 0) - 30;
+  const oneRow = b.x + 14 + titleW + 36 + total <= b.x + b.w - 14;
   let drop = 0;
   if (oneRow) {
     let lx = b.x + b.w - 14;
@@ -45,7 +46,7 @@ export function paintChart(ctx: Ctx, chart: Chart, b: Box): void {
       ctx.fillText(l.label, lx, b.y + 20);
       ctx.fillStyle = LINE_COLOR[l.key];
       ctx.fillRect(lx - w - 26, b.y + 19, 18, 3);
-      lx -= w + 40;
+      lx -= w + 56;
     }
   } else {
     drop = 26;
@@ -56,10 +57,11 @@ export function paintChart(ctx: Ctx, chart: Chart, b: Box): void {
       ctx.fillRect(lx, b.y + 45, 18, 3);
       mono(ctx, 18, C.grey3);
       ctx.fillText(l.label, lx + 26, b.y + 46);
-      lx += 26 + w + 22;
+      lx += 26 + w + 30;
     }
   }
-  const plot: Box = { x: b.x + 54, y: b.y + 40 + drop, w: b.w - 68, h: b.h - (chart.note ? 84 : 62) - drop };
+  // The title row (and the legend row, when it drops) is reserved: the top axis label sits under it.
+  const plot: Box = { x: b.x + 54, y: b.y + 54 + drop, w: b.w - 68, h: b.h - (chart.note ? 96 : 74) - drop };
   // Grid: three horizontal rules with their values.
   for (let i = 0; i <= 2; i++) {
     const v = chart.y[0] + ((chart.y[1] - chart.y[0]) * i) / 2;
@@ -88,8 +90,11 @@ export function paintChart(ctx: Ctx, chart: Chart, b: Box): void {
     ctx.beginPath(); ctx.moveTo(plot.x, ry); ctx.lineTo(plot.x + plot.w, ry); ctx.stroke();
     ctx.setLineDash([]);
     ctx.globalAlpha = 1;
-    mono(ctx, 16, C.alert, "left");
-    ctx.fillText(`LIMIT ${Math.round(chart.rule)}${chart.unit}`, plot.x + 4, ry - 12);
+    // At the right end, clear of the y-axis labels, just above the line (the reserved strip under
+    // the title row takes it when the limit is near the top); under the line only when even that
+    // strip has no room.
+    mono(ctx, 16, C.alert, "right");
+    ctx.fillText(`LIMIT ${Math.round(chart.rule)}${chart.unit}`, plot.x + plot.w - 6, ry - 12 < plot.y - 14 ? ry + 12 : ry - 12);
   }
   for (const l of chart.lines) {
     ctx.strokeStyle = LINE_COLOR[l.key];

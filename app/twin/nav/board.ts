@@ -106,9 +106,9 @@ export function confirmModel(a: Alert, done: Confirmed | undefined, clock: (ms: 
   const bad = a.tank_sensor && BAD.has(a.tank_sensor.state) ? a.tank_sensor : null;
   const changed = done.headline !== fix.headline || Math.round(done.cost) !== Math.round(fix.plan.cost);
   if (!bad && !changed) return { kind: "confirmed", text: `by the night shift at ${clock(done.atMs)}` };
-  let text = `You confirmed ${done.headline} (${money(done.cost)}) at ${clock(done.atMs)}.`;
-  if (bad) text += ` It rests on a tank sensor that is now ${bad.state.toUpperCase()}${bad.simulated ? " (simulated)" : ""}. Check the sensor before the truck rolls.`;
-  if (changed) text += ` The plan now reads ${fix.headline} (${money(fix.plan.cost)}).`;
+  let text = `You confirmed "${done.headline}" (${money(done.cost)}) at ${clock(done.atMs)}.`;
+  if (bad) text += ` It relies on a tank sensor that is now ${bad.state.toUpperCase()}${bad.simulated ? " (simulated)" : ""}. Check the sensor before the truck rolls.`;
+  if (changed) text += ` The plan now reads "${fix.headline}" (${money(fix.plan.cost)}).`;
   return { kind: "changed", text, renew: changed };
 }
 

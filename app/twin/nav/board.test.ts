@@ -113,7 +113,7 @@ test("CONFIRMED, THEN CHANGED when the confirmed plan's tank sensor is now lying
   assert.equal(m.kind, "changed");
   if (m.kind !== "changed") return;
   assert.equal(m.renew, false, "same plan: nothing new to confirm");
-  assert.equal(m.text, "You confirmed Call 1 truck now, 1 trip ($905) at T7. It rests on a tank sensor that is now LYING (simulated). Check the sensor before the truck rolls.");
+  assert.equal(m.text, 'You confirmed "Call 1 truck now, 1 trip" ($905) at T7. It relies on a tank sensor that is now LYING (simulated). Check the sensor before the truck rolls.');
 });
 
 test("CONFIRMED, THEN CHANGED when the plan changed, with Confirm the new plan", () => {
@@ -122,7 +122,7 @@ test("CONFIRMED, THEN CHANGED when the plan changed, with Confirm the new plan",
   assert.equal(m.kind, "changed");
   if (m.kind !== "changed") return;
   assert.equal(m.renew, true);
-  assert.ok(m.text.endsWith("The plan now reads Call 2 trucks now, 2 trips ($1,810)."));
+  assert.ok(m.text.endsWith('The plan now reads "Call 2 trucks now, 2 trips" ($1,810).'));
 });
 
 test("sensors to check: badge word, asset and metric, simulated, evidence", () => {

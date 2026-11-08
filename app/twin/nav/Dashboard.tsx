@@ -21,6 +21,9 @@ import type { WhatIfKind } from "@/lib/eog/whatif";
 import { BOARD, BOARD_TILT, ease } from "./motion";
 import { insightRows, insightSummary } from "../insight/rows";
 import { INSIGHT_PER_PAGE, paintInsight, type InsightSpec } from "../insight/paint";
+import { healthItems } from "../health/geom";
+import { HEALTH_PER_PAGE, type HealthSpec } from "../health/paint";
+import { HealthPopout } from "../health/Popout";
 import { NO_HIT, useFollowHead, usePress, type PressState } from "./follow";
 import { useStill, useView } from "./ViewContext";
 
@@ -60,11 +63,13 @@ interface BoardSpec {
   sim: SimSpec | null;
   sims: { kind: string; label: string }[];
   insight: InsightSpec | null;           // the Insight view, open in place of the body
+  health: boolean;                       // the Health pop-out is open beside the dashboard (its button is lit)
 }
 interface BoardMeta {
   confirm: Rect | null; renew: Rect | null; rows: { id: string; r: Rect }[]; more: Rect | null; close: Rect; comfort: Rect; alarm: Rect | null;
   prev: Rect | null; next: Rect | null; tabs: { id: BoardTab; r: Rect }[]; sims: { kind: string; r: Rect }[];
   insight: Rect; insightPrev: Rect | null; insightNext: Rect | null;
+  health: Rect;
 }
 
 const T = (size: number, extra: Partial<TextStyle> = {}): TextStyle => ({ size, face: "label", weight: 600, ...extra });
@@ -96,8 +101,8 @@ function button(ctx: Ctx, r: Rect, label: string, active = false, enabled = true
   text(ctx, label, r.x + r.w / 2, r.y + r.h / 2, T(size, { weight: 600, color: !enabled ? C.grey1 : active ? C.text : C.text, align: "center" }));
 }
 
-const INSIGHT_BTN = { w: 210, h: 60 };
-function header(ctx: Ctx, s: BoardSpec): { close: Rect; insight: Rect } {
+const INSIGHT_BTN = { w: 160, h: 60 };
+function header(ctx: Ctx, s: BoardSpec): { close: Rect; insight: Rect; health: Rect } {
   const cy = HEADER_H / 2 + 4;
   const w = text(ctx, "Operations", M, cy, T(38, { weight: 700, color: C.text }));
   const close: Rect = { x: W - M - CLOSE, y: cy - CLOSE / 2, w: CLOSE, h: CLOSE };
@@ -118,15 +123,19 @@ function header(ctx: Ctx, s: BoardSpec): { close: Rect; insight: Rect } {
   const word = live ? "LIVE" : s.status === "connecting" ? "CONNECTING" : "OFFLINE";
   const ww = text(ctx, word, x, cy, MONO(24, { color: live ? C.text : C.alert, align: "right" }));
   dot(ctx, x - ww - 16, cy, 7, live ? C.accent : C.alert);
-  // Insight opens the night's figures and pump table in place of the body; pressed again, it closes.
+  // Insight opens the night's figures and pump table in place of the body and then reads "‹ Back";
+  // Health opens the rate in vs rate out charts in a pop-out beside the dashboard and stays lit
+  // while it is open (pressed again, it closes it).
   const insight: Rect = { x: x - ww - 16 - 7 - 28 - INSIGHT_BTN.w, y: cy - INSIGHT_BTN.h / 2, w: INSIGHT_BTN.w, h: INSIGHT_BTN.h };
   button(ctx, insight, s.insight ? "‹ Back" : "Insight", !!s.insight, true, 26);
-  const sub = s.insight ? "The night's insight" : "Night shift dashboard";
-  const room = insight.x - 24 - (M + w + 18);
-  if (room > 80) text(ctx, ellipsize(ctx, sub, room, B(30)), M + w + 18, cy + 2, B(30, { color: C.grey3 }));
+  const health: Rect = { x: insight.x - 12 - INSIGHT_BTN.w, y: insight.y, w: INSIGHT_BTN.w, h: INSIGHT_BTN.h };
+  button(ctx, health, "Health", s.health, true, 26);
+  const sub = s.insight ? "Night shift insight" : "Night shift dashboard";
+  const room = health.x - 24 - (M + w + 18);
+  if (room > 80) text(ctx, ellipsize(ctx, sub, room, B(28)), M + w + 18, cy + 2, B(28, { color: C.grey3 }));
   ctx.fillStyle = C.line;
   ctx.fillRect(M, HEADER_H + 8, W - 2 * M, 2);
-  return { close, insight };
+  return { close, insight, health };
 }
 
 // The comfort setting and a line on how to move, under a hairline.
@@ -139,7 +148,7 @@ function footer(ctx: Ctx, s: BoardSpec): Rect {
   box(ctx, r, r.h / 2, s.comfort ? C.accent : C.raised, s.comfort ? C.accent : C.line);
   dot(ctx, s.comfort ? r.x + r.w - 32 : r.x + 32, r.y + r.h / 2, 12, s.comfort ? C.text : C.grey2);
   text(ctx, label, r.x + r.w / 2 + (s.comfort ? -18 : 18), r.y + r.h / 2, T(28, { color: C.text, align: "center" }));
-  const hint = s.comfort ? "Motion effects off. Every state still shows." : "Point and pull the trigger to press. Thumbstick to turn.";
+  const hint = s.comfort ? "Motion effects are off. Every state still shows." : "Point and pull the trigger to select. Use the thumbstick to turn.";
   text(ctx, ellipsize(ctx, hint, W - 2 * M - cw - 30, B(26)), r.x + cw + 26, r.y + r.h / 2, B(26, { color: C.grey2 }));
   return r;
 }
@@ -317,7 +326,7 @@ function forecast(ctx: Ctx, s: BoardSpec, y0: number, bottom: number): { kind: s
   const x0 = RIGHT.x0, x1 = RIGHT.x1, w = x1 - x0;
   let y = y0;
   if (!s.card) {
-    lines(ctx, wrap(ctx, "No pump failure to forecast. Open Go to to walk a pad.", w, B(26)), x0, y, 34, B(26, { color: C.grey3 }));
+    lines(ctx, wrap(ctx, "No pump failure to forecast. Open the Go to tab to walk a pad.", w, B(26)), x0, y, 34, B(26, { color: C.grey3 }));
     return [];
   }
   const simH = SIM.h + 40 + (s.sim ? 30 + s.sim.lines.length * 28 : 0);
@@ -342,7 +351,7 @@ function forecast(ctx: Ctx, s: BoardSpec, y0: number, bottom: number): { kind: s
   });
   y += SIM.h + 10;
   if (s.sim) {
-    const head = s.sim.busy ? `Running: ${s.sim.label}…` : s.sim.error ? `▲ ${s.sim.error}` : `Simulated: ${s.sim.label}`;
+    const head = s.sim.busy ? `Simulating: ${s.sim.label}…` : s.sim.error ? `▲ ${s.sim.error}` : `Simulated: ${s.sim.label}`;
     text(ctx, ellipsize(ctx, head, w, T(24)), x0, y + 12, T(24, { color: s.sim.error ? C.alert : C.accent }));
     y += 30;
     s.sim.lines.forEach((l, i) => text(ctx, ellipsize(ctx, l, w, B(22)), x0, y + 12 + i * 28, B(22, { color: C.text })));
@@ -355,15 +364,13 @@ const boardPainter: Painter<BoardSpec, BoardMeta> = {
   paint(ctx, s) {
     // A flat, opaque panel with a thin border: nothing behind it shows through its words.
     box(ctx, { x: 2, y: 2, w: W - 4, h: H - 4 }, 20, C.panel, C.line, 2);
-    const { close, insight } = header(ctx, s);
+    const { close, insight, health } = header(ctx, s);
     const comfort = footer(ctx, s);
     const bottom = FOOTER_Y - 18;
+    const none = { confirm: null, renew: null, alarm: null, close, comfort, rows: [], more: null, prev: null, next: null, tabs: [], sims: [], insight, health };
     if (s.insight) {
       const im = paintInsight(ctx, s.insight, { x0: M, x1: W - M, y0: HEADER_H + 30, bottom });
-      return {
-        confirm: null, renew: null, alarm: null, close, comfort, rows: [], more: null, prev: null, next: null, tabs: [], sims: [],
-        insight, insightPrev: im.prev, insightNext: im.next,
-      };
+      return { ...none, insightPrev: im.prev, insightNext: im.next };
     }
     let y = HEADER_H + 30;
     let confirm: Rect | null = null, renew: Rect | null = null, prev: Rect | null = null, next: Rect | null = null;
@@ -383,7 +390,7 @@ const boardPainter: Painter<BoardSpec, BoardMeta> = {
     let rows: { id: string; r: Rect }[] = [], more: Rect | null = null, sims: { kind: string; r: Rect }[] = [];
     if (s.tab === "goto") ({ rows, more } = goTo(ctx, s, y2));
     else sims = forecast(ctx, s, y2, bottom);
-    return { confirm, renew, alarm: null, close, comfort, rows, more, prev, next, tabs: tabRects, sims, insight, insightPrev: null, insightNext: null };
+    return { confirm, renew, alarm: null, close, comfort, rows, more, prev, next, tabs: tabRects, sims, insight, insightPrev: null, insightNext: null, health };
   },
 };
 
@@ -489,6 +496,8 @@ export function Dashboard({ open, onClose, still: stillProp, source }: { open?: 
   const [tab, setTab] = useState<BoardTab>("forecast");
   const [insightOpen, setInsightOpen] = useState(false);
   const [insightPage, setInsightPage] = useState(0);
+  const [healthOpen, setHealthOpen] = useState(false);
+  const [healthPage, setHealthPage] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sim, setSim] = useState<{ kind: WhatIfKind; label: string; facilityId: string; sinceMs: number; busy: boolean; error: string | null } | null>(null);
@@ -530,15 +539,25 @@ export function Dashboard({ open, onClose, still: stillProp, source }: { open?: 
     const ip = page(all, insightPage, INSIGHT_PER_PAGE);
     return { summary: insightSummary(view, insight.budget), rows: ip.rows, pageIndex: ip.index, pageCount: ip.count, total: all.length };
   }, [insightOpen, insightPage, view, insight.flows, insight.breaches, insight.budget, facilities]);
+  // The Health view: the same charts, shared scale, failure spans and trip limit as /insight.
+  const healthSpec = useMemo((): HealthSpec | null => {
+    if (!healthOpen) return null;
+    const { items, max } = healthItems(insight.flows, view);
+    const hp = page(items, healthPage, HEALTH_PER_PAGE);
+    const shutdownPct = insight.scenarios.find((r) => r.ripple.projection)?.ripple.projection?.shutdown_pct ?? 92;
+    return { items: hp.rows, max, shutdownPct, pageIndex: hp.index, pageCount: hp.count, total: items.length };
+  }, [healthOpen, healthPage, view, insight.flows, insight.scenarios]);
   const panel = usePainted(boardPainter, {
     m, status, rows: p.rows, pageIndex: p.index, pageCount: p.count, here: nav.mode === "ground" ? nav.focus : null, error,
     comfort: nav.comfort, card: shownCard, cardIndex: ci, cardCount, tab, level: charts.level, rate: charts.rate, sim: charts.simSpec,
-    sims: sims.map((c) => ({ kind: c.kind, label: c.label })), insight: insightSpec,
+    sims: sims.map((c) => ({ kind: c.kind, label: c.label })), insight: insightSpec, health: healthOpen,
   });
   const root = useRef<Group>(null);
   const unfold = useRef<Group>(null);
   const openK = useRef(0);
-  useFollowHead(root, { aheadM: BOARD.aheadM, downM: BOARD.downM, tilt: BOARD_TILT, followDeg: BOARD.followDeg, still, active: shown });
+  // With the Health pop-out open the judge turns to read it (its middle is about 50 degrees right),
+  // so the dashboard waits for a wider turn before it follows.
+  useFollowHead(root, { aheadM: BOARD.aheadM, downM: BOARD.downM, tilt: BOARD_TILT, followDeg: healthOpen ? 75 : BOARD.followDeg, still, active: shown });
 
   useFrame((_, dt) => {
     const ms = Math.min(dt, 0.1) * 1000;
@@ -581,6 +600,10 @@ export function Dashboard({ open, onClose, still: stillProp, source }: { open?: 
             <meshBasicMaterial map={panel.texture} transparent depthWrite={false} toneMapped={false} fog={false} />
           </mesh>
         )}
+        <HealthPopout
+          open={shown && healthOpen} spec={healthSpec} still={still}
+          onClose={() => setHealthOpen(false)} onPage={(d) => setHealthPage((i) => i + d)}
+        />
         {meta && shown && (
           <>
             {meta.confirm && top && (
@@ -598,6 +621,7 @@ export function Dashboard({ open, onClose, still: stillProp, source }: { open?: 
             {insightOpen
               ? <HotSpot key="insight-close" name="nav-board-insight-close" r={meta.insight} still={still} onPress={() => setInsightOpen(false)} />
               : <HotSpot key="insight-open" name="nav-board-insight" r={meta.insight} still={still} onPress={() => { setInsightOpen(true); setInsightPage(0); }} />}
+            <HotSpot name="nav-board-health" r={meta.health} still={still} onPress={() => { if (!healthOpen) setHealthPage(0); setHealthOpen(!healthOpen); }} />
             {meta.insightPrev && <HotSpot name="nav-board-insight-prev" r={meta.insightPrev} still={still} onPress={() => setInsightPage((i) => i - 1)} />}
             {meta.insightNext && <HotSpot name="nav-board-insight-next" r={meta.insightNext} still={still} onPress={() => setInsightPage((i) => i + 1)} />}
             {meta.prev && <HotSpot name="nav-board-prev" r={meta.prev} still={still} onPress={() => { setCard(ci - 1); setSim(null); }} />}
