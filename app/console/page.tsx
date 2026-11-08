@@ -8,12 +8,10 @@ import { Board, ConnBanner } from "./Board";
 import { ConnBadge, connState } from "@/app/ui/Badge";
 import { Grain } from "@/app/ui/Grain";
 import { LiveClock } from "@/app/ui/LiveClock";
-import { NightGate } from "@/app/ui/NightGate";
 import { ScreenHeader } from "@/app/ui/ScreenHeader";
 import "@/app/ui/motion.css";
 import s from "./console.module.css";
 import { LockdownOverlay } from "./lockdown/LockdownOverlay";
-import { unlockSound } from "./lockdown/sound";
 
 type Status = { kind: "idle" } | { kind: "busy"; what: string } | { kind: "error"; msg: string };
 
@@ -63,7 +61,6 @@ export default function ConsolePage() {
   return (
     <AvonProvider>
       {/* Once per browser session; With sound also wakes the audio, from the click itself. */}
-      <NightGate onChoose={(c) => { if (c === "on") unlockSound(); }} />
       <Grain />
       <ConsoleScreen />
     </AvonProvider>
