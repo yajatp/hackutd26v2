@@ -22,5 +22,5 @@ export function setSoundChoice(c: SoundChoice): void {
 }
 
 export function soundOn(): boolean {
-  return soundChoice() === "on";   // off until the person chooses With sound (Mohan, Sun 07:20)
+  return false;   // sound is removed (Mohan, Sun 07:25); soundChoice() is kept for the gate's wording
 }

@@ -5,11 +5,15 @@ import { chirpPlan, CHIRP_GAP_MS } from "./motion";
 import type { FxKind } from "./events";
 
 let ctx: AudioContext | null = null;
-let muted = true;   // sound starts off (Mohan, Sun 07:20); the dock and the page button turn it on
+// Sound is removed (Mohan, Sun 07:25): no AudioContext is ever made, so chirps and the site's
+// ambience never play, and the mute state stays on whatever a toggle asks.
+const SOUND_REMOVED = true;
+let muted = true;
 let lastAt = -Infinity;
 
 const muteListeners = new Set<() => void>();
 export function setMuted(m: boolean): void {
+  if (SOUND_REMOVED) m = true;
   if (m === muted) return;
   muted = m;
   for (const f of muteListeners) f();
@@ -26,7 +30,7 @@ export function audioContext(): AudioContext | null { return ctx; }
 
 // Call from inside a click, tap or key handler.
 export function unlockAudio(): void {
-  if (typeof window === "undefined") return;
+  if (SOUND_REMOVED || typeof window === "undefined") return;
   if (!ctx) {
     const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return;
