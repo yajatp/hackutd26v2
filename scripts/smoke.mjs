@@ -62,7 +62,7 @@ async function waitFor(fn, label, ms = 10000) {
   }
 }
 
-// spacetime CLI, always -s avonlocal (safety.mjs builds every argument list; checked again here).
+// spacetime CLI, always -s http://127.0.0.1:3001 (safety.mjs builds every argument list; checked again here).
 async function spacetime(args) {
   if (args[1] !== "-s" || args[2] !== SERVER) throw new Error(`refusing spacetime ${args.join(" ")}: not -s ${SERVER}`);
   try {
