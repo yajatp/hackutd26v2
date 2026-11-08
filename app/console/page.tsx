@@ -1,28 +1,28 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { buildConsole, type ConsoleView } from "@/lib/eog/alerts";
 import type { DatasetFiles } from "@/lib/eog/load";
 import { validateFiles, type Validation } from "@/lib/eog/validate";
-import { Board } from "./Board";
+import { AvonProvider, useAvonConsole } from "@/lib/live";
+import { Board, ConnBanner } from "./Board";
 
 type Status = { kind: "idle" } | { kind: "busy"; what: string } | { kind: "error"; msg: string };
 
 const NAMES = ["network.json", "ops.json", "telemetry.csv"] as const;
 
-// TEMPORARY data source: computes in the browser until lib/live.ts (Spacetime) lands.
-// Then `load` becomes useAvonConsole().load and the view comes from the subscription.
-function useLocalConsole() {
-  const [view, setView] = useState<ConsoleView | null>(null);
+// The view comes only from the Spacetime subscription: loading a folder checks it here, then
+// sends it to the avon database, where finish_ingest runs the engine and every screen updates.
+function useConsoleData() {
+  const avon = useAvonConsole();
   const [validation, setValidation] = useState<Validation | null>(null);
-  async function load(files: DatasetFiles) {
+  async function load(files: DatasetFiles, name: string) {
     await new Promise((r) => setTimeout(r, 0));    // let "Reading" paint before the heavy work
-    const { validation: v, ds } = validateFiles(files);
+    const { validation: v } = validateFiles(files);
     setValidation(v);
-    if (!ds) throw new Error(v.errors.join("\n"));
-    setView(buildConsole(ds));
+    if (!v.ok) throw new Error(v.errors.join("\n"));
+    await avon.load(files, name);
   }
-  return { view, validation, load };
+  return { view: avon.view, conn: avon.status, source: avon.source?.datasetId ?? "", validation, load };
 }
 
 function day(unix: number): string {
@@ -46,11 +46,18 @@ function Checked({ v }: { v: Validation }) {
 }
 
 export default function ConsolePage() {
+  return (
+    <AvonProvider>
+      <ConsoleScreen />
+    </AvonProvider>
+  );
+}
+
+function ConsoleScreen() {
   const [folders, setFolders] = useState<string[]>([]);
-  const [source, setSource] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const pickRef = useRef<HTMLInputElement>(null);
-  const { view, validation, load } = useLocalConsole();
+  const { view, conn, source, validation, load } = useConsoleData();
 
   useEffect(() => {
     fetch("/api/eog").then((r) => r.json()).then((j) => setFolders(j.folders ?? [])).catch(() => setFolders([]));
@@ -59,8 +66,7 @@ export default function ConsolePage() {
   async function run(name: string, get: () => Promise<DatasetFiles>) {
     setStatus({ kind: "busy", what: `Reading ${name}` });
     try {
-      await load(await get());
-      setSource(name);
+      await load(await get(), name);
       setStatus({ kind: "idle" });
     } catch (e) {
       setStatus({ kind: "error", msg: `${name}: ${e instanceof Error ? e.message : String(e)}` });
@@ -120,6 +126,7 @@ export default function ConsolePage() {
           {...{ webkitdirectory: "" }} />
       </section>
 
+      <ConnBanner conn={conn} />
       {status.kind === "busy" && <p className="mt-6 animate-pulse">{status.what}…</p>}
       {status.kind === "error" && (
         <div className="mt-6 rounded border border-red-500 p-3 text-red-600 dark:text-red-400">
@@ -127,7 +134,7 @@ export default function ConsolePage() {
           <ul className="mt-1 list-disc pl-5 text-sm">{status.msg.split("\n").map((m) => <li key={m}>{m}</li>)}</ul>
         </div>
       )}
-      {view && status.kind === "idle" && validation?.ok && <Checked v={validation} />}
+      {view && status.kind === "idle" && validation?.ok && validation.summary && <Checked v={validation} />}
       {view && status.kind === "idle" && <Board view={view} dataset={source} />}
       {!view && status.kind === "idle" && (
         <p className="mt-10 opacity-60">Pick a site above, or open any folder that holds network.json, ops.json and telemetry.csv.</p>
