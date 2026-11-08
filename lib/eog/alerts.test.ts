@@ -89,3 +89,17 @@ test("sensors to check: none on clean data; a killed tank sensor is listed DEAD 
   assert.deepEqual([s[0].asset_id, s[0].state, s[0].simulated, s[0].facility_id], [tank, "dead", true, ds.network.systems[0].facilities[0].id]);
   assert.match(s[0].evidence, /^No reading for 10 min\. Last value [\d.]+%\.$/);
 });
+
+test("a tank already at its shutdown limit says so, with the loss until the repair (review finding 9)", { skip: !hasData("full_week") }, () => {
+  const full = loadFolder("full_week");
+  const cut = Date.UTC(2026, 9, 8, 6, 0) / 1000;
+  const n = full.ts.findIndex((t) => t > cut);
+  const series = new Map([...full.series].map(([k, a]) => [k, a.subarray(0, n)]));
+  const lastSeen = new Map([...full.lastSeen].map(([k, t]) => [k, Math.min(t, cut)]));
+  const ds = { ...full, ts: full.ts.slice(0, n), series, lastSeen, now: cut };
+  const a = buildConsole(ds).alerts.find((x) => x.fix && x.hours_to_limit === 0);
+  assert.ok(a, "an alert at shutdown");
+  assert.match(a!.fix!.headline, /^Tank is at its shutdown limit: wells shut in until the repair at \d\d:\d\d$/);
+  assert.ok(a!.fix!.plan.cost > 0, `cost ${a!.fix!.plan.cost}`);
+  assert.equal(a!.fix!.alternatives.length, 0);
+});

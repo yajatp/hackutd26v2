@@ -75,6 +75,13 @@ export const Fault = __t.object("Fault", {
 });
 export type Fault = __Infer<typeof Fault>;
 
+export const LoadLock = __t.object("LoadLock", {
+  id: __t.u8(),
+  loader: __t.identity(),
+  startedAt: __t.timestamp(),
+});
+export type LoadLock = __Infer<typeof LoadLock>;
+
 export const Reading = __t.object("Reading", {
   id: __t.u64(),
   facilityId: __t.string(),

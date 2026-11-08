@@ -84,6 +84,15 @@ function liveWells(ds: Dataset, f: FacilityJson, net: PlanNetwork): PlanWell[] {
   });
 }
 
+// When the tank of this failure reached its shutdown limit (data time), or null if it has not.
+function trippedAt(ds: Dataset, f: FacilityJson, onset: number): number | null {
+  const L = seriesOf(ds, f.tank.id, "level_pct");
+  const limit = ds.network.defaults.tank_limits_pct.shutdown;
+  if (!(L[ds.ts.length - 1] >= limit - 0.05)) return null;
+  for (let i = 0; i < ds.ts.length; i++) if (ds.ts[i] >= onset && L[i] >= limit - 0.05) return ds.ts[i];
+  return null;
+}
+
 function facilityIndex(ds: Dataset): Map<string, FacilityJson> {
   const m = new Map<string, FacilityJson>();
   for (const s of ds.network.systems) for (const f of s.facilities) m.set(f.id, f);
@@ -171,6 +180,32 @@ export function buildConsole(ds: Dataset): ConsoleView {
       const otherTrucks = chosen.reduce((s, q, j) => s + (j === i ? 0 : q.trucks), 0);
       const opts = optionsFor(fail, net, fleet);
       const dn = opts.find((o) => o.kind === "do_nothing");
+      const tripped = trippedAt(ds, fac, ev.onset_unix);
+      if (tripped !== null) {
+        // Already at the shutdown limit: the wells are shut in, so live inflow is 0 and the planner
+        // sees nothing to do. Say what is happening and what it costs until the repair (finding 9).
+        const left = Math.max(0, doneUnix - now) / 3600;
+        const cost = revPerHour(fac.id) * left;
+        doNothing += cost;
+        plans += cost;
+        const shut: Plan = { ...p, kind: "do_nothing", trucks: 0, trips_per_truck: 0, shut_ins: [], cost, truck_cost: 0, shut_in_cost: cost, trip_at_min: 0 };
+        alerts.push({
+          id: ev.asset_id + "@" + ev.onset_unix,
+          event: ev,
+          facility: fac,
+          hours_to_limit: 0,
+          lost_revenue_per_hour: revPerHour(fac.id),
+          action: "Tank is at its shutdown limit",
+          fix: {
+            plan: shut, label: planLabel(shut),
+            headline: `Tank is at its shutdown limit: wells shut in until the repair at ${hhmm(doneUnix)}`,
+            details: [`Tripped at ${hhmm(tripped)}`, `${money(revPerHour(fac.id))}/h of production lost until then`],
+            trip_at_unix: tripped, repair_done_unix: doneUnix, alternatives: [], shares_fleet_with: others, fleet,
+          },
+          tank_sensor: (() => { const h = healthOf(ds, fac.tank.id, "level_pct"); return { state: h.state, evidence: h.evidence, simulated: h.simulated === true }; })(),
+        });
+        return;
+      }
       if (dn) doNothing += dn.cost;
       plans += p.cost;
       const fix: FixCard = {

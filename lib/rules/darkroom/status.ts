@@ -3,7 +3,7 @@
 // verifyChain alone passes a log whose newest entries were deleted, so the
 // witness check always runs too. The witness is what this device saw last.
 
-import { checkWitness, verifyChain, witnessOf, type LogEvent, type Witness } from "../../chain.ts";
+import { checkWitness, hashEvent, verifyChain, witnessOf, type LogEvent, type Witness } from "../../chain.ts";
 
 export type ChainStatus =
   | { kind: "empty"; text: "NO ENTRIES YET" }
@@ -26,6 +26,11 @@ function tampering(at: number): ChainStatus {
 export function chainStatus(log: readonly LogEvent[], witness: Witness | null): ChainStatus {
   const s = sorted(log);
   if (s.length === 0) return witness ? rollback(0) : { kind: "empty", text: "NO ENTRIES YET" };
+  // An entry that cannot even be hashed (e.g. a payload number like 1e309 that JSON turns into
+  // Infinity) was not written by the module: it is tampering at that entry, not an error.
+  for (const e of s) {
+    try { hashEvent(e); } catch { return tampering(e.seq); }
+  }
   const v = verifyChain(s);
   if (!v.ok) return tampering(v.breakAt);
   if (witness) {
@@ -51,4 +56,26 @@ export function parseWitness(x: unknown): Witness | null {
   if (typeof o.genesis !== "string" || typeof o.head !== "string") return null;
   if (typeof o.seq !== "number" || !Number.isInteger(o.seq) || o.seq < 0) return null;
   return { genesis: o.genesis, seq: o.seq, head: o.head };
+}
+
+export interface MemberLike { identity: string; name: string; role: string; active: boolean }
+
+// The member table must match the member_added entries in the log (the newest entry for an
+// identity wins). A row changed, added or removed outside the log means someone with access to
+// the box edited the table directly. Returns the first identity that does not match, or null.
+export function memberMismatch(members: readonly MemberLike[], log: readonly LogEvent[]): string | null {
+  const norm = (x: string) => x.toLowerCase().replace(/^0x/, "");
+  const fromLog = new Map<string, { name: string; role: string }>();
+  for (const e of sorted(log)) {
+    if (e.type !== "member_added" || !e.payload || typeof e.payload !== "object" || Array.isArray(e.payload)) continue;
+    const p = e.payload as Record<string, unknown>;
+    if (typeof p.identity === "string") fromLog.set(norm(p.identity), { name: String(p.name ?? ""), role: String(p.role ?? "") });
+  }
+  const active = members.filter((m) => m.active);
+  for (const m of active) {
+    const l = fromLog.get(norm(m.identity));
+    if (!l || l.name !== m.name || l.role !== m.role) return norm(m.identity);
+  }
+  for (const id of fromLog.keys()) if (!active.some((m) => norm(m.identity) === id)) return id;
+  return null;
 }

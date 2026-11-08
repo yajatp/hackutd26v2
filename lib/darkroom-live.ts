@@ -10,7 +10,7 @@ import { DbConnection, tables } from "./darkroom_bindings";
 import { GENESIS_PREV, type Json, type LogEvent, type Witness } from "./chain";
 import { rowToEvent } from "./rules/darkroom/replay";
 import type { WriteType } from "./rules/darkroom/roles";
-import { advanceWitness, chainStatus, parseWitness, type ChainStatus } from "./rules/darkroom/status";
+import { advanceWitness, chainStatus, memberMismatch, parseWitness, type ChainStatus } from "./rules/darkroom/status";
 
 export const DARKROOM_DB = "darkroom";
 export const SPACETIME_PORT = 3001;
@@ -191,7 +191,9 @@ class DarkroomStore {
     let status = this.snapshot.status;
     if (this.snapshot.ready) {
       status = chainStatus(events, this.witness);
-      const next = advanceWitness(events, this.witness);
+      const stray = status.kind === "verified" ? memberMismatch(members, events) : null;
+      if (stray) status = { kind: "tampering", text: `MEMBER LIST CHANGED OUTSIDE THE LOG (${stray.slice(0, 8)})`, at: events.length };
+      const next = stray ? this.witness : advanceWitness(events, this.witness);
       if (next !== this.witness) {
         this.witness = next;
         save("witness", next ? JSON.stringify(next) : null);

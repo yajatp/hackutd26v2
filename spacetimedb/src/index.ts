@@ -89,6 +89,14 @@ const consoleMeta = table({ name: 'console_meta', public: true }, {
   builtAt: t.timestamp(),
 });
 
+// Which screen is loading a site right now. Batches and finish_ingest from any other screen are
+// refused, so two screens loading at once cannot mix their readings (review finding 2).
+const loadLock = table({ name: 'load_lock' }, {
+  id: t.u8().primaryKey(),          // always 0
+  loader: t.identity(),
+  startedAt: t.timestamp(),
+});
+
 // Simulated sensor faults from the Phone 1 remote. The data files and reading rows never change:
 // every rebuild applies these on a copy (lib/rules/faults.ts) and marks the results SIMULATED.
 const fault = table({ name: 'fault', public: true }, {
@@ -105,7 +113,7 @@ const sensorIssue = table({ name: 'sensor_issue', public: true }, {
 });
 
 // snake_case keys so source and canonical names agree (SQL, describe and logs all say console_meta).
-const spacetimedb = schema({ config, dataset_source: datasetSource, facility, reading, alert, console_meta: consoleMeta, fault, sensor_issue: sensorIssue });
+const spacetimedb = schema({ config, dataset_source: datasetSource, facility, reading, alert, console_meta: consoleMeta, fault, sensor_issue: sensorIssue, load_lock: loadLock });
 export default spacetimedb;
 
 export const load_dataset = spacetimedb.reducer(
@@ -141,6 +149,8 @@ export const load_dataset = spacetimedb.reducer(
       });
     }
     ctx.db.dataset_source.insert({ id: 0, networkJson, opsJson });
+    ctx.db.load_lock.clear();
+    ctx.db.load_lock.insert({ id: 0, loader: ctx.sender, startedAt: ctx.timestamp });
     ctx.db.config.insert({ id: 0, datasetId, nowTs: 0, loadedAt: ctx.timestamp });
   }
 );
@@ -150,6 +160,7 @@ export const ingest_batch = spacetimedb.reducer(
   (ctx, { rows }) => {
     const cfg = ctx.db.config.id.find(0);
     if (!cfg) throw new SenderError('call load_dataset first');
+    requireLoader(ctx);
     const wells = new Map<string, number>();
     let now = cfg.nowTs;
     for (const r of rows) {
@@ -160,7 +171,9 @@ export const ingest_batch = spacetimedb.reducer(
         wells.set(r.facilityId, (n = f.wellIds.length));
       }
       if (r.wellWaterBpd.length !== n || r.wellStatus.length !== n) throw new SenderError(`${r.facilityId}: expected ${n} wells`);
-      ctx.db.reading.insert({ id: 0n, ...r });
+      // A repeated batch (double click, retry) must not add the same sample twice.
+      const seen = !ctx.db.reading.byFacilityTs.filter([r.facilityId, r.ts])[Symbol.iterator]().next().done;
+      if (!seen) ctx.db.reading.insert({ id: 0n, ...r });
       if (r.ts > now) now = r.ts;
     }
     if (now !== cfg.nowTs) ctx.db.config.id.update({ ...cfg, nowTs: now });
@@ -218,7 +231,15 @@ function rebuild(ctx: Ctx) {
   });
 }
 
+function requireLoader(ctx: Ctx) {
+  const lock = ctx.db.load_lock.id.find(0);
+  if (lock && !lock.loader.isEqual(ctx.sender)) {
+    throw new SenderError('another screen started loading a site; this load stopped (its site will show when it finishes)');
+  }
+}
+
 export const finish_ingest = spacetimedb.reducer((ctx) => {
+  requireLoader(ctx);
   rebuild(ctx);
 });
 

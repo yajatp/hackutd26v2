@@ -74,10 +74,15 @@ function tankLabel(f: Facility): string {
   return `${f.systemId} · ${nice} tank`;
 }
 
-export function attackFromRows(facilities: readonly Facility[], faults: readonly Fault[]): { targets: AttackTarget[]; faults: ActiveFault[] } {
+// Tanks whose pump has failed come first, in console order: their level is moving, so a fault
+// there shows on the console at once (review finding 3). The rest follow by name.
+export function attackFromRows(facilities: readonly Facility[], faults: readonly Fault[], alerts: readonly AlertRow[] = []): { targets: AttackTarget[]; faults: ActiveFault[] } {
+  const rank = new Map<string, number>();
+  for (const a of alerts) if (a.kind === "pump_failure" && !rank.has(a.facilityId)) rank.set(a.facilityId, a.rank);
+  const order = (f: Facility) => rank.get(f.facilityId) ?? Number.MAX_SAFE_INTEGER;
   return {
     targets: [...facilities]
-      .sort((a, b) => a.facilityId.localeCompare(b.facilityId))
+      .sort((a, b) => order(a) - order(b) || a.facilityId.localeCompare(b.facilityId))
       .map((f) => ({ asset_id: f.tankId, facility_id: f.facilityId, system_id: f.systemId, label: tankLabel(f) })),
     faults: [...faults]
       .sort((a, b) => a.assetId.localeCompare(b.assetId))
@@ -146,7 +151,7 @@ export function connectAvon(opts: AvonLinkOptions): AvonLink {
         const meta = [...c.db.consoleMeta.iter()][0];
         const view = viewFromRows([...c.db.alert.iter()], meta, [...c.db.sensorIssue.iter()]);
         if (view !== undefined) opts.onView(view, sourceOf(meta));
-        const a = attackFromRows([...c.db.facility.iter()], [...c.db.fault.iter()]);
+        const a = attackFromRows([...c.db.facility.iter()], [...c.db.fault.iter()], [...c.db.alert.iter()]);
         opts.onAttack?.(a.targets, a.faults);
       });
     };
@@ -251,10 +256,17 @@ export function AvonProvider({ children, uri, database = AVON_DB }: { children: 
     return () => { l.close(); if (link.current === l) link.current = null; };
   }, [uri, database]);
 
+  const loading = useRef(false);
   const load = useCallback(async (files: DatasetFiles, datasetId: string) => {
     const conn = link.current?.connection();
     if (!conn) throw new Error("Spacetime is disconnected: start it with npm run st:start");
-    await sendDataset(conn, files, datasetId);
+    if (loading.current) throw new Error("A site is already loading on this screen; wait for it to finish.");
+    loading.current = true;
+    try {
+      await sendDataset(conn, files, datasetId);
+    } finally {
+      loading.current = false;
+    }
   }, []);
 
   const inject = useCallback(async (kind: FaultKind, assetId: string) => {

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { appendEvent, witnessOf, type LogEvent } from "../../chain.ts";
-import { advanceWitness, chainStatus, parseWitness } from "./status.ts";
+import { advanceWitness, chainStatus, memberMismatch, parseWitness } from "./status.ts";
 
 function build(n: number): LogEvent[] {
   const log: LogEvent[] = [];
@@ -77,4 +77,30 @@ test("parseWitness accepts {genesis, seq, head} and rejects anything else", () =
   assert.equal(parseWitness({ genesis: "x", seq: "2", head: "y" }), null);
   assert.equal(parseWitness(null), null);
   assert.equal(parseWitness("nope"), null);
+});
+
+test("an entry that cannot be hashed (a payload number like 1e309) is TAMPERING at that entry, never an error", () => {
+  let log: LogEvent[] = [];
+  for (let i = 0; i < 4; i++) log = [...log, appendEvent(log, { incident_id: "INC-0001", ts: String(i), actor: "Dana|Commander|aa", type: "chat", payload: { text: `m${i}` } })];
+  const w = witnessOf(log);
+  const bad = log.map((e) => (e.seq === 2 ? { ...e, payload: { x: Infinity } } : e));
+  assert.deepEqual(chainStatus(bad, w), { kind: "tampering", text: "TAMPERING AT #2", at: 2 });
+  assert.deepEqual(chainStatus(bad, null), { kind: "tampering", text: "TAMPERING AT #2", at: 2 });
+});
+
+test("member table vs the log: matches, a role edited outside the log, a row added outside the log", () => {
+  let log: LogEvent[] = [];
+  const add = (identity: string, name: string, role: string) =>
+    (log = [...log, appendEvent(log, { incident_id: "BOX", ts: "t", actor: "Box owner|Commander|00", type: "member_added", payload: { identity, name, role } })]);
+  add("aa11", "Dana", "Commander");
+  add("bb22", "Lee", "Viewer");
+  const members = [
+    { identity: "0xAA11", name: "Dana", role: "Commander", active: true },
+    { identity: "bb22", name: "Lee", role: "Viewer", active: true },
+  ];
+  assert.equal(memberMismatch(members, log), null);
+  assert.equal(memberMismatch([members[0], { ...members[1], role: "Commander" }], log), "bb22");
+  assert.equal(memberMismatch([...members, { identity: "cc33", name: "X", role: "Commander", active: true }], log), "cc33");
+  add("bb22", "Lee", "Responder");   // a logged role change is fine
+  assert.equal(memberMismatch([members[0], { ...members[1], role: "Responder" }], log), null);
 });
