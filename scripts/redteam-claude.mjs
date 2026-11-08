@@ -111,8 +111,11 @@ async function build(db) {
   return inc;
 }
 
-function verify(db, witness) {
-  const args = [join(ROOT, "scripts/verify.mjs"), "--port", PORT, "--db", db];
+// Each attack is checked by both verifiers, each with its own witness file: scripts/verify.mjs
+// (the repo one) and scripts/verify-standalone.mjs (the one-file copy for laptop 3).
+const VERIFIERS = { repo: "scripts/verify.mjs", standalone: "scripts/verify-standalone.mjs" };
+function verify(db, witness, which = "repo") {
+  const args = [join(ROOT, VERIFIERS[which]), "--port", PORT, "--db", db];
   if (witness) args.push("--witness", witness);
   try {
     return { code: 0, out: execFileSync(process.execPath, args, { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }) };
@@ -121,7 +124,7 @@ function verify(db, witness) {
   }
 }
 
-const CAUGHT_RE = /TAMPERING|ROLLBACK DETECTED|MEMBER LIST CHANGED/;
+const CAUGHT_RE = /TAMPERING|ROLLBACK DETECTED|MEMBER LIST CHANGED|CHAIN HEAD CHANGED/;
 
 // Each attack edits the database as the owner. `after` (optional) runs honest reducer calls
 // afterwards, for attacks that only bite on the next write.
@@ -243,31 +246,40 @@ for (const a of ATTACKS) {
   n++;
   if (ONLY && !a.name.includes(ONLY)) continue;
   const db = `rt-c${n}`;
-  const witness = join(work, `${db}.witness.json`);
+  const witness = { repo: join(work, `${db}.witness.json`), standalone: join(work, `${db}.sa.witness.json`) };
+  const w = (which) => (a.noWitness ? null : witness[which]);
   let line;
   try {
     const inc = await build(db);
     if (a.setup) await a.setup(db, inc);
-    const first = verify(db, a.noWitness ? null : witness);
-    if (!/LOG VERIFIED/.test(first.out)) throw new Error(`log did not verify before the attack: ${first.out.split("\n")[0]}`);
+    for (const which of Object.keys(VERIFIERS)) {
+      const first = verify(db, w(which), which);
+      if (!/LOG VERIFIED/.test(first.out)) throw new Error(`log did not verify before the attack (${which}): ${first.out.split("\n")[0]}`);
+    }
     await a.run(db, inc);
-    const v = verify(db, a.noWitness ? null : witness);
+    const v = verify(db, w("repo"), "repo");
+    const s = verify(db, w("standalone"), "standalone");
     const verdict = v.out.split("\n")[0].trim();
+    const saVerdict = s.out.split("\n")[0].trim();
     const caught = a.name.startsWith("control") ? !CAUGHT_RE.test(verdict) && v.code === 0 : CAUGHT_RE.test(verdict) && v.code === 1;
     const tag = a.name.startsWith("control") ? (caught ? "OK" : "FAIL") : caught ? "CAUGHT" : "MISSED";
-    line = { tag, name: a.name, verdict: `${verdict} (exit ${v.code})`, detail: v.out };
+    const agree = verdict === saVerdict && v.code === s.code;
+    line = { tag, name: a.name, verdict: `${verdict} (exit ${v.code})`, detail: v.out, agree,
+      sa: agree ? "" : `standalone DISAGREES: ${saVerdict} (exit ${s.code})` };
   } catch (e) {
     const msg = String(e.stderr || e.message || e).split("\n").filter((l) => l && !/^WARNING/.test(l)).slice(-1)[0];
-    line = { tag: "N/A", name: a.name, verdict: `edit refused: ${msg}` };
+    line = { tag: "N/A", name: a.name, verdict: `edit refused: ${msg}`, agree: true };
   }
   results.push(line);
-  console.log(`${line.tag.padEnd(6)} ${line.name}\n       ${line.verdict}`);
+  console.log(`${line.tag.padEnd(6)} ${line.name}\n       ${line.verdict}${line.sa ? `\n       ${line.sa}` : ""}`);
   if (!KEEP) { try { st(["delete", "-s", SERVER, db, "--yes"]); } catch { /* best effort */ } }
 }
 
 const count = (t) => results.filter((r) => r.tag === t).length;
+const disagree = results.filter((r) => !r.agree).length;
 console.log(`\n${count("CAUGHT")} caught, ${count("MISSED")} missed, ${count("N/A")} refused by the database, control ${count("OK") ? "OK" : count("FAIL") ? "FAIL" : "not run"}`);
+console.log(disagree ? `verify-standalone.mjs DISAGREES with verify.mjs on ${disagree}` : "verify-standalone.mjs agrees with verify.mjs on every attack");
 if (process.argv.includes("--details")) for (const r of results) if (r.detail) console.log(`\n## ${r.name}\n${r.detail}`);
 rmSync(work, { recursive: true, force: true });
 if (evilDir) rmSync(evilDir, { recursive: true, force: true });
-process.exit(count("MISSED") || count("FAIL") ? 1 : 0);
+process.exit(count("MISSED") || count("FAIL") || disagree ? 1 : 0);
