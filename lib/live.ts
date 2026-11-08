@@ -13,6 +13,7 @@ import type { SystemBudget } from "./eog/budget.ts";
 import type { FlowSeries } from "./eog/flows.ts";
 import type { BreachRisk } from "./eog/breach.ts";
 import type { Ripple, WhatIfKind } from "./eog/whatif.ts";
+import type { Lockdown as LockdownRow } from "./module_bindings/types.ts";
 import { loadDataset, type DatasetFiles } from "./eog/load.ts";
 import type { Alert, ConsoleView, SensorIssue } from "./eog/alerts.ts";
 import type { ActiveFault, AttackTarget, FaultKind } from "./attack.ts";
@@ -52,6 +53,11 @@ export interface AvonConsole {
   insight: Insight;
   whatIf(kind: WhatIfKind, assetId: string): Promise<void>;
   computeBreaches(): Promise<void>;
+  // LOCKDOWN (docs/LOCKDOWN.md): the lockdown row (null before the first one, or on a database
+  // without the table), and the two reducers.
+  lockdown: LockdownState | null;
+  enterLockdown(reason: string, evidenceRef: string, tank: string): Promise<void>;
+  endLockdown(): Promise<void>;
 }
 
 export interface ScenarioRun {
@@ -101,6 +107,31 @@ export function insightFromRows(budget: readonly BudgetRow[], flows: readonly Fl
   };
 }
 
+
+// The lockdown row as the screens read it. active false once ended (the row is kept).
+export interface LockdownState {
+  active: boolean;
+  startedAtMs: number;
+  startedBy: string;                               // identity, hex
+  reason: string;
+  evidenceRef: string;                             // AV-XXXX-XXXX
+  tank: string;                                    // asset id of the suspect sensor
+  endedAtMs: number | null;
+}
+
+export function lockdownFromRow(r: LockdownRow | undefined): LockdownState | null {
+  if (!r) return null;
+  return {
+    active: r.active,
+    startedAtMs: Number(r.startedAt.microsSinceUnixEpoch) / 1000,
+    startedBy: r.startedBy.toHexString(),
+    reason: r.reason,
+    evidenceRef: r.evidenceRef,
+    tank: r.tank,
+    endedAtMs: r.endedAt ? Number(r.endedAt.microsSinceUnixEpoch) / 1000 : null,
+  };
+}
+
 // Same host as the page, so phones on the LAN reach the laptop's Spacetime. Plain ws://, so
 // the page must be served over http (as on the demo LAN). A hosted build points elsewhere (above).
 export function avonUri(): string {
@@ -146,6 +177,7 @@ export interface AvonLinkOptions {
   onConfirmations?(c: Record<string, Confirmed>): void;
   onRtt?(ms: number | null): void;
   onInsight?(i: Insight): void;
+  onLockdown?(l: LockdownState | null): void;
 }
 
 // "<SYS>_FACILITY_C" -> "<SYS> · Facility C tank"
@@ -298,6 +330,12 @@ export function connectAvon(opts: AvonLinkOptions): AvonLink {
       ping();
       probe = setInterval(ping, RTT_INTERVAL_MS);
     }).subscribe([tables.rttProbe]);
+    // LOCKDOWN has its own subscription too, for the same reason (a database published before it).
+    const lockdownChanged = () => { if (c === conn) opts.onLockdown?.(lockdownFromRow([...c.db.lockdown.iter()][0])); };
+    c.db.lockdown.onInsert(lockdownChanged);
+    c.db.lockdown.onUpdate(lockdownChanged);
+    c.db.lockdown.onDelete(lockdownChanged);
+    c.subscriptionBuilder().onApplied(lockdownChanged).subscribe([tables.lockdown]);
   }
 
   open();
@@ -393,6 +431,7 @@ export function AvonProvider({ children, uri, database }: { children: ReactNode;
   const [facilities, setFacilities] = useState<SiteFacility[]>([]);
   const [confirmations, setConfirmations] = useState<Record<string, Confirmed>>({});
   const [insight, setInsight] = useState<Insight>(EMPTY_INSIGHT);
+  const [lockdown, setLockdown] = useState<LockdownState | null>(null);
   const link = useRef<AvonLink | null>(null);
 
   useEffect(() => {
@@ -406,6 +445,7 @@ export function AvonProvider({ children, uri, database }: { children: ReactNode;
       onConfirmations: setConfirmations,
       onRtt: setRttMs,
       onInsight: setInsight,
+      onLockdown: setLockdown,
     });
     link.current = l;
     return () => { l.close(); if (link.current === l) link.current = null; };
@@ -454,9 +494,21 @@ export function AvonProvider({ children, uri, database }: { children: ReactNode;
     await conn.reducers.computeBreaches({});
   }, []);
 
+  const enterLockdown = useCallback(async (reason: string, evidenceRef: string, tank: string) => {
+    const conn = link.current?.connection();
+    if (!conn) throw new Error("Spacetime is disconnected");
+    await conn.reducers.enterLockdown({ reason, evidenceRef, tank });
+  }, []);
+
+  const endLockdown = useCallback(async () => {
+    const conn = link.current?.connection();
+    if (!conn) throw new Error("Spacetime is disconnected");
+    await conn.reducers.endLockdown({});
+  }, []);
+
   const value = useMemo<AvonConsole>(
-    () => ({ status, view, source, load, facilities, confirmations, confirm, targets, faults, inject, clear, insight, whatIf, computeBreaches }),
-    [status, view, source, load, facilities, confirmations, confirm, targets, faults, inject, clear, insight, whatIf, computeBreaches],
+    () => ({ status, view, source, load, facilities, confirmations, confirm, targets, faults, inject, clear, insight, whatIf, computeBreaches, lockdown, enterLockdown, endLockdown }),
+    [status, view, source, load, facilities, confirmations, confirm, targets, faults, inject, clear, insight, whatIf, computeBreaches, lockdown, enterLockdown, endLockdown],
   );
   // The round trip has its own context, so a new sample every 5 s re-renders only the badge.
   return createElement(AvonContext.Provider, { value }, createElement(AvonRttContext.Provider, { value: rttMs }, children));
@@ -471,4 +523,11 @@ export function useAvonConsole(): AvonConsole {
   const v = useContext(AvonContext);
   if (!v) throw new Error("useAvonConsole() must be inside <AvonProvider>");
   return v;
+}
+
+// LOCKDOWN for any Avon screen inside <AvonProvider> (/twin, /vr, /insight): the row and the reducers.
+// `active` is true only while the site is locked down.
+export function useLockdown(): { lockdown: LockdownState | null; active: boolean; enterLockdown: AvonConsole["enterLockdown"]; endLockdown: AvonConsole["endLockdown"] } {
+  const { lockdown, enterLockdown, endLockdown } = useAvonConsole();
+  return { lockdown, active: !!lockdown?.active, enterLockdown, endLockdown };
 }

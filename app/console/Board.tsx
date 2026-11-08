@@ -5,6 +5,7 @@ import { hhmm, money, type Alert, type ConsoleView, type SensorIssue } from "@/l
 import { evidenceFor, evidenceForIssue, type Evidence } from "@/lib/evidence";
 import { Badge, SensorBadge, SimulatedBadge } from "@/app/ui/Badge";
 import { useAvonConsole } from "@/lib/live";
+import { LockdownButton } from "./lockdown/LockdownButton";
 import { Arm, Collapse, Tick, useBornLive, useBringIntoView } from "./motion";
 import { freshConfirm } from "./tween";
 
@@ -147,6 +148,7 @@ function ConfirmRow({ a, top }: { a: Alert; top: boolean }) {
         {bad && <> It rests on a tank sensor that is now <b>{bad.state.toUpperCase()}</b>{bad.simulated ? " (simulated)" : ""}. Check the sensor before the truck rolls.</>}
         {changed && <> The plan now reads <b>{fix.headline}</b> ({money(fix.plan.cost)}).</>}
       </p>
+      {bad && <LockdownButton alert={a} />}
       {changed && (
         <button className="btn mo-press mt-2" onClick={go} disabled={busy || status !== "connected"} data-busy={busy || undefined}>Confirm the new plan</button>
       )}
@@ -280,6 +282,7 @@ function SensorLine({ x, dataset, now }: { x: SensorIssue; dataset: string; now:
       {x.state === "dead" && <p className="text-sm">Send someone with a replacement sensor; until then, plans use its last reading.</p>}
       {x.state === "lying" && <p className="text-sm">Check the sensor on site first. A reading that disagrees with physics can also mean someone changed it.</p>}
       <SendToDarkroom ev={evidenceForIssue(x, dataset, now)} dataset={dataset} now={now} />
+      <LockdownButton issue={x} />
     </li>
   );
 }

@@ -12,6 +12,7 @@ import { whatIf, WHAT_IF_KINDS, type WhatIfKind } from '../../lib/eog/whatif.ts'
 import { injectFault, type FaultKind } from '../../lib/rules/faults.ts';
 import { facilitiesOf } from './wide.ts';
 import { rttRowsToDelete } from '../../lib/rules/darkroom/rtt.ts';
+import { lockdownInputError } from '../../lib/rules/lockdown.ts';
 import type { NetworkJson } from '../../lib/eog/types.ts';
 
 const config = table({ name: 'config', public: true }, {
@@ -205,8 +206,22 @@ const scenario = table({ name: 'scenario', public: true }, {
   resultJson: t.string(),           // JSON.stringify(Ripple)
 });
 
+// LOCKDOWN (docs/LOCKDOWN.md): one row, id 0. The operator suspects the network and moves the decision
+// to the isolated Darkroom; every Avon screen subscribes and reacts. The darkroom module is never
+// touched: a person carries evidence_ref to the box.
+const lockdown = table({ name: 'lockdown', public: true }, {
+  id: t.u8().primaryKey(),          // always 0
+  active: t.bool(),
+  startedAt: t.timestamp(),
+  startedBy: t.identity(),
+  reason: t.string(),
+  evidenceRef: t.string(),          // AV-XXXX-XXXX (lib/evidence.ts)
+  tank: t.string(),                 // asset id of the suspect sensor
+  endedAt: t.option(t.timestamp()),
+});
+
 // snake_case keys so source and canonical names agree (SQL, describe and logs all say console_meta).
-const spacetimedb = schema({ config, dataset_source: datasetSource, facility, reading, alert, console_meta: consoleMeta, fault, sensor_issue: sensorIssue, load_lock: loadLock, confirmation, rtt_probe: rttProbe, budget, flow_series: flowSeries, breach_risk: breachRisk, scenario });
+const spacetimedb = schema({ config, dataset_source: datasetSource, facility, reading, alert, console_meta: consoleMeta, fault, sensor_issue: sensorIssue, load_lock: loadLock, confirmation, rtt_probe: rttProbe, budget, flow_series: flowSeries, breach_risk: breachRisk, scenario, lockdown });
 export default spacetimedb;
 
 export const load_dataset = spacetimedb.reducer(
@@ -472,3 +487,28 @@ export const rtt_ping = spacetimedb.reducer(
     for (const id of rttRowsToDelete([...ctx.db.rtt_probe.iter()].map((r) => r.id))) ctx.db.rtt_probe.id.delete(id);
   }
 );
+
+// LOCKDOWN. Additive: no existing table or reducer changes. Starting one while another is active is
+// refused, so a second screen cannot overwrite the reference the operator is carrying.
+export const enter_lockdown = spacetimedb.reducer(
+  { reason: t.string(), evidenceRef: t.string(), tank: t.string() },
+  (ctx, { reason, evidenceRef, tank }) => {
+    const bad = lockdownInputError({ reason, evidenceRef, tank });
+    if (bad) throw new SenderError(bad);
+    const cur = ctx.db.lockdown.id.find(0);
+    if (cur?.active) throw new SenderError(`the site is already in LOCKDOWN (${cur.evidenceRef})`);
+    const row = { id: 0, active: true, startedAt: ctx.timestamp, startedBy: ctx.sender, reason: reason.trim(), evidenceRef, tank, endedAt: undefined };
+    if (cur) ctx.db.lockdown.id.update(row);
+    else ctx.db.lockdown.insert(row);
+  }
+);
+
+// After the on-site check. Keeps the row (who, why, when) with active false and ended_at set, and
+// clears the confirmations: they were made on data that may have been tampered with, so every
+// plan asks to be confirmed again.
+export const end_lockdown = spacetimedb.reducer((ctx) => {
+  const cur = ctx.db.lockdown.id.find(0);
+  if (!cur?.active) throw new SenderError('the site is not in lockdown');
+  ctx.db.lockdown.id.update({ ...cur, active: false, endedAt: ctx.timestamp });
+  ctx.db.confirmation.clear();
+});

@@ -27,6 +27,7 @@ npm run demo          # boot everything on the EOG laptop (scripts/boot-avon.mjs
 | `flow_series` | yes | one facility: hourly rate in (inflow) and rate out (pump), level, and the level change physics expects, last 24 h (`lib/eog/flows.ts`) |
 | `breach_risk` | yes | one tank: what a spoofed (held flat) level sensor would hide and what believing it costs against the truth, most dollars first (`lib/eog/breach.ts`) |
 | `scenario` | yes | one `what_if` run: kind, asset, who asked, the ripple as JSON; newest 20 kept (`lib/eog/whatif.ts`) |
+| `lockdown` | yes | one row (id 0): the site is in LOCKDOWN (docs/LOCKDOWN.md): active, started_at, started_by, reason, evidence_ref (AV-XXXX-XXXX), tank, ended_at |
 
 ## Reducers
 
@@ -55,6 +56,8 @@ spacetime sql -s avonlocal avon "SELECT id, kind, asset_id, title FROM scenario"
 ```
 
 The ripple, in short: `pump_fail` plans the stopped pump with the system's other failures through the same planner (`planJoint`), so it shows which other facility's plan changes when the trucks move, the trip time if nobody acts, and the night's cost before and after. `sensor_spoof` and `sensor_dead` on a failed pump rerun the whole engine on a copy faked since the failure and meet the plan the lie produces with the real tank; on a running pump they plan a stop the console cannot see, with the time the physics check (`lib/rules/health.ts`) would flag the sensor. `pipeline_leak` sizes the spill from this data's own leaks, waits the detector's delay, then isolates the line.
+| `enter_lockdown(reason, evidence_ref, tank)` | any client* | starts a LOCKDOWN: evidence_ref must match `AV-XXXX-XXXX`, reason 1 to 200 characters (lib/rules/lockdown.ts); refused while one is already active |
+| `end_lockdown()` | any client* | ends it after the on-site check: keeps the row with active false and ended_at set, and clears `confirmation` so every plan asks to be confirmed again; refused when none is active |
 
 \* The Avon side trusts its own network in this prototype; that is a stated limit (docs/ARCHITECTURE.md, the threat model card). The isolated Darkroom module checks every caller.
 

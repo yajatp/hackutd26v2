@@ -1,0 +1,382 @@
+/* LOCKDOWN on /console (docs/LOCKDOWN.md). Night tokens come from app/console/console.module.css.
+   Red is the lockdown state (the badge, the scan line; the button in LockdownButton.tsx); amber is the plan on
+   hold. Motion lives under .animate only, so a lockdown that was already on (or reduced motion)
+   renders its final state with no movement. */
+
+/* ---- The overlay ---- */
+
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  color: #d7dee0;
+}
+
+/* The shutter is the dim: night at 65%, so the page reads at 35% under it. */
+.shutter {
+  position: absolute;
+  inset: 0;
+  background: rgb(16 34 49 / 0.65);
+  /* Blurred as well as dimmed, so the board's text never runs through the overlay's. */
+  backdrop-filter: blur(6px) saturate(0.5);
+  -webkit-backdrop-filter: blur(6px) saturate(0.5);
+}
+
+.scan {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: #ef4444;
+  box-shadow: 0 0 10px 1px rgb(239 68 68 / 0.8);
+  opacity: 0;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 2px;
+  background: #b91c1c;
+  padding: 0.2rem 0.6rem;
+  color: #ffffff;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.badgeCorner {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1;
+  margin: 0;
+}
+
+.panel {
+  position: relative;
+  box-sizing: border-box;
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgb(215 222 224 / 0.25) transparent;
+  margin: 0 auto;
+  max-width: 44rem;
+  /* A sheet of night under the text: the board shows at 35% either side, never through the words. */
+  background: rgb(16 34 49 / 0.94);
+  padding: 4.5rem clamp(16px, 4vw, 2.5rem) 2.5rem;
+}
+
+/* The title card: pixel type in thin crop-mark corners, one light streak behind the text. */
+.card {
+  position: relative;
+  overflow: hidden;
+  padding: 1.1rem 1.25rem 1rem;
+}
+
+.crops i {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: #d7dee0;
+  border-style: solid;
+  border-width: 0;
+}
+
+.crops i:nth-child(1) { top: 0; left: 0; border-top-width: 1px; border-left-width: 1px; }
+.crops i:nth-child(2) { top: 0; right: 0; border-top-width: 1px; border-right-width: 1px; }
+.crops i:nth-child(3) { bottom: 0; left: 0; border-bottom-width: 1px; border-left-width: 1px; }
+.crops i:nth-child(4) { bottom: 0; right: 0; border-bottom-width: 1px; border-right-width: 1px; }
+
+.streak {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 40%;
+  height: 2.5rem;
+  margin-top: -1.25rem;
+  background: linear-gradient(90deg, transparent, rgb(215 222 224 / 0.16), transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cardTitle {
+  position: relative;
+  font-family: "Pixelify Sans", "Barlow Condensed", "Bahnschrift", system-ui, sans-serif;
+  font-size: clamp(2.75rem, 10vw, 4.5rem);
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+}
+
+.cardSub {
+  position: relative;
+  margin-top: 0.4rem;
+  font-family: "Pixelify Sans", "Barlow Condensed", "Bahnschrift", system-ui, sans-serif;
+  font-size: clamp(1.1rem, 3.5vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #fca5a5;
+}
+
+.meta {
+  margin-top: 0.75rem;
+  color: #8fa1aa;
+}
+
+/* The finding tag: solid red, a square marker, pops in over the frozen plan. */
+.planWrap { margin-top: 1.75rem; }
+
+.finding {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+  border-radius: 2px;
+  background: #b91c1c;
+  padding: 0.1rem 0.5rem;
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* The frozen plan: desaturated, a diagonal hold stripe across it. */
+.plan {
+  position: relative;
+  overflow: hidden;
+  border-left: 3px solid #8fa1aa;
+  padding: 0.75rem 1rem 0.9rem 1.1rem;
+  filter: grayscale(1);
+  opacity: 0.8;
+}
+
+.planHead { font-weight: 600; color: #8fa1aa; }
+
+.planRow {
+  margin-top: 0.4rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.planDecide {
+  font-family: "Barlow Condensed", "Barlow", "Bahnschrift", system-ui, sans-serif;
+  font-size: clamp(1.5rem, 4.5vw, 2rem);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.struck {
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  text-decoration-color: rgb(215 222 224 / 0.45);
+}
+
+.planLabel {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-family: "Barlow", "Bahnschrift", system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #8fa1aa;
+  text-decoration: none;
+}
+
+.stripe {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(-45deg, rgb(245 158 11 / 0.16) 0 12px, transparent 12px 26px);
+  pointer-events: none;
+}
+
+.holdTag {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.75rem;
+  border: 1px solid #f59e0b;
+  border-radius: 2px;
+  padding: 0 0.4rem;
+  color: #fde68a;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.hold_sentence {
+  margin-top: 0.9rem;
+  border-left: 3px solid #f59e0b;
+  background: rgb(245 158 11 / 0.08);
+  padding: 0.6rem 0.75rem 0.6rem 1rem;
+  font-weight: 600;
+  max-width: 38rem;
+}
+
+/* The evidence card. */
+.evidence {
+  margin-top: 1.75rem;
+  border-top: 1px solid rgb(215 222 224 / 0.16);
+  padding-top: 1.25rem;
+}
+
+.evTitle { font-weight: 600; }
+
+.ref {
+  margin-top: 0.5rem;
+  min-height: 1.2em;
+  font-family: "Pixelify Sans", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: clamp(2.25rem, 9vw, 3.5rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  color: #ffffff;
+}
+
+.caret { color: #ef4444; }
+
+.fingerprint {
+  margin-top: 0.4rem;
+  overflow: hidden;
+  font-size: 0.8125rem;
+  color: #8fa1aa;
+}
+
+.fpLabel { display: block; }
+
+.fpTrack { display: block; overflow: hidden; }
+
+.fpText {
+  display: block;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+.steps {
+  margin-top: 1rem;
+  list-style: decimal;
+  padding-left: 1.4rem;
+}
+
+.steps li { padding: 0.15rem 0 0.15rem 0.25rem; }
+
+.actions {
+  margin-top: 1.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.note {
+  flex-basis: 100%;
+  font-size: 0.875rem;
+  color: #8fa1aa;
+}
+
+/* SpacetimeDB.log: a narrow monospace column at the right; it needs room beside the 44rem sheet, so it shows from 1100 px wide. */
+.log {
+  position: absolute;
+  top: 4rem;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  width: min(22rem, calc((100vw - 44rem) / 2 - 2rem));
+  flex-direction: column;
+  border-left: 1px solid rgb(215 222 224 / 0.16);
+  background: rgb(16 34 49 / 0.9);
+  padding: 0.25rem 0 0 0.75rem;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.logTitle { color: #8fa1aa; }
+
+.logList {
+  margin-top: 0.35rem;
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-color: rgb(215 222 224 / 0.25) transparent;
+}
+
+.logLine {
+  padding: 0.1rem 0;
+  border-top: 1px solid rgb(215 222 224 / 0.08);
+  overflow-wrap: anywhere;
+}
+
+.logTime { color: #8fa1aa; }
+.logReducer { color: #d7dee0; font-weight: 700; }
+.logHot { color: #fca5a5; font-weight: 700; }
+
+@media (max-width: 1099px) {
+  .log { display: none; }
+}
+
+/* Folded: a bar over the board, which stays readable and marked untrusted. */
+.folded {
+  inset: 0 0 auto 0;
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  border-bottom: 2px solid #ef4444;
+  background: #102231;
+  padding: 0.6rem 16px;
+}
+
+.barText { flex: 1 1 16rem; font-size: 0.9375rem; }
+.barButtons { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+.mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+
+/* ---- Motion (only under .animate; never with reduced motion) ---- */
+
+.animate .shutter { animation: shutterDown 1200ms cubic-bezier(0.65, 0, 0.35, 1) both; }
+.animate .panel { animation: sheetDown 1200ms cubic-bezier(0.65, 0, 0.35, 1) both; }
+.animate .scan { animation: scanRide 1400ms linear both; }
+.animate .badgeCorner { animation: badgeIn 240ms 120ms ease-out both; }
+.animate .card { animation: fadeIn 200ms 300ms ease-out both; }
+.animate .streak { animation: streak 900ms 500ms cubic-bezier(0.4, 0, 0.2, 1) both; }
+.animate .meta { animation: fadeIn 300ms 900ms ease-out both; }
+.animate .finding { animation: tagPop 120ms 300ms ease-out both; }
+.animate .logLine { animation: fadeIn 200ms ease-out both; }
+.animate .plan { animation: desaturate 700ms ease-out both; }
+.animate .stripe { animation: stripeIn 800ms 150ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate .holdTag { animation: fadeIn 200ms 800ms both; }
+.animate .hold_sentence { animation: fadeIn 300ms 400ms ease-out both; }
+.animate .evidence { animation: rise 600ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate .fpText { animation: fpScroll 1100ms 250ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate .actions { animation: fadeIn 300ms 700ms both; }
+.animate .caret { animation: blink 500ms steps(1) infinite; }
+
+.ending .shutter { animation: shutterUp 800ms cubic-bezier(0.65, 0, 0.35, 1) both; }
+.ending .scan { animation: none; opacity: 1; }
+.ending .panel,
+.ending .badgeCorner { animation: fadeOut 250ms ease-in both; }
+
+@keyframes shutterDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+@keyframes sheetDown { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes shutterUp { from { transform: translateY(0); } to { transform: translateY(-100%); } }
+@keyframes scanRide { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes badgeIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes desaturate { from { filter: grayscale(0); opacity: 1; } to { filter: grayscale(1); opacity: 0.8; } }
+@keyframes stripeIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes fpScroll { from { opacity: 0; transform: translateX(40%); } to { opacity: 1; transform: none; } }
+@keyframes blink { 50% { opacity: 0; } }
+@keyframes streak { 0% { opacity: 1; transform: translateX(-100%); } 100% { opacity: 1; transform: translateX(260%); } }
+@keyframes tagPop { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .root * { animation: none !important; transition: none !important; }
+}

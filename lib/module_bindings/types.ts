@@ -137,6 +137,18 @@ export const LoadLock = __t.object("LoadLock", {
 });
 export type LoadLock = __Infer<typeof LoadLock>;
 
+export const Lockdown = __t.object("Lockdown", {
+  id: __t.u8(),
+  active: __t.bool(),
+  startedAt: __t.timestamp(),
+  startedBy: __t.identity(),
+  reason: __t.string(),
+  evidenceRef: __t.string(),
+  tank: __t.string(),
+  endedAt: __t.option(__t.timestamp()),
+});
+export type Lockdown = __Infer<typeof Lockdown>;
+
 export const Reading = __t.object("Reading", {
   id: __t.u64(),
   facilityId: __t.string(),

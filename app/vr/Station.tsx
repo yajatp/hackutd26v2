@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ConnBadge, connState } from "@/app/ui/Badge";
+import { LockdownBanner } from "@/app/ui/LockdownBanner";
 import { Field } from "./Field";
 import { useStation, type Mark } from "./useStation";
 import { CONTROLS, FAKED_NOTE, HTTPS_NOTE, LEGEND, NO_CABLE, SAY, STEPS, TITLE, TROUBLE, fill } from "./content";
@@ -49,6 +50,7 @@ export function Station() {
   const top = st.topState?.name ?? "the top problem";
   return (
     <div className={s.page}>
+      <LockdownBanner />
       <section className={s.hero}>
         <Field tanks={st.tanks} pads={st.pads} states={st.states} top={st.top} />
         <header className={s.bar}>

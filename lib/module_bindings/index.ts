@@ -37,6 +37,8 @@ import {
 import ClearFaultReducer from "./clear_fault_reducer";
 import ComputeBreachesReducer from "./compute_breaches_reducer";
 import ConfirmPlanReducer from "./confirm_plan_reducer";
+import EndLockdownReducer from "./end_lockdown_reducer";
+import EnterLockdownReducer from "./enter_lockdown_reducer";
 import FinishIngestReducer from "./finish_ingest_reducer";
 import IngestBatchReducer from "./ingest_batch_reducer";
 import InjectFaultReducer from "./inject_fault_reducer";
@@ -56,6 +58,7 @@ import ConsoleMetaRow from "./console_meta_table";
 import FacilityRow from "./facility_table";
 import FaultRow from "./fault_table";
 import FlowSeriesRow from "./flow_series_table";
+import LockdownRow from "./lockdown_table";
 import RttProbeRow from "./rtt_probe_table";
 import ScenarioRow from "./scenario_table";
 import SensorIssueRow from "./sensor_issue_table";
@@ -163,6 +166,17 @@ const tablesSchema = __schema({
       { name: 'flow_series_facility_id_key', constraint: 'unique', columns: ['facilityId'] },
     ],
   }, FlowSeriesRow),
+  lockdown: __table({
+    name: 'lockdown',
+    indexes: [
+      { accessor: 'id', name: 'lockdown_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'lockdown_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, LockdownRow),
   rttProbe: __table({
     name: 'rtt_probe',
     indexes: [
@@ -203,6 +217,8 @@ const reducersSchema = __reducers(
   __reducerSchema("clear_fault", ClearFaultReducer),
   __reducerSchema("compute_breaches", ComputeBreachesReducer),
   __reducerSchema("confirm_plan", ConfirmPlanReducer),
+  __reducerSchema("end_lockdown", EndLockdownReducer),
+  __reducerSchema("enter_lockdown", EnterLockdownReducer),
   __reducerSchema("finish_ingest", FinishIngestReducer),
   __reducerSchema("ingest_batch", IngestBatchReducer),
   __reducerSchema("inject_fault", InjectFaultReducer),
