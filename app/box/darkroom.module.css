@@ -1,0 +1,209 @@
+/* The Darkroom screens (/box, /witness, /join) as a "secure room" (docs/DESIGN-RESEARCH.md,
+   after ethiack.com): dark teal, hairlines, mint only for verified. The console's pattern
+   (app/console/console.module.css): the route layout wraps the page in .room, which gives the
+   shared tokens their teal values, so token-based classes follow with almost no component edits.
+   Unlayered rules, so they beat the layered ones in app/globals.css: set only what changes. */
+
+.room {
+  --background: #0b191b;
+  --foreground: #e6f2ee;
+  --muted: #8fb3aa;
+  --surface: transparent;
+  --surface-2: rgb(230 242 238 / 0.05);
+  --line: rgb(230 242 238 / 0.28);
+  --line-soft: rgb(230 242 238 / 0.12);
+  --alert: #fca5a5;
+  --alert-bg: transparent;
+  --alert-line: #ef4444;
+  --alert-solid: #b91c1c;
+  --warn: #fde68a;
+  --warn-bg: rgb(245 158 11 / 0.08);
+  --warn-line: #f59e0b;
+  /* Mint means verified, witnessed and closed. Never decoration. */
+  --verified: #3dff9a;
+
+  color-scheme: dark;
+  min-height: 100vh;
+  background: #0b191b;
+  color: #e6f2ee;
+  font-family: "Barlow", "Bahnschrift", system-ui, sans-serif;
+}
+
+/* Teal past the page's edges too (overscroll, short pages). */
+:global(html):has(.room),
+:global(body):has(.room) {
+  background: #0b191b;
+}
+
+.room :focus-visible {
+  outline: 2px solid #e6f2ee;
+  outline-offset: 3px;
+}
+
+/* No white boxes: a hairline above, text on the teal. */
+.room :global(.card) {
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  padding-inline: 0;
+}
+
+.room :global(.section-title) {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  color: #e6f2ee;
+}
+
+.room :global(.btn) {
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: transparent;
+  color: #e6f2ee;
+  font-family: inherit;
+}
+
+.room :global(.btn:hover:not(:disabled)) {
+  border-color: #e6f2ee;
+}
+
+.room :global(.btn-primary) {
+  border-color: #e6f2ee;
+  background: #e6f2ee;
+  color: #0b191b;
+  font-weight: 700;
+}
+
+.room :global(.btn-primary:hover:not(:disabled)) {
+  border-color: #ffffff;
+  background: #ffffff;
+}
+
+.room :global(.btn-on) {
+  border-color: #e6f2ee;
+  box-shadow: none;
+}
+
+.room :global(.badge) {
+  border-radius: 2px;
+}
+
+.room :global(.field) {
+  border-radius: 2px;
+}
+
+/* The status headline: LOG VERIFIED, ROLLBACK DETECTED AT #k, TAMPERING AT #k. */
+.room :global(.dr-status) {
+  font-family: "Pixelify Sans", "Barlow", system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.room :global([data-chain-status="verified"] .dr-status) {
+  color: var(--verified);
+}
+
+/* The broken-chain banner: red words on the teal behind a thick red left rule, not a red slab. */
+.room :global([role="alert"][data-chain-status]) {
+  border: 0;
+  border-left: 6px solid #ef4444;
+  border-radius: 0;
+  background: rgb(239 68 68 / 0.12);
+  color: #e6f2ee;
+}
+
+.room :global([role="alert"][data-chain-status] .dr-status) {
+  color: #fca5a5;
+}
+
+/* ---- Three animations. Each runs once when its element mounts, never loops, and none of them
+   exist under prefers-reduced-motion: the final state shows at once. ---- */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* LOG VERIFIED lands. StatusBanner keys the headline by its text, so a new status remounts it. */
+  .room :global(.dr-status) {
+    animation: dr-stamp 260ms ease-out both;
+  }
+
+  /* A new log entry: the newest row (first in the list) slides down and fades in, with one mint
+     flash of its left edge. Rows are keyed by seq, so only a new entry mounts a new first row. */
+  .room :global(section[aria-labelledby="log-entries"] ol > li:first-child) {
+    animation: dr-entry 240ms ease-out both, dr-edge 900ms ease-out both;
+  }
+
+  /* ROLLBACK DETECTED or TAMPERING: the banner shakes once and its red rule pulses once. */
+  .room :global([role="alert"][data-chain-status]) {
+    animation: dr-shake 300ms steps(3, end) both, dr-pulse 700ms ease-out both;
+  }
+}
+
+@keyframes dr-stamp {
+  from {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes dr-entry {
+  from {
+    opacity: 0;
+    transform: translateY(-0.6rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dr-edge {
+  from {
+    box-shadow: inset 3px 0 0 #3dff9a;
+    padding-left: 0.5rem;
+  }
+  70% {
+    box-shadow: inset 3px 0 0 #3dff9a;
+    padding-left: 0.5rem;
+  }
+  to {
+    box-shadow: inset 3px 0 0 transparent;
+    padding-left: 0;
+  }
+}
+
+@keyframes dr-shake {
+  0% {
+    transform: translateX(-6px);
+  }
+  33% {
+    transform: translateX(6px);
+  }
+  66% {
+    transform: translateX(-3px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes dr-pulse {
+  0% {
+    border-left-color: #ef4444;
+    box-shadow: -6px 0 18px rgb(239 68 68 / 0);
+  }
+  35% {
+    border-left-color: #ff7a7a;
+    box-shadow: -6px 0 22px rgb(239 68 68 / 0.75);
+  }
+  100% {
+    border-left-color: #ef4444;
+    box-shadow: -6px 0 18px rgb(239 68 68 / 0);
+  }
+}

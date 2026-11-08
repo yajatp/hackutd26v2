@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import s from "../box/darkroom.module.css";
 
 export const metadata: Metadata = {
   title: "Darkroom · join the team",
@@ -7,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function JoinLayout({ children }: { children: ReactNode }) {
-  return children;
+  return <div className={s.room}>{children}</div>;
 }
