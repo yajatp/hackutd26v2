@@ -35,23 +35,29 @@ import {
 
 // Import all reducer arg schemas
 import ClearFaultReducer from "./clear_fault_reducer";
+import ComputeBreachesReducer from "./compute_breaches_reducer";
 import ConfirmPlanReducer from "./confirm_plan_reducer";
 import FinishIngestReducer from "./finish_ingest_reducer";
 import IngestBatchReducer from "./ingest_batch_reducer";
 import InjectFaultReducer from "./inject_fault_reducer";
 import LoadDatasetReducer from "./load_dataset_reducer";
 import RttPingReducer from "./rtt_ping_reducer";
+import WhatIfReducer from "./what_if_reducer";
 
 // Import all procedure arg schemas
 
 // Import all table schema definitions
 import AlertRow from "./alert_table";
+import BreachRiskRow from "./breach_risk_table";
+import BudgetRow from "./budget_table";
 import ConfigRow from "./config_table";
 import ConfirmationRow from "./confirmation_table";
 import ConsoleMetaRow from "./console_meta_table";
 import FacilityRow from "./facility_table";
 import FaultRow from "./fault_table";
+import FlowSeriesRow from "./flow_series_table";
 import RttProbeRow from "./rtt_probe_table";
+import ScenarioRow from "./scenario_table";
 import SensorIssueRow from "./sensor_issue_table";
 
 /** Type-only namespace exports for generated type groups. */
@@ -69,6 +75,28 @@ const tablesSchema = __schema({
       { name: 'alert_rank_key', constraint: 'unique', columns: ['rank'] },
     ],
   }, AlertRow),
+  breachRisk: __table({
+    name: 'breach_risk',
+    indexes: [
+      { accessor: 'rank', name: 'breach_risk_rank_idx_btree', algorithm: 'btree', columns: [
+        'rank',
+      ] },
+    ],
+    constraints: [
+      { name: 'breach_risk_rank_key', constraint: 'unique', columns: ['rank'] },
+    ],
+  }, BreachRiskRow),
+  budget: __table({
+    name: 'budget',
+    indexes: [
+      { accessor: 'systemId', name: 'budget_system_id_idx_btree', algorithm: 'btree', columns: [
+        'systemId',
+      ] },
+    ],
+    constraints: [
+      { name: 'budget_system_id_key', constraint: 'unique', columns: ['systemId'] },
+    ],
+  }, BudgetRow),
   config: __table({
     name: 'config',
     indexes: [
@@ -124,6 +152,17 @@ const tablesSchema = __schema({
       { name: 'fault_asset_id_key', constraint: 'unique', columns: ['assetId'] },
     ],
   }, FaultRow),
+  flowSeries: __table({
+    name: 'flow_series',
+    indexes: [
+      { accessor: 'facilityId', name: 'flow_series_facility_id_idx_btree', algorithm: 'btree', columns: [
+        'facilityId',
+      ] },
+    ],
+    constraints: [
+      { name: 'flow_series_facility_id_key', constraint: 'unique', columns: ['facilityId'] },
+    ],
+  }, FlowSeriesRow),
   rttProbe: __table({
     name: 'rtt_probe',
     indexes: [
@@ -135,6 +174,17 @@ const tablesSchema = __schema({
       { name: 'rtt_probe_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, RttProbeRow),
+  scenario: __table({
+    name: 'scenario',
+    indexes: [
+      { accessor: 'id', name: 'scenario_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'scenario_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, ScenarioRow),
   sensorIssue: __table({
     name: 'sensor_issue',
     indexes: [
@@ -151,12 +201,14 @@ const tablesSchema = __schema({
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
   __reducerSchema("clear_fault", ClearFaultReducer),
+  __reducerSchema("compute_breaches", ComputeBreachesReducer),
   __reducerSchema("confirm_plan", ConfirmPlanReducer),
   __reducerSchema("finish_ingest", FinishIngestReducer),
   __reducerSchema("ingest_batch", IngestBatchReducer),
   __reducerSchema("inject_fault", InjectFaultReducer),
   __reducerSchema("load_dataset", LoadDatasetReducer),
   __reducerSchema("rtt_ping", RttPingReducer),
+  __reducerSchema("what_if", WhatIfReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */
@@ -165,8 +217,12 @@ const proceduresSchema = __procedures(
 
 type __SchemaWithTableAccessorAliases = Omit<typeof tablesSchema.schemaType, "tables"> & {
   tables: typeof tablesSchema.schemaType.tables & {
+    /** @deprecated Use `breachRisk` instead. This alias will be removed in the next major version. */
+    readonly "breach_risk": Omit<typeof tablesSchema.schemaType.tables["breachRisk"], "accessorName"> & { readonly accessorName: "breach_risk" };
     /** @deprecated Use `consoleMeta` instead. This alias will be removed in the next major version. */
     readonly "console_meta": Omit<typeof tablesSchema.schemaType.tables["consoleMeta"], "accessorName"> & { readonly accessorName: "console_meta" };
+    /** @deprecated Use `flowSeries` instead. This alias will be removed in the next major version. */
+    readonly "flow_series": Omit<typeof tablesSchema.schemaType.tables["flowSeries"], "accessorName"> & { readonly accessorName: "flow_series" };
     /** @deprecated Use `rttProbe` instead. This alias will be removed in the next major version. */
     readonly "rtt_probe": Omit<typeof tablesSchema.schemaType.tables["rttProbe"], "accessorName"> & { readonly accessorName: "rtt_probe" };
     /** @deprecated Use `sensorIssue` instead. This alias will be removed in the next major version. */
@@ -189,7 +245,9 @@ const REMOTE_MODULE = {
 >;
 
 const tableAccessorAliases = {
+  "breach_risk": "breachRisk",
   "console_meta": "consoleMeta",
+  "flow_series": "flowSeries",
   "rtt_probe": "rttProbe",
   "sensor_issue": "sensorIssue",
 } as const;
@@ -212,8 +270,12 @@ function __withTableAccessorAliases<T extends object>(target: T, freeze = false)
 
 type __DbViewBase = __DbConnectionImpl<typeof REMOTE_MODULE>["db"];
 export type DbView = __DbViewBase & {
+  /** @deprecated Use `breachRisk` instead. This alias will be removed in the next major version. */
+  readonly "breach_risk": __DbViewBase["breachRisk"];
   /** @deprecated Use `consoleMeta` instead. This alias will be removed in the next major version. */
   readonly "console_meta": __DbViewBase["consoleMeta"];
+  /** @deprecated Use `flowSeries` instead. This alias will be removed in the next major version. */
+  readonly "flow_series": __DbViewBase["flowSeries"];
   /** @deprecated Use `rttProbe` instead. This alias will be removed in the next major version. */
   readonly "rtt_probe": __DbViewBase["rttProbe"];
   /** @deprecated Use `sensorIssue` instead. This alias will be removed in the next major version. */
@@ -222,8 +284,12 @@ export type DbView = __DbViewBase & {
 
 type __TablesBase = __QueryBuilder<typeof tablesSchema.schemaType>;
 export type Tables = __TablesBase & {
+  /** @deprecated Use `breachRisk` instead. This alias will be removed in the next major version. */
+  readonly "breach_risk": __TablesBase["breachRisk"];
   /** @deprecated Use `consoleMeta` instead. This alias will be removed in the next major version. */
   readonly "console_meta": __TablesBase["consoleMeta"];
+  /** @deprecated Use `flowSeries` instead. This alias will be removed in the next major version. */
+  readonly "flow_series": __TablesBase["flowSeries"];
   /** @deprecated Use `rttProbe` instead. This alias will be removed in the next major version. */
   readonly "rtt_probe": __TablesBase["rttProbe"];
   /** @deprecated Use `sensorIssue` instead. This alias will be removed in the next major version. */

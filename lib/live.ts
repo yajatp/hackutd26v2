@@ -8,6 +8,11 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DbConnection, tables } from "./module_bindings/index.ts";
 import type { Alert as AlertRow, ConsoleMeta, Facility, Fault, SensorIssue as SensorIssueRow } from "./module_bindings/types.ts";
+import type { BreachRisk as BreachRow, Budget as BudgetRow, FlowSeries as FlowRow, Scenario as ScenarioRow } from "./module_bindings/types.ts";
+import type { SystemBudget } from "./eog/budget.ts";
+import type { FlowSeries } from "./eog/flows.ts";
+import type { BreachRisk } from "./eog/breach.ts";
+import type { Ripple, WhatIfKind } from "./eog/whatif.ts";
 import { loadDataset, type DatasetFiles } from "./eog/load.ts";
 import type { Alert, ConsoleView, SensorIssue } from "./eog/alerts.ts";
 import type { ActiveFault, AttackTarget, FaultKind } from "./attack.ts";
@@ -41,6 +46,59 @@ export interface AvonConsole {
   faults: ActiveFault[];
   inject(kind: FaultKind, assetId: string): Promise<void>;
   clear(assetId?: string): Promise<void>;
+  // /insight: the night's budget, rate in vs rate out, potential breaches and what-if runs, all
+  // written by the module (budget, flow_series, breach_risk, scenario). Empty on a database
+  // published before these tables existed.
+  insight: Insight;
+  whatIf(kind: WhatIfKind, assetId: string): Promise<void>;
+  computeBreaches(): Promise<void>;
+}
+
+export interface ScenarioRun {
+  id: string;                                      // the row's u64 id
+  atMs: number;
+  datasetId: string;
+  kind: WhatIfKind;
+  assetId: string;
+  facilityId: string;
+  title: string;
+  summary: string;
+  costDelta: number;
+  mine: boolean;                                   // asked by this screen
+  ripple: Ripple;
+}
+
+export interface Insight {
+  budget: SystemBudget[];                          // by system id
+  flows: FlowSeries[];                             // by facility id
+  breaches: BreachRisk[];                          // most dollars at stake first
+  scenarios: ScenarioRun[];                        // newest first
+}
+
+export const EMPTY_INSIGHT: Insight = { budget: [], flows: [], breaches: [], scenarios: [] };
+
+// The insight tables as plain engine shapes (lib/eog). Pure, for tests and the page.
+export function insightFromRows(budget: readonly BudgetRow[], flows: readonly FlowRow[], breaches: readonly BreachRow[], scenarios: readonly ScenarioRow[], me = ""): Insight {
+  return {
+    budget: [...budget].sort((a, b) => a.systemId.localeCompare(b.systemId)).map((b) => ({
+      system_id: b.systemId, facilities: b.facilities, fleet: b.fleet, trucks_used: b.trucksUsed, trips: b.trips,
+      failures: b.failures, plans: b.plans, do_nothing: b.doNothing, truck_cost: b.truckCost, shut_in_cost: b.shutInCost,
+      at_risk_per_hour: b.atRiskPerHour, revenue_per_hour: b.revenuePerHour,
+    })),
+    flows: [...flows].sort((a, b) => a.facilityId.localeCompare(b.facilityId)).map((f) => ({
+      facility_id: f.facilityId, system_id: f.systemId, tank_id: f.tankId, capacity_bbl: f.capacityBbl, step_s: f.stepS,
+      points: f.endTs.map((end_ts, i) => ({
+        end_ts, inflow_bpd: f.inflowBpd[i], outflow_bpd: f.outflowBpd[i], level_pct: f.levelPct[i],
+        physics_pts: f.physicsPts[i], reported_pts: f.reportedPts[i],
+      })),
+    })),
+    breaches: [...breaches].sort((a, b) => a.rank - b.rank).map((b) => JSON.parse(b.detailJson) as BreachRisk),
+    scenarios: [...scenarios].sort((a, b) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0)).map((r) => ({
+      id: String(r.id), atMs: Number(r.at.microsSinceUnixEpoch) / 1000, datasetId: r.datasetId,
+      kind: r.kind as WhatIfKind, assetId: r.assetId, facilityId: r.facilityId, title: r.title, summary: r.summary,
+      costDelta: r.costDelta, mine: me !== "" && r.requestedBy.toHexString() === me, ripple: JSON.parse(r.resultJson) as Ripple,
+    })),
+  };
 }
 
 // Same host as the page, so phones on the LAN reach the laptop's Spacetime. Plain ws://, so
@@ -87,6 +145,7 @@ export interface AvonLinkOptions {
   onFacilities?(facilities: SiteFacility[]): void;
   onConfirmations?(c: Record<string, Confirmed>): void;
   onRtt?(ms: number | null): void;
+  onInsight?(i: Insight): void;
 }
 
 // "<SYS>_FACILITY_C" -> "<SYS> · Facility C tank"
@@ -211,6 +270,25 @@ export function connectAvon(opts: AvonLinkOptions): AvonLink {
     c.db.rttProbe.onInsert((_ctx, row) => {
       if (c === conn && row.sender.toHexString() === me) rtt.arrived(row.nonce, performance.now());
     });
+    // /insight tables on their own subscription too: a site database published before they existed
+    // fails only this one, and the board above is untouched.
+    if (opts.onInsight) {
+      let due = false;
+      const insight = () => {
+        if (due) return;
+        due = true;
+        queueMicrotask(() => {
+          due = false;
+          if (c !== conn) return;
+          opts.onInsight!(insightFromRows([...c.db.budget.iter()], [...c.db.flowSeries.iter()], [...c.db.breachRisk.iter()], [...c.db.scenario.iter()], me));
+        });
+      };
+      for (const tbl of [c.db.budget, c.db.flowSeries, c.db.breachRisk, c.db.scenario]) {
+        tbl.onInsert(insight);
+        tbl.onDelete(insight);
+      }
+      c.subscriptionBuilder().onApplied(insight).subscribe([tables.budget, tables.flowSeries, tables.breachRisk, tables.scenario]);
+    }
     c.subscriptionBuilder().onApplied(() => {
       if (c !== conn) return;
       stopProbe();
@@ -314,6 +392,7 @@ export function AvonProvider({ children, uri, database }: { children: ReactNode;
   const [faults, setFaults] = useState<ActiveFault[]>([]);
   const [facilities, setFacilities] = useState<SiteFacility[]>([]);
   const [confirmations, setConfirmations] = useState<Record<string, Confirmed>>({});
+  const [insight, setInsight] = useState<Insight>(EMPTY_INSIGHT);
   const link = useRef<AvonLink | null>(null);
 
   useEffect(() => {
@@ -326,6 +405,7 @@ export function AvonProvider({ children, uri, database }: { children: ReactNode;
       onFacilities: setFacilities,
       onConfirmations: setConfirmations,
       onRtt: setRttMs,
+      onInsight: setInsight,
     });
     link.current = l;
     return () => { l.close(); if (link.current === l) link.current = null; };
@@ -362,9 +442,21 @@ export function AvonProvider({ children, uri, database }: { children: ReactNode;
     await conn.reducers.confirmPlan({ alertId });
   }, []);
 
+  const whatIf = useCallback(async (kind: WhatIfKind, assetId: string) => {
+    const conn = link.current?.connection();
+    if (!conn) throw new Error("Spacetime is disconnected");
+    await conn.reducers.whatIf({ kind, assetId });
+  }, []);
+
+  const computeBreaches = useCallback(async () => {
+    const conn = link.current?.connection();
+    if (!conn) throw new Error("Spacetime is disconnected");
+    await conn.reducers.computeBreaches({});
+  }, []);
+
   const value = useMemo<AvonConsole>(
-    () => ({ status, view, source, load, facilities, confirmations, confirm, targets, faults, inject, clear }),
-    [status, view, source, load, facilities, confirmations, confirm, targets, faults, inject, clear],
+    () => ({ status, view, source, load, facilities, confirmations, confirm, targets, faults, inject, clear, insight, whatIf, computeBreaches }),
+    [status, view, source, load, facilities, confirmations, confirm, targets, faults, inject, clear, insight, whatIf, computeBreaches],
   );
   // The round trip has its own context, so a new sample every 5 s re-renders only the badge.
   return createElement(AvonContext.Provider, { value }, createElement(AvonRttContext.Provider, { value: rttMs }, children));

@@ -74,7 +74,7 @@ export function money(x: number): string {
   return "$" + Math.round(x).toLocaleString("en-US");
 }
 
-function liveWells(ds: Dataset, f: FacilityJson, net: PlanNetwork): PlanWell[] {
+export function liveWells(ds: Dataset, f: FacilityJson, net: PlanNetwork): PlanWell[] {
   const n = ds.ts.length;
   return net.facilities[f.id].wells.map((w) => {
     const s = seriesOf(ds, w.id, "water_bpd");
@@ -85,7 +85,7 @@ function liveWells(ds: Dataset, f: FacilityJson, net: PlanNetwork): PlanWell[] {
 }
 
 // When the tank of this failure reached its shutdown limit (data time), or null if it has not.
-function trippedAt(ds: Dataset, f: FacilityJson, onset: number): number | null {
+export function trippedAt(ds: Dataset, f: FacilityJson, onset: number): number | null {
   const L = seriesOf(ds, f.tank.id, "level_pct");
   const limit = ds.network.defaults.tank_limits_pct.shutdown;
   if (!(L[ds.ts.length - 1] >= limit - 0.05)) return null;
@@ -100,7 +100,7 @@ function facilityIndex(ds: Dataset): Map<string, FacilityJson> {
 }
 
 // "Call 1 truck now, 1 trip" + detail lines with clock times, as on the fix card mockup.
-function describe(p: Plan, now: number, responseMin: number, cycleMin: number): { headline: string; details: string[] } {
+export function describe(p: Plan, now: number, responseMin: number, cycleMin: number): { headline: string; details: string[] } {
   const at = (min: number) => hhmm(now + min * 60);
   const parts: string[] = [];
   const details: string[] = [];

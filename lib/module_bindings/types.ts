@@ -22,6 +22,37 @@ export const Alert = __t.object("Alert", {
 });
 export type Alert = __Infer<typeof Alert>;
 
+export const BreachRisk = __t.object("BreachRisk", {
+  rank: __t.u32(),
+  tankId: __t.string(),
+  facilityId: __t.string(),
+  systemId: __t.string(),
+  mode: __t.string(),
+  exposure: __t.f64(),
+  believedCost: __t.f64(),
+  honestCost: __t.f64(),
+  hiddenMin: __t.option(__t.f64()),
+  summary: __t.string(),
+  detailJson: __t.string(),
+});
+export type BreachRisk = __Infer<typeof BreachRisk>;
+
+export const Budget = __t.object("Budget", {
+  systemId: __t.string(),
+  facilities: __t.u32(),
+  fleet: __t.u32(),
+  trucksUsed: __t.u32(),
+  trips: __t.u32(),
+  failures: __t.u32(),
+  plans: __t.f64(),
+  doNothing: __t.f64(),
+  truckCost: __t.f64(),
+  shutInCost: __t.f64(),
+  atRiskPerHour: __t.f64(),
+  revenuePerHour: __t.f64(),
+});
+export type Budget = __Infer<typeof Budget>;
+
 export const Config = __t.object("Config", {
   id: __t.u8(),
   datasetId: __t.string(),
@@ -84,6 +115,21 @@ export const Fault = __t.object("Fault", {
 });
 export type Fault = __Infer<typeof Fault>;
 
+export const FlowSeries = __t.object("FlowSeries", {
+  facilityId: __t.string(),
+  systemId: __t.string(),
+  tankId: __t.string(),
+  capacityBbl: __t.f64(),
+  stepS: __t.u32(),
+  endTs: __t.array(__t.u32()),
+  inflowBpd: __t.array(__t.f64()),
+  outflowBpd: __t.array(__t.f64()),
+  levelPct: __t.array(__t.f64()),
+  physicsPts: __t.array(__t.f64()),
+  reportedPts: __t.array(__t.f64()),
+});
+export type FlowSeries = __Infer<typeof FlowSeries>;
+
 export const LoadLock = __t.object("LoadLock", {
   id: __t.u8(),
   loader: __t.identity(),
@@ -115,6 +161,21 @@ export const RttProbe = __t.object("RttProbe", {
   at: __t.timestamp(),
 });
 export type RttProbe = __Infer<typeof RttProbe>;
+
+export const Scenario = __t.object("Scenario", {
+  id: __t.u64(),
+  requestedBy: __t.identity(),
+  at: __t.timestamp(),
+  datasetId: __t.string(),
+  kind: __t.string(),
+  assetId: __t.string(),
+  facilityId: __t.string(),
+  title: __t.string(),
+  summary: __t.string(),
+  costDelta: __t.f64(),
+  resultJson: __t.string(),
+});
+export type Scenario = __Infer<typeof Scenario>;
 
 export const SensorIssue = __t.object("SensorIssue", {
   rank: __t.u32(),

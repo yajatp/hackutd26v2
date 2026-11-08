@@ -23,6 +23,10 @@ npm run demo          # boot everything on the EOG laptop (scripts/boot-avon.mjs
 | `fault` | yes | a simulated fault from Phone 1 (never changes the readings) |
 | `confirmation` | yes | a plan the operator confirmed, as it read at that moment |
 | `load_lock` | no | which screen is loading a site right now |
+| `budget` | yes | one system: trucks the plans call against its fleet (ops.json), plans against doing nothing, production at risk per hour (`lib/eog/budget.ts`) |
+| `flow_series` | yes | one facility: hourly rate in (inflow) and rate out (pump), level, and the level change physics expects, last 24 h (`lib/eog/flows.ts`) |
+| `breach_risk` | yes | one tank: what a spoofed (held flat) level sensor would hide and what believing it costs against the truth, most dollars first (`lib/eog/breach.ts`) |
+| `scenario` | yes | one `what_if` run: kind, asset, who asked, the ripple as JSON; newest 20 kept (`lib/eog/whatif.ts`) |
 
 ## Reducers
 
@@ -34,6 +38,23 @@ npm run demo          # boot everything on the EOG laptop (scripts/boot-avon.mjs
 | `inject_fault(asset, kind)` | any client* | Phone 1: kill / fake_flat / drift on a tank, then reruns the engine on a copy of the readings |
 | `clear_fault(asset)` | any client* | removes one fault (or all with `""`) and reruns the engine |
 | `confirm_plan(alert_id)` | any client* | records the plan's headline and cost from the server's own alert row |
+| `what_if(kind, asset_id)` | any client* | kind `pump_fail`, `sensor_spoof`, `sensor_dead` or `pipeline_leak`: runs the ripple on what the console sees now and writes one `scenario` row; never changes the board |
+| `compute_breaches()` | any client* | rewrites `breach_risk` from the readings as loaded (finish_ingest already does it once per load) |
+
+`finish_ingest` and every rebuild (`inject_fault`, `clear_fault`) also rewrite `budget` and `flow_series`, so a simulated fault shows there too. `finish_ingest` writes `breach_risk` from the readings as loaded: on mock_test, local `finish_ingest` took 85-180 ms before `breach_risk` existed and 156-773 ms with it (the spread is machine load); adding the ripple chart data took it from 156-233 ms to 229-311 ms (two local loads each); the hosted copy took 677 ms. `/insight` reads all four tables.
+
+Each ripple step names its future (`branch`): `event` and `check` happen in every future, `plan` (and `fleet`, another facility's plan that moves with it) is acting on the truth, `ignored` is nobody acting, `lie` is trusting a faked sensor, `flag` is acting only once the sensor check flags it. `projection` holds the tank level in each future as `[minutes after now, level %]` points, with the truck pickups, the trip and the sensor flag marked; `/insight` draws it above the timeline. Rows written before this field existed have `projection` missing, and the page skips the chart for them.
+
+Check the tables after a load (SpacetimeDB 2.14.1 needs a name on an aggregate: `COUNT(*) AS n`, not bare `COUNT(*)`):
+
+```
+spacetime sql -s avonlocal avon "SELECT COUNT(*) AS n FROM flow_series"   # 15 on mock_test
+spacetime sql -s avonlocal avon "SELECT COUNT(*) AS n FROM breach_risk"   # 15
+spacetime sql -s avonlocal avon "SELECT COUNT(*) AS n FROM budget"        # 5 systems
+spacetime sql -s avonlocal avon "SELECT id, kind, asset_id, title FROM scenario"
+```
+
+The ripple, in short: `pump_fail` plans the stopped pump with the system's other failures through the same planner (`planJoint`), so it shows which other facility's plan changes when the trucks move, the trip time if nobody acts, and the night's cost before and after. `sensor_spoof` and `sensor_dead` on a failed pump rerun the whole engine on a copy faked since the failure and meet the plan the lie produces with the real tank; on a running pump they plan a stop the console cannot see, with the time the physics check (`lib/rules/health.ts`) would flag the sensor. `pipeline_leak` sizes the spill from this data's own leaks, waits the detector's delay, then isolates the line.
 
 \* The Avon side trusts its own network in this prototype; that is a stated limit (docs/ARCHITECTURE.md, the threat model card). The isolated Darkroom module checks every caller.
 

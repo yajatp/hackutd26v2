@@ -3,6 +3,12 @@
 // (EOG engine inside the reducer, writes alert + console_meta).
 import { schema, table, t, SenderError, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
 import { consoleOf, datasetFromReadings } from './eog.ts';
+import type { ConsoleView } from '../../lib/eog/alerts.ts';
+import type { Dataset } from '../../lib/eog/load.ts';
+import { budgetOf } from '../../lib/eog/budget.ts';
+import { flowSeries as flowSeriesOf } from '../../lib/eog/flows.ts';
+import { breachRisks } from '../../lib/eog/breach.ts';
+import { whatIf, WHAT_IF_KINDS, type WhatIfKind } from '../../lib/eog/whatif.ts';
 import { injectFault, type FaultKind } from '../../lib/rules/faults.ts';
 import { facilitiesOf } from './wide.ts';
 import { rttRowsToDelete } from '../../lib/rules/darkroom/rtt.ts';
@@ -135,8 +141,72 @@ const rttProbe = table({ name: 'rtt_probe', public: true }, {
   at: t.timestamp(),
 });
 
+// The night's money and trucks, one row per system (lib/eog/budget.ts), rewritten with the board.
+const budget = table({ name: 'budget', public: true }, {
+  systemId: t.string().primaryKey(),
+  facilities: t.u32(),
+  fleet: t.u32(),                   // ops.json emergency_fleet_size
+  trucksUsed: t.u32(),              // trucks the chosen plans call
+  trips: t.u32(),
+  failures: t.u32(),                // pump failures on the console
+  plans: t.f64(),                   // what the chosen plans cost
+  doNothing: t.f64(),               // what letting those tanks trip costs
+  truckCost: t.f64(),
+  shutInCost: t.f64(),
+  atRiskPerHour: t.f64(),           // production lost per hour if every failing tank trips
+  revenuePerHour: t.f64(),          // the system's production per hour
+});
+
+// Rate in vs rate out (lib/eog/flows.ts): per facility, hourly points over the last 24 h before
+// "now", oldest first. Rewritten with the board, so a simulated fault shows here too.
+const flowSeries = table({ name: 'flow_series', public: true }, {
+  facilityId: t.string().primaryKey(),
+  systemId: t.string(),
+  tankId: t.string(),
+  capacityBbl: t.f64(),
+  stepS: t.u32(),
+  endTs: t.array(t.u32()),          // each hour ends here
+  inflowBpd: t.array(t.f64()),      // into the tank (facility inflow), hourly mean
+  outflowBpd: t.array(t.f64()),     // the pump, hourly mean
+  levelPct: t.array(t.f64()),       // at the end of the hour
+  physicsPts: t.array(t.f64()),     // level change physics expects over the hour
+  reportedPts: t.array(t.f64()),    // level change the sensor reported
+});
+
+// Potential breaches (lib/eog/breach.ts): for every tank, what a spoofed level sensor would hide and
+// what believing it costs against the truth, most dollars first. Written by finish_ingest and
+// compute_breaches from the readings as loaded (never from a simulated fault).
+const breachRisk = table({ name: 'breach_risk', public: true }, {
+  rank: t.u32().primaryKey(),
+  tankId: t.string(),
+  facilityId: t.string(),
+  systemId: t.string(),
+  mode: t.string(),                 // failed: the pump is down and the lie skews its plan; running: the lie hides a stop
+  exposure: t.f64(),                // believedCost - honestCost
+  believedCost: t.f64(),
+  honestCost: t.f64(),
+  hiddenMin: t.option(t.f64()),     // warning the lie takes away
+  summary: t.string(),
+  detailJson: t.string(),           // JSON.stringify(BreachRisk)
+});
+
+// What-if runs (lib/eog/whatif.ts): one row per what_if call, the ripple as JSON. Newest 20 kept.
+const scenario = table({ name: 'scenario', public: true }, {
+  id: t.u64().primaryKey().autoInc(),
+  requestedBy: t.identity(),
+  at: t.timestamp(),
+  datasetId: t.string(),
+  kind: t.string(),                 // pump_fail | sensor_spoof | sensor_dead | pipeline_leak
+  assetId: t.string(),
+  facilityId: t.string(),
+  title: t.string(),
+  summary: t.string(),
+  costDelta: t.f64(),
+  resultJson: t.string(),           // JSON.stringify(Ripple)
+});
+
 // snake_case keys so source and canonical names agree (SQL, describe and logs all say console_meta).
-const spacetimedb = schema({ config, dataset_source: datasetSource, facility, reading, alert, console_meta: consoleMeta, fault, sensor_issue: sensorIssue, load_lock: loadLock, confirmation, rtt_probe: rttProbe });
+const spacetimedb = schema({ config, dataset_source: datasetSource, facility, reading, alert, console_meta: consoleMeta, fault, sensor_issue: sensorIssue, load_lock: loadLock, confirmation, rtt_probe: rttProbe, budget, flow_series: flowSeries, breach_risk: breachRisk, scenario });
 export default spacetimedb;
 
 export const load_dataset = spacetimedb.reducer(
@@ -225,12 +295,19 @@ function datasetOf(ctx: Ctx) {
   return { ds, cfg };
 }
 
-// The EOG engine (lib/eog/alerts.ts buildConsole) runs here, inside the reducer, on the
-// readings plus any simulated faults. Rewrites alert, console_meta and sensor_issue.
-function rebuild(ctx: Ctx) {
-  const { ds: clean, cfg } = datasetOf(ctx);
+// The readings with every simulated fault applied on a copy: what the console sees.
+function faulted(ctx: Ctx, clean: Dataset): Dataset {
   let ds = clean;
   for (const f of ctx.db.fault.iter()) ds = injectFault(ds, { kind: f.kind as FaultKind, asset_id: f.assetId, from_ts: f.fromTs }).ds;
+  return ds;
+}
+
+// The EOG engine (lib/eog/alerts.ts buildConsole) runs here, inside the reducer, on the
+// readings plus any simulated faults. Rewrites alert, console_meta, sensor_issue, budget and
+// flow_series. Returns the clean dataset and its view when no fault is active (for breaches).
+function rebuild(ctx: Ctx): { clean: Dataset; view: ConsoleView | null } {
+  const { ds: clean, cfg } = datasetOf(ctx);
+  const ds = faulted(ctx, clean);
   const view = consoleOf(ds);
   ctx.db.alert.clear();
   ctx.db.console_meta.clear();
@@ -258,6 +335,46 @@ function rebuild(ctx: Ctx) {
     eventsJson: JSON.stringify(view.events),
     builtAt: ctx.timestamp,
   });
+  writeBudget(ctx, ds, view);
+  writeFlows(ctx, ds);
+  return { clean, view: ds === clean ? view : null };
+}
+
+function writeBudget(ctx: Ctx, ds: Dataset, view: ConsoleView) {
+  ctx.db.budget.clear();
+  for (const b of budgetOf(ds, view)) {
+    ctx.db.budget.insert({
+      systemId: b.system_id, facilities: b.facilities, fleet: b.fleet, trucksUsed: b.trucks_used, trips: b.trips,
+      failures: b.failures, plans: b.plans, doNothing: b.do_nothing, truckCost: b.truck_cost, shutInCost: b.shut_in_cost,
+      atRiskPerHour: b.at_risk_per_hour, revenuePerHour: b.revenue_per_hour,
+    });
+  }
+}
+
+function writeFlows(ctx: Ctx, ds: Dataset) {
+  ctx.db.flow_series.clear();
+  for (const f of flowSeriesOf(ds)) {
+    ctx.db.flow_series.insert({
+      facilityId: f.facility_id, systemId: f.system_id, tankId: f.tank_id, capacityBbl: f.capacity_bbl, stepS: f.step_s,
+      endTs: f.points.map((p) => p.end_ts),
+      inflowBpd: f.points.map((p) => p.inflow_bpd),
+      outflowBpd: f.points.map((p) => p.outflow_bpd),
+      levelPct: f.points.map((p) => p.level_pct),
+      physicsPts: f.points.map((p) => p.physics_pts),
+      reportedPts: f.points.map((p) => p.reported_pts),
+    });
+  }
+}
+
+// Every tank's potential breach, from the readings as loaded.
+function writeBreaches(ctx: Ctx, clean: Dataset, view: ConsoleView) {
+  const rows = breachRisks(clean, view);
+  ctx.db.breach_risk.clear();
+  rows.forEach((b, i) => ctx.db.breach_risk.insert({
+    rank: i + 1, tankId: b.tank_id, facilityId: b.facility_id, systemId: b.system_id, mode: b.mode,
+    exposure: b.exposure, believedCost: b.believed_cost, honestCost: b.honest_cost,
+    hiddenMin: b.hidden_min ?? undefined, summary: b.summary, detailJson: JSON.stringify(b),
+  }));
 }
 
 function requireLoader(ctx: Ctx) {
@@ -269,9 +386,41 @@ function requireLoader(ctx: Ctx) {
 
 export const finish_ingest = spacetimedb.reducer((ctx) => {
   requireLoader(ctx);
-  rebuild(ctx);
+  const { clean, view } = rebuild(ctx);
+  writeBreaches(ctx, clean, view ?? consoleOf(clean));
   ctx.db.load_lock.clear();         // load complete: anyone may load the next site
 });
+
+// Recomputes breach_risk from the readings as loaded (finish_ingest already does this once).
+export const compute_breaches = spacetimedb.reducer((ctx) => {
+  const { ds } = datasetOf(ctx);
+  writeBreaches(ctx, ds, consoleOf(ds));
+});
+
+const SCENARIOS_KEPT = 20;
+
+// What if ___ happens? Runs the ripple (lib/eog/whatif.ts) on what the console sees now (readings
+// plus any simulated faults) and writes one scenario row. Never changes the board.
+export const what_if = spacetimedb.reducer(
+  { kind: t.string(), assetId: t.string() },
+  (ctx, { kind, assetId }) => {
+    if (!WHAT_IF_KINDS.includes(kind as WhatIfKind)) throw new SenderError(`kind must be one of ${WHAT_IF_KINDS.join(', ')}`);
+    const { ds: clean, cfg } = datasetOf(ctx);
+    const ds = faulted(ctx, clean);
+    let r;
+    try {
+      r = whatIf(ds, consoleOf(ds), kind as WhatIfKind, assetId);
+    } catch (e) {
+      throw new SenderError(String((e as Error).message ?? e));
+    }
+    ctx.db.scenario.insert({
+      id: 0n, requestedBy: ctx.sender, at: ctx.timestamp, datasetId: cfg.datasetId, kind, assetId,
+      facilityId: r.facility_id, title: r.title, summary: r.summary, costDelta: r.cost_delta, resultJson: JSON.stringify(r),
+    });
+    const ids = [...ctx.db.scenario.iter()].map((x) => x.id).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+    for (const id of ids.slice(0, Math.max(0, ids.length - SCENARIOS_KEPT))) ctx.db.scenario.id.delete(id);
+  }
+);
 
 // Faults start this far back in the recording, so the console shows them at once:
 // "No reading for 10 min", "Off for 30 min", a 1-hour drift.

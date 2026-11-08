@@ -27,6 +27,10 @@ The module is `spacetimedb/src/index.ts`. Public tables are available for subscr
 | `sensor_issue` | Public | One ranked sensor issue as JSON. |
 | `load_lock` | Private | The identity and start time of the current load. |
 | `confirmation` | Public | A plan snapshot confirmed by an identity. |
+| `budget` | Public | One system: trucks the plans call against its fleet, plan cost against doing nothing, production at risk per hour. |
+| `flow_series` | Public | One facility: hourly inflow, pump outflow, level and physics-expected level change over the last 24 hours. |
+| `breach_risk` | Public | One tank, ranked: what a level sensor held flat would hide and the dollars at stake. |
+| `scenario` | Public | One what-if run with the requesting identity and the ripple JSON; the newest 20 are kept. The JSON tags each step with its future (`event`, `check`, `plan`, `fleet`, `ignored`, `lie`, `flag`) and carries `projection`: the tank level in each future, for the chart on `/insight`. |
 
 | Reducer (arguments) | Caller, checks and writes |
 |---|---|
@@ -36,6 +40,10 @@ The module is `spacetimedb/src/index.ts`. Public tables are available for subscr
 | `inject_fault(assetId, kind)` | Any reachable client. Checks the kind, loaded data and tank. Writes a backdated simulated fault and rebuilds the board using a copy of the readings. |
 | `clear_fault(assetId)` | Any reachable client. Deletes that fault, or all faults for an empty ID, and rebuilds the board. |
 | `confirm_plan(alertId)` | Any reachable client. Requires a current alert with a fix; writes the server's headline and cost with caller identity and time. |
+| `what_if(kind, assetId)` | Any reachable client. Checks the kind (`pump_fail`, `sensor_spoof`, `sensor_dead`, `pipeline_leak`) and that the asset is a facility, tank, pump or pipeline of the loaded site. Runs `lib/eog/whatif.ts` on the readings plus active faults and inserts one `scenario` row; deletes all but the newest 20. Does not change the board. |
+| `compute_breaches()` | Any reachable client. Requires loaded readings. Rewrites `breach_risk` from the readings as loaded, without faults. |
+
+`finish_ingest` and every rebuild also rewrite `budget` and `flow_series`; `finish_ingest` also writes `breach_risk`. For a running pump, a breach row's flag time is computed from the sensor-health rules and this folder's lines, because the stop it describes is not in the data; for a failed pump the engine reruns on a copy whose tank level is faked from the failure onset.
 
 The lock prevents batches from different identities mixing during an active load; it is not authorization. After 60 seconds another identity may start a new load. Faults do not change the source files or stored readings.
 
@@ -62,7 +70,7 @@ Commanders open and close incidents; Commanders and Responders update scope and 
 ## Data flow
 
 1. The browser checks a selected folder and converts its telemetry into wide rows. It calls `load_dataset`, sends batches and calls `finish_ingest`; `scripts/ingest.mjs` provides a command-line load path.
-2. `finish_ingest` reconstructs the dataset and runs `buildConsole`: detection, planning and sensor health. It writes the public board tables. Subscribed clients rebuild their views when those rows change.
+2. `finish_ingest` reconstructs the dataset and runs `buildConsole`: detection, planning and sensor health. It writes the public board tables, then the budget, flow series and breach rows. Subscribed clients rebuild their views when those rows change. `/insight` subscribes to the four insight tables on a separate subscription, so a database published before them still shows the board.
 3. Phone 1 calls `inject_fault` for Kill, Fake or Drift. The reducer overlays the simulated fault on reconstructed readings and rebuilds the same tables; screens display the resulting state.
 4. The console creates an evidence record, SHA-256 fingerprint and short reference. A person opens an incident on `/box` and enters the reference, optionally with the full fingerprint. The reducer checks format and consistency when a fingerprint is supplied, then logs the import. The reference is not an automatic transfer or proof that the sensor was truthful. `/report` prints the incident (timeline, scope, evidence with collectors and fingerprints, chain status and head fingerprint) from the same log.
 
@@ -77,6 +85,7 @@ Each `/box` or `/witness` browser keeps a witness in local storage: genesis hash
 - `npm ci && npm test` on this checkout: **89 passed, 0 failed, 0 skipped**. Node 22.17.0 produced an engine warning for the installed SpacetimeDB package.
 - `docs/planner-accuracy.md`: **18 of 20** listed answer-key cases match exactly; the other two make the same decisions with different timings and costs.
 - `REDTEAM-claude.md`: the first pass caught **24** of 34 attacks and missed 10. The rerun, with the payload-byte and chain-head checks and the witness fix now on main (`92dc51d`), measured **28 caught, 6 missed**; both verifiers agreed on every attack. The 6 misses are listed under known limits.
+- `finish_ingest` on mock_test, three local loads each: **85-180 ms** before the insight tables, **419-773 ms** with them (breach rows rerun the engine for the two failed pumps and plan a stop for each running one).
 - `docs/RUNBOOK-L1.md` records three cold boots on one laptop at **4.1 to 4.3 seconds**, and the listed ingest at **0.7 seconds**. These are local measurements, not general performance guarantees.
 
 ## Known limits
@@ -88,6 +97,7 @@ Each `/box` or `/witness` browser keeps a witness in local storage: genesis hash
 - The Avon reducers trust clients on their network; the load lock does not prevent an authorized-looking client from replacing data or injecting faults.
 - Darkroom uses unencrypted `ws://`; a network observer can obtain reusable credentials, and public tables can be read by anyone with network access (`REVIEW-codex.md`).
 - A compromised phone or someone controlling the box display can misrepresent what a user sees; isolation requires a separately configured local network (`app/box/ThreatModelCard.tsx`).
+- A what-if or breach row is a model run on the loaded data, not a forecast: a pipeline leak's repair time is not in ops.json (the pump repair time is used), and a silent stop's flag time follows the sensor rules rather than data.
 - The planner does not prove the globally cheapest plan: whole-minute rounding can miss a cheaper split (`docs/planner-accuracy.md`).
 - Silence checks cover sensors; physics-based drift and lie checks apply to tank levels, not every individual sensor (`lib/rules/health.ts`).
 - A selected Fake fault does not guarantee that the engine will classify every target as LYING, and the remote's label can imply otherwise (`REVIEW-codex-2.md`).
