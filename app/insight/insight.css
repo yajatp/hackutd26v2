@@ -85,8 +85,6 @@ body:has(.in-root) {
 }
 @media (min-width: 768px) { .in-section { padding: 1.5rem 1.5rem 1.75rem; } }
 .in-col-a, .in-col-b { min-width: 0; }
-/* One column: budget, breaches, what if, then the flows full width. */
-.in-root[data-look="list"] .in-col-a { max-width: 980px; }
 /* Wall: everything at once on a wide screen; money and risk on the left, flows on the right. */
 @media (min-width: 1180px) {
   .in-root[data-look="wall"] .in-layout { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); column-gap: 1rem; }

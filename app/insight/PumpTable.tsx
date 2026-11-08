@@ -27,6 +27,10 @@ function Spark({ curve }: { curve: CostPoint[] }) {
   );
 }
 
+function FieldLabel({ children }: { children: string }) {
+  return <span className={s.fieldLabel} aria-hidden="true">{children}</span>;
+}
+
 export default function PumpTable({ view, flows, breaches, facilities }: {
   view: ConsoleView | null; flows: FlowSeries[]; breaches: BreachRisk[]; facilities: SiteFacility[];
 }) {
@@ -44,8 +48,8 @@ export default function PumpTable({ view, flows, breaches, facilities }: {
         EOG prices every truck trip the same, so two failures can share a response cost. What differs is below:
         each tank&apos;s level and fill rate, the time to its limit, the revenue it would lose, and what a late response costs.
       </p>
-      <div className={s.scroll}>
-        <table className={s.table} data-pump-table="">
+      <div className={s.tableWrap}>
+        <table className={s.table} data-pump-table="" role="table">
           <caption className="sr-only">Pump details by facility</caption>
           <thead>
             <tr>
@@ -56,21 +60,22 @@ export default function PumpTable({ view, flows, breaches, facilities }: {
               <th scope="col">Cost if delayed</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody role="rowgroup">
             {rows.map((p) => (
-              <tr key={p.facility_id} data-failed={p.failed || undefined}>
-                <th scope="row">{pretty(p.facility_id)}</th>
-                <td>{p.failed ? <span className={s.alert}>Pump failed</span> : <span className={s.dim}>Running</span>}</td>
-                <td className={s.r}>{p.level_pct === null ? "—" : `${p.level_pct.toFixed(1)}%`}</td>
-                <td className={s.r}>{rateText(p.fill_pts_h)}</td>
-                <td className={s.r} title={p.failed ? "Until the tank reaches its limit" : "If the pump stopped now"}>
+              <tr key={p.facility_id} data-failed={p.failed || undefined} role="row">
+                <th scope="row" role="rowheader">{pretty(p.facility_id)}</th>
+                <td role="cell"><FieldLabel>Status</FieldLabel>{p.failed ? <span className={s.alert}>Pump failed</span> : <span className={s.dim}>Running</span>}</td>
+                <td role="cell" className={s.r}><FieldLabel>Level</FieldLabel>{p.level_pct === null ? "—" : `${p.level_pct.toFixed(1)}%`}</td>
+                <td role="cell" className={s.r}><FieldLabel>Fill rate</FieldLabel>{rateText(p.fill_pts_h)}</td>
+                <td role="cell" className={s.r} title={p.failed ? "Until the tank reaches its limit" : "If the pump stopped now"}>
+                  <FieldLabel>Time to limit</FieldLabel>
                   {hoursText(p.hours_to_limit)}{!p.failed && p.hours_to_limit !== null ? <span className={s.dim}> if stopped</span> : null}
                 </td>
-                <td className={s.r}>{money(p.lost_per_hour)}/h</td>
-                <td className={s.r}>{p.truck_eta_min === null ? "—" : hoursText(p.truck_eta_min / 60)}</td>
-                <td className={s.r}>{p.wells}</td>
-                <td className={`${s.r} ${s.key}`}>{p.response_cost === null ? "—" : money(p.response_cost)}</td>
-                <td><Spark curve={p.curve} /></td>
+                <td role="cell" className={s.r}><FieldLabel>Lost revenue</FieldLabel>{money(p.lost_per_hour)}/h</td>
+                <td role="cell" className={s.r}><FieldLabel>First truck</FieldLabel>{p.truck_eta_min === null ? "—" : hoursText(p.truck_eta_min / 60)}</td>
+                <td role="cell" className={s.r}><FieldLabel>Wells</FieldLabel>{p.wells}</td>
+                <td role="cell" className={`${s.r} ${s.key}`}><FieldLabel>Response cost</FieldLabel>{p.response_cost === null ? "—" : money(p.response_cost)}</td>
+                <td role="cell"><FieldLabel>Cost if delayed</FieldLabel><Spark curve={p.curve} /></td>
               </tr>
             ))}
           </tbody>
