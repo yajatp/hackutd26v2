@@ -22,10 +22,15 @@ export interface ActiveFault {
   since_ts: number;     // data time the fault starts
 }
 
+// What the console actually shows for a tank's level sensor right now (from the live
+// sensor_issue rows), so the phone never claims an effect the engine did not produce.
+export interface Verdict { state: string; simulated: boolean }
+
 export interface AttackApi {
   status: Conn;
   targets: AttackTarget[];
   active: ActiveFault[];
+  verdicts: Record<string, Verdict>;     // by tank asset id; missing = the console shows it as fine
   inject(kind: FaultKind, asset_id: string): Promise<void>;
   clear(asset_id?: string): Promise<void>;   // no asset: clear every fault
 }
@@ -33,5 +38,9 @@ export interface AttackApi {
 // Needs <AvonProvider> above it (app/attack/layout.tsx).
 export function useAttack(): AttackApi {
   const avon = useAvonConsole();
-  return { status: avon.status, targets: avon.targets, active: avon.faults, inject: avon.inject, clear: avon.clear };
+  const verdicts: Record<string, Verdict> = {};
+  for (const x of avon.view?.sensors ?? []) {
+    if (x.metric === "level_pct") verdicts[x.asset_id] = { state: x.state, simulated: x.simulated };
+  }
+  return { status: avon.status, targets: avon.targets, active: avon.faults, verdicts, inject: avon.inject, clear: avon.clear };
 }

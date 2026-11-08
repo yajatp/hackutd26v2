@@ -94,7 +94,9 @@ export default function AttackPage() {
                   }`}
                 >
                   <span className="min-w-0 break-words font-semibold">{on ? "◉" : "○"} {t.label}</span>
-                  {f && <SensorBadge state={byKind.get(f.kind)?.sensor ?? f.kind} />}
+                  {api.verdicts[t.asset_id]
+                    ? <SensorBadge state={api.verdicts[t.asset_id].state} />
+                    : f ? <span className="text-sm text-muted">no change yet</span> : null}
                 </button>
               );
             })}
@@ -122,7 +124,7 @@ export default function AttackPage() {
               >
                 <span className="text-2xl font-bold leading-tight">{f.verb}</span>
                 <span className={`text-sm font-semibold ${on ? "text-alert" : "text-muted"}`}>{st.word}</span>
-                <span className={`text-sm ${on ? "font-semibold text-alert" : "text-muted"}`}>{on ? `${st.icon} ON now` : f.what}</span>
+                <span className={`text-sm ${on ? "font-semibold text-alert" : "text-muted"}`}>{on ? `${st.icon} ON` : f.what}</span>
               </button>
             );
           })}
@@ -150,8 +152,10 @@ export default function AttackPage() {
                   <span className="min-w-0">
                     <span className="block break-words font-semibold">{labelOf(f.asset_id)}</span>
                     <span className="mt-1 flex flex-wrap items-center gap-2 text-sm">
-                      <SensorBadge state={b?.sensor ?? f.kind} />
-                      <span className="text-muted">since {utc(f.since_ts)}</span>
+                      <span className="text-muted">{b?.verb ?? f.kind} on since {utc(f.since_ts)} ·</span>
+                      {api.verdicts[f.asset_id]
+                        ? <>console: <SensorBadge state={api.verdicts[f.asset_id].state} /></>
+                        : <span className="text-muted">console: no change yet (a tank whose pump has failed shows it best)</span>}
                     </span>
                   </span>
                   <button
