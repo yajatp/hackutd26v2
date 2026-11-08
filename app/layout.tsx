@@ -3,8 +3,8 @@ import "./globals.css";
 
 // No next/font/google: Darkroom must run on a box with no internet.
 export const metadata: Metadata = {
-  title: "Darkroom",
-  description: "Incident command for when the attacker already owns your network",
+  title: "Avon",
+  description: "What broke, the cheapest fix, and which sensors to trust",
 };
 
 export default function RootLayout({
