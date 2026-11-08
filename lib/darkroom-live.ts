@@ -4,12 +4,15 @@
 // u64 values become plain numbers here, at the boundary, so screens never see bigint.
 // The device witness {genesis, seq, head} lives in localStorage and only moves
 // forward while the log verifies (lib/rules/darkroom/status.ts).
+// Every 5 s the screen calls rtt_ping and times how long its own rtt_probe row takes to come
+// back (lib/rules/darkroom/rtt.ts); rttMs is the median of the last 5, for the header badge.
 
 import { useSyncExternalStore } from "react";
 import { DbConnection, tables } from "./darkroom_bindings";
 import { GENESIS_PREV, type Json, type LogEvent, type Witness } from "./chain";
 import { rowToEvent } from "./rules/darkroom/replay";
-import type { WriteType } from "./rules/darkroom/roles";
+import { parseActor, type WriteType } from "./rules/darkroom/roles";
+import { RTT_INTERVAL_MS, RttMeter } from "./rules/darkroom/rtt";
 import { advanceWitness, chainStatus, memberMismatch, parseWitness, type ChainStatus } from "./rules/darkroom/status";
 
 export const DARKROOM_DB = "darkroom";
@@ -33,6 +36,7 @@ export interface DarkroomSnapshot {
   status: ChainStatus;
   witness: Witness | null;
   error: string | null;
+  rttMs: number | null;
 }
 
 const INITIAL: DarkroomSnapshot = {
@@ -46,6 +50,7 @@ const INITIAL: DarkroomSnapshot = {
   status: { kind: "empty", text: "NO ENTRIES YET" },
   witness: null,
   error: null,
+  rttMs: null,
 };
 
 function storageKey(kind: "token" | "witness"): string {
@@ -87,6 +92,8 @@ class DarkroomStore {
   private subscribed = false;
   private pending = false;
   private witness: Witness | null = null;
+  private rtt = new RttMeter(Math.floor(Math.random() * 2 ** 32), rttMs => this.set({ rttMs }));
+  private rttTimer: ReturnType<typeof setInterval> | null = null;
 
   subscribe = (fn: () => void) => {
     this.listeners.add(fn);
@@ -131,10 +138,12 @@ class DarkroomStore {
       // The subscription is replayed by the SDK; the table callbacks stay registered.
       .onAutomaticReconnect((_conn, identity, token) => {
         save("token", token);
+        this.rtt.reset();
         this.set({ connection: "live", identity: identity.toHexString(), error: null });
         this.later();
       })
       .onDisconnect((_ctx, error) => {
+        this.rtt.reset();
         this.set({ connection: "offline", error: error ? error.message : null });
       })
       .onConnectError((_ctx, error, nextAttempt) => {
@@ -163,6 +172,22 @@ class DarkroomStore {
         this.later();
       })
       .subscribe([tables.eventLog, tables.chainHead, tables.member]);
+    // The probe has its own subscription, so a box without rtt_probe still shows the record.
+    conn.db.rttProbe.onInsert((_ctx, row) => {
+      if (row.sender.toHexString() === this.snapshot.identity) this.rtt.arrived(row.nonce, performance.now());
+    });
+    conn.subscriptionBuilder().onApplied(() => this.startProbe()).subscribe([tables.rttProbe]);
+  }
+
+  private startProbe() {
+    if (this.rttTimer) return;
+    const ping = () => {
+      const conn = this.conn;
+      if (!conn || this.snapshot.connection !== "live") return;
+      conn.reducers.rttPing({ nonce: this.rtt.sent(performance.now()) }).catch(() => {});
+    };
+    ping();
+    this.rttTimer = setInterval(ping, RTT_INTERVAL_MS);
   }
 
   private later() {
@@ -210,8 +235,30 @@ class DarkroomStore {
     return this.conn;
   }
 
-  async openIncident(title: string) {
-    await this.requireConn().reducers.openIncident({ title });
+  // Resolves with the id the server gave the new incident (INC-nnnn).
+  async openIncident(title: string): Promise<string> {
+    const conn = this.requireConn();
+    const h = [...conn.db.chainHead.iter()][0];
+    const after = h ? h.seq : BigInt(-1);
+    await conn.reducers.openIncident({ title });
+    for (let i = 0; i < 60; i++) {
+      const mine = [...conn.db.eventLog.iter()]
+        .filter(r => r.type === "incident_opened" && r.seq > after && parseActor(r.actor).identity === this.snapshot.identity)
+        .sort((a, b) => (a.seq < b.seq ? 1 : -1))[0];
+      if (mine) return mine.incidentId;
+      await new Promise(r => setTimeout(r, 50));
+    }
+    throw new Error("The incident was opened, but this screen has not received it yet. Check the log, then try again.");
+  }
+
+  // Commander only (the server checks). Only the SHA-256 of the code leaves this browser.
+  async createJoinCode(codeHash: string, role: string) {
+    await this.requireConn().reducers.createJoinCode({ codeHash, role });
+  }
+
+  // Anyone: this device becomes a member if the code is right, unused and under 60 s old.
+  async joinWithCode(code: string, name: string) {
+    await this.requireConn().reducers.joinWithCode({ code, name });
   }
 
   // The server rejects a write if another screen wrote first; retry with the new head.
@@ -261,6 +308,8 @@ export function useDarkroom(): DarkroomSnapshot {
 
 export const darkroom = {
   openIncident: (title: string) => getStore().openIncident(title),
+  createJoinCode: (codeHash: string, role: string) => getStore().createJoinCode(codeHash, role),
+  joinWithCode: (code: string, name: string) => getStore().joinWithCode(code, name),
   append: (incidentId: string, type: Exclude<WriteType, "incident_opened">, payload: Json) => getStore().append(incidentId, type, payload),
   forgetWitness: () => getStore().forgetWitness(),
   // For headless checks (spacetimedb-darkroom/test/reconnect.ts); screens use useDarkroom.

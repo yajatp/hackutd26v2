@@ -7,9 +7,9 @@ function short(hash: string | undefined): string {
   return hash ? `${hash.slice(0, 8)}…` : "-";
 }
 
-// The same connection badge as Avon's screens: ■ LIVE, ● Connecting..., ▲ DISCONNECTED.
+// The same connection badge as Avon's screens: ■ LIVE · 3.1 ms, ● Connecting..., ▲ DISCONNECTED.
 export function ConnectionChip({ s }: { s: DarkroomSnapshot }) {
-  return <ConnBadge state={connState(s.connection)} />;
+  return <ConnBadge state={connState(s.connection)} ms={s.rttMs} />;
 }
 
 // Plain when the log verifies. Red, large and impossible to miss when it does not.

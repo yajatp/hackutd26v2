@@ -41,8 +41,20 @@ export function connState(c: string): ConnState {
   return "offline";
 }
 
-export function ConnBadge({ state }: { state: ConnState }) {
-  if (state === "live") return <span role="status"><Badge icon="■">LIVE</Badge></span>;
+// Round trip to the database, as "1.4" below 10 ms and "12" above.
+export function formatMs(ms: number): string {
+  return ms < 10 ? ms.toFixed(1) : String(Math.round(ms));
+}
+
+// ms: the live probe (lib/rules/darkroom/rtt.ts), median of the last 5 pings; null until measured.
+export function ConnBadge({ state, ms = null }: { state: ConnState; ms?: number | null }) {
+  if (state === "live") {
+    return (
+      <span role="status" title="Round trip to the live database: a ping every 5 s, median of the last 5">
+        <Badge icon="■" className="tabular-nums">{ms === null ? "LIVE" : `LIVE · ${formatMs(ms)} ms`}</Badge>
+      </span>
+    );
+  }
   if (state === "connecting") return <span role="status"><Badge tone="warn" icon="●">Connecting...</Badge></span>;
   return <span role="status"><Badge tone="solid" icon="▲">DISCONNECTED</Badge></span>;
 }

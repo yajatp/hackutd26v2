@@ -3,6 +3,8 @@
 // finish_ingest reducer; this file only parses files, sends reading rows and rebuilds the
 // ConsoleView from the public alert + console_meta rows. When the server is down the status
 // says so and the last view stays on screen; there is no browser-only engine path.
+// Every 5 s the link calls rtt_ping and times how long its own rtt_probe row takes to come back
+// through the subscription (lib/rules/darkroom/rtt.ts); rttMs is the median of the last 5.
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DbConnection, tables } from "./module_bindings/index.ts";
 import type { Alert as AlertRow, ConsoleMeta, Facility, Fault, SensorIssue as SensorIssueRow } from "./module_bindings/types.ts";
@@ -11,6 +13,7 @@ import type { Alert, ConsoleView, SensorIssue } from "./eog/alerts.ts";
 import type { ActiveFault, AttackTarget, FaultKind } from "./attack.ts";
 import type { DetectedEvent } from "./eog/types.ts";
 import { datasetToRows, type WideRow } from "../spacetimedb/src/wide.ts";
+import { RTT_INTERVAL_MS, RttMeter } from "./rules/darkroom/rtt.ts";
 
 export const AVON_DB = "avon";
 export const AVON_PORT = 3001;
@@ -79,6 +82,7 @@ export interface AvonLinkOptions {
   onAttack?(targets: AttackTarget[], faults: ActiveFault[]): void;
   onFacilities?(facilities: SiteFacility[]): void;
   onConfirmations?(c: Record<string, Confirmed>): void;
+  onRtt?(ms: number | null): void;
 }
 
 // "<SYS>_FACILITY_C" -> "<SYS> · Facility C tank"
@@ -117,6 +121,13 @@ export function connectAvon(opts: AvonLinkOptions): AvonLink {
   let live = false;
   let closed = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let probe: ReturnType<typeof setInterval> | undefined;
+  const rtt = new RttMeter(Math.floor(Math.random() * 2 ** 32), (ms) => opts.onRtt?.(ms));
+  const stopProbe = () => {
+    if (probe) clearInterval(probe);
+    probe = undefined;
+    rtt.reset();
+  };
 
   const setStatus = (s: AvonStatus) => {
     if (s === status) return;
@@ -127,6 +138,7 @@ export function connectAvon(opts: AvonLinkOptions): AvonLink {
     if (closed || c !== conn) return;
     conn = null;
     live = false;
+    stopProbe();
     setStatus("disconnected");
     if (timer) clearTimeout(timer);
     timer = setTimeout(open, retryMs);
@@ -135,14 +147,16 @@ export function connectAvon(opts: AvonLinkOptions): AvonLink {
 
   function open() {
     if (closed) return;
+    let me = "";
     const c: DbConnection = DbConnection.builder()
       .withUri(uri)
       .withDatabaseName(database)
       .withToken(token)
-      .onConnect((_c, _identity, tok) => {
+      .onConnect((_c, identity, tok) => {
         if (c !== conn) return;
         if (timer) clearTimeout(timer);
         token = tok;
+        me = identity.toHexString();
         live = true;
         setStatus("connected");
       })
@@ -189,6 +203,19 @@ export function connectAvon(opts: AvonLinkOptions): AvonLink {
       tbl.onDelete(rebuild);
     }
     c.subscriptionBuilder().onApplied(rebuild).subscribe([tables.alert, tables.consoleMeta, tables.sensorIssue, tables.fault, tables.facility, tables.confirmation]);
+    // The probe has its own subscription, so a database without rtt_probe still shows the board.
+    c.db.rttProbe.onInsert((_ctx, row) => {
+      if (c === conn && row.sender.toHexString() === me) rtt.arrived(row.nonce, performance.now());
+    });
+    c.subscriptionBuilder().onApplied(() => {
+      if (c !== conn) return;
+      stopProbe();
+      const ping = () => {
+        if (c === conn && live) c.reducers.rttPing({ nonce: rtt.sent(performance.now()) }).catch(() => {});
+      };
+      ping();
+      probe = setInterval(ping, RTT_INTERVAL_MS);
+    }).subscribe([tables.rttProbe]);
   }
 
   open();
@@ -197,6 +224,7 @@ export function connectAvon(opts: AvonLinkOptions): AvonLink {
     close() {
       closed = true;
       live = false;
+      stopProbe();
       if (timer) clearTimeout(timer);
       conn?.disconnect();
       conn = null;
@@ -258,9 +286,11 @@ export async function sendDataset(
 }
 
 const AvonContext = createContext<AvonConsole | null>(null);
+const AvonRttContext = createContext<number | null>(null);
 
 export function AvonProvider({ children, uri, database = AVON_DB }: { children: ReactNode; uri?: string; database?: string }) {
   const [status, setStatus] = useState<AvonStatus>("connecting");
+  const [rttMs, setRttMs] = useState<number | null>(null);
   const [view, setView] = useState<ConsoleView | null>(null);
   const [source, setSource] = useState<AvonSource | null>(null);
   const [targets, setTargets] = useState<AttackTarget[]>([]);
@@ -278,6 +308,7 @@ export function AvonProvider({ children, uri, database = AVON_DB }: { children: 
       onAttack: (t, f) => { setTargets(t); setFaults(f); },
       onFacilities: setFacilities,
       onConfirmations: setConfirmations,
+      onRtt: setRttMs,
     });
     link.current = l;
     return () => { l.close(); if (link.current === l) link.current = null; };
@@ -318,7 +349,13 @@ export function AvonProvider({ children, uri, database = AVON_DB }: { children: 
     () => ({ status, view, source, load, facilities, confirmations, confirm, targets, faults, inject, clear }),
     [status, view, source, load, facilities, confirmations, confirm, targets, faults, inject, clear],
   );
-  return createElement(AvonContext.Provider, { value }, children);
+  // The round trip has its own context, so a new sample every 5 s re-renders only the badge.
+  return createElement(AvonContext.Provider, { value }, createElement(AvonRttContext.Provider, { value: rttMs }, children));
+}
+
+// Live round trip to the avon database in ms (median of the last 5 pings), null until measured.
+export function useAvonRtt(): number | null {
+  return useContext(AvonRttContext);
 }
 
 export function useAvonConsole(): AvonConsole {

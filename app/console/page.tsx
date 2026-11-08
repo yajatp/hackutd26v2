@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { DatasetFiles } from "@/lib/eog/load";
 import { validateFiles, type Validation } from "@/lib/eog/validate";
-import { AvonProvider, useAvonConsole } from "@/lib/live";
+import { AvonProvider, useAvonConsole, useAvonRtt, type AvonStatus } from "@/lib/live";
 import { Board, ConnBanner } from "./Board";
 import { AppHeader } from "@/app/ui/AppHeader";
 import { ConnBadge, connState } from "@/app/ui/Badge";
@@ -25,6 +25,11 @@ function useConsoleData() {
     await avon.load(files, name);
   }
   return { view: avon.view, conn: avon.status, source: avon.source?.datasetId ?? "", validation, load };
+}
+
+// Its own component: the round trip updates every 5 s without re-rendering the board.
+function LiveBadge({ conn }: { conn: AvonStatus }) {
+  return <ConnBadge state={connState(conn)} ms={useAvonRtt()} />;
 }
 
 function day(unix: number): string {
@@ -110,7 +115,7 @@ function ConsoleScreen() {
             {source} · now {new Date(view.now * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC
           </span>
         )}
-        <ConnBadge state={connState(conn)} />
+        <LiveBadge conn={conn} />
       </AppHeader>
 
       {/* Before a site is loaded, loading one is the next action, so the buttons are big. After, they step back. */}
