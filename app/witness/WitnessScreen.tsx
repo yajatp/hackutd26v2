@@ -32,7 +32,7 @@ export default function WitnessScreen() {
   const tickDelay = (q: number) => Math.max(0, fresh.batch.seqs.slice(-TICKS).indexOf(q)) * 160;
 
   return (
-    <main className="mx-auto min-h-screen max-w-md space-y-4 p-4">
+    <main className="mx-auto min-h-screen max-w-md space-y-4 p-4 lg:max-w-none lg:px-10">
       <AppHeader product="Darkroom" title="witness">
         <ConnectionChip s={s} />
       </AppHeader>

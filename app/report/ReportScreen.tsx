@@ -14,7 +14,7 @@ export default function ReportScreen({ requested }: { requested: string }) {
   const host = useSyncExternalStore(noop, () => window.location.hostname, () => "");
   return (
     <>
-      <div className="report-no-print mx-auto flex max-w-5xl justify-end px-4 pt-4 sm:px-6 print:hidden">
+      <div className="report-no-print mx-auto flex max-w-5xl justify-end px-4 pt-4 sm:px-6 lg:max-w-none lg:px-10 print:hidden">
         <ConnectionChip s={s} />
       </div>
       <ReportView s={s} requested={requested} host={host} db={DARKROOM_DB} />

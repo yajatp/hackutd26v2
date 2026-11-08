@@ -31,8 +31,6 @@ body:has(.st-root) {
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
   padding: 0 1rem 4rem;
-  max-width: 1440px;
-  margin: 0 auto;
 }
 
 /* The page's one margin: 16 px on a phone, 40 px from 768 px up, shared with the header. */
@@ -95,7 +93,6 @@ body:has(.st-root) {
   border-collapse: collapse;
   table-layout: fixed;
   width: 100%;
-  max-width: 1100px;
 }
 
 .st-col-reducer { width: 11rem; }

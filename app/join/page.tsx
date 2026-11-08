@@ -49,7 +49,7 @@ export default function JoinPage() {
   const abilities = me ? roleAbilities(me.role) : null;
 
   return (
-    <main className="mx-auto min-h-dvh max-w-sm space-y-4 p-4">
+    <main className="mx-auto min-h-dvh max-w-sm space-y-4 p-4 lg:max-w-none lg:px-10">
       <AppHeader product="Darkroom" title="join the team">
         <ConnectionChip s={s} />
       </AppHeader>
@@ -77,17 +77,17 @@ export default function JoinPage() {
             </div>
           )}
           <p className="text-sm text-muted">Everything you write becomes an entry in the tamper-evident log, with your name and the time.</p>
-          <a className="btn btn-primary w-full justify-center text-lg" href="/box">Open the incident room</a>
+          <a className="btn btn-primary w-full justify-center text-lg lg:w-auto" href="/box">Open the incident room</a>
         </section>
       ) : joined ? (
         <p role="status" className="card text-lg">Joined. Waiting for the box to confirm…</p>
       ) : (
-        <form onSubmit={submit} className="card space-y-4">
-          <p>Ask a Commander on the box for a join code. It works once, for 60 seconds.</p>
+        <form onSubmit={submit} className="card space-y-4 lg:grid lg:grid-cols-[1fr_1fr_auto] lg:items-end lg:gap-4 lg:space-y-0">
+          <p className="lg:col-span-full">Ask a Commander on the box for a join code. It works once, for 60 seconds.</p>
           <label className="block">
             <span className="block font-semibold">Join code</span>
             <input
-              className="field mt-1 w-full font-mono text-2xl uppercase tracking-widest"
+              className="field mt-1 w-full font-mono text-2xl uppercase tracking-widest lg:h-12"
               placeholder="ABCDE-FGHJK"
               value={code}
               maxLength={14}
@@ -102,7 +102,7 @@ export default function JoinPage() {
           <label className="block">
             <span className="block font-semibold">Your name</span>
             <input
-              className="field mt-1 w-full text-lg"
+              className="field mt-1 w-full text-lg lg:h-12"
               placeholder="e.g. Riley"
               value={name}
               maxLength={LIMITS.name}
@@ -111,11 +111,11 @@ export default function JoinPage() {
               autoComplete="name"
             />
           </label>
-          <button type="submit" className="btn btn-primary w-full justify-center text-lg" disabled={!live || busy || !code.trim() || !name.trim()}>
+          <button type="submit" className="btn btn-primary w-full justify-center text-lg lg:h-12" disabled={!live || busy || !code.trim() || !name.trim()}>
             {busy ? "Joining…" : "Join the team"}
           </button>
-          {!live && <p role="status" className="text-sm text-muted">{s.connection === "offline" ? "Cannot reach the box. Are you on its network?" : "Connecting to the box…"}</p>}
-          {error && <p role="alert" className="font-semibold text-alert">▲ {error}</p>}
+          {!live && <p role="status" className="text-sm text-muted lg:col-span-full">{s.connection === "offline" ? "Cannot reach the box. Are you on its network?" : "Connecting to the box…"}</p>}
+          {error && <p role="alert" className="font-semibold text-alert lg:col-span-full">▲ {error}</p>}
         </form>
       )}
     </main>
