@@ -1,16 +1,19 @@
 "use client";
 // The desert floor: one mesh, 2 km across, one draw call. A radial grid (fine under the judge's
 // feet, coarse at the horizon) displaced into gentle dunes beyond the flat where the site stands,
-// colored per vertex from caliche (C.ground) toward its lit tone (C.groundLit), with patches and
+// colored per vertex from desert sand (DESERT.base) toward pale caliche (DESERT.lit), with patches and
 // lighter crests. A small patch to the Lambert shader adds what vertex colors cannot follow:
 // each pad's graded caliche and the warm spill of its lamps (uniforms, up to MAX_PADS, so pads can
 // move without rebuilding the mesh), and a ground grain that fades out with distance.
 import { useEffect, useMemo } from "react";
 import { BufferAttribute, BufferGeometry, Color, MeshLambertMaterial, Vector3 } from "three";
-import { C, SIZE } from "../theme";
+import { SIZE } from "../theme";
 import { duneCrest, fbm2, groundHeight, radialGrid, smoothstep, FLAT_R, DUNE_R, type XZ } from "./terrain";
 
 export const MAX_PADS = 12;
+// A muted West Texas desert in daylight albedo (the sky clock's sun and moon light it): sandy tan
+// with paler caliche crests, graded caliche pads, warm sodium lamps at night.
+export const DESERT = { base: "#9c8164", lit: "#c2a984", pad: "#cbbba0", sodium: "#ffb26a" } as const;
 // 72 x 112 (about 16k triangles): the Quest 3S budget (docs/TWIN-THEME.md "Scope"); was 96 x 160.
 const RINGS = 72;
 const SEGS = 112;
@@ -19,7 +22,7 @@ function buildGround(): BufferGeometry {
   const { positions, index } = radialGrid(RINGS, SEGS);
   const n = positions.length / 3;
   const colors = new Float32Array(n * 3);
-  const base = new Color(C.ground), lit = new Color(C.groundLit), c = new Color();
+  const base = new Color(DESERT.base), lit = new Color(DESERT.lit), c = new Color();
   for (let i = 0; i < n; i++) {
     const x = positions[i * 3], z = positions[i * 3 + 2];
     const r = Math.hypot(x, z);
@@ -57,11 +60,11 @@ function newUniforms(): GroundUniforms {
   return {
     uPads: { value: Array.from({ length: MAX_PADS }, () => new Vector3()) },
     uPadCount: { value: 0 },
-    uPadLit: { value: new Color(C.groundLit).lerp(new Color(C.steel), 0.08) },
-    uSodium: { value: new Color(C.duskGlow).lerp(new Color(C.groundLit), 0.45) },
+    uPadLit: { value: new Color(DESERT.pad) },
+    uSodium: { value: new Color(DESERT.sodium) },
     uPadGlow: { value: 0.6 },
     uHome: { value: new Vector3(0, 0, 0) },
-    uHomeLit: { value: new Color(C.groundLit) },
+    uHomeLit: { value: new Color(DESERT.lit) },
     uHomeGlow: { value: 0 },
   };
 }

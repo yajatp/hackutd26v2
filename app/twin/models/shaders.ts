@@ -15,6 +15,23 @@ export const mix = (a: string, b: string, t: number) => new Color(a).lerp(new Co
 
 // One clock for every animated model material; any model's frame loop sets it.
 export const TIME: IUniform<number> = { value: 0 };
+// The sky clock (world/World.tsx sets these, Sun 06:05): NIGHT is 1 after dark and 0 in daylight
+// (lamp cones show only at night); RIM is the sky's light on silhouettes (a cool skylight by day,
+// a faint blue at night), shared by painted steel and the flowlines.
+export const NIGHT: IUniform<number> = { value: 1 };
+export const RIM: IUniform<Color> = { value: new Color("#1d2433") };
+// Ground pools that are light after dark (a flare's warm spill, the healthy tanks' soft pool)
+// fade in daylight; red and amber pools never do. setNight is called by the World.
+const NIGHT_POOLS: { m: MeshBasicMaterial; base: number; day: number }[] = [];
+export function setNight(night: number) {
+  NIGHT.value = night;
+  for (const p of NIGHT_POOLS) p.m.opacity = p.base * (p.day + (1 - p.day) * night);
+}
+function nightPool(m: MeshBasicMaterial, day: number): MeshBasicMaterial {
+  NIGHT_POOLS.push({ m, base: m.opacity, day });
+  m.opacity = m.opacity * (day + (1 - day) * NIGHT.value);
+  return m;
+}
 
 const NOISE = /* glsl */ `
 float h21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
@@ -96,20 +113,19 @@ function once<T>(key: string, make: () => T): T {
 }
 
 // Painted steel and paint: Lambert lighting from the scene, plus a little of the paint's own color
-// (so a part never goes black under a night sky) and a violet sky rim on silhouettes.
+// (so a part never goes black under a night sky) and the sky's light on silhouettes (RIM).
 export function painted(): MeshLambertMaterial {
   return once("painted", () => {
     const m = new MeshLambertMaterial({ vertexColors: true });
-    const rim = { value: mix(C.skyHorizon, C.holo, 0.3) };
     m.onBeforeCompile = (s) => {
-      s.uniforms.uRim = rim;
+      s.uniforms.uRim = RIM;
       s.fragmentShader = s.fragmentShader
         .replace("#include <common>", "#include <common>\nuniform vec3 uRim;")
         .replace("#include <envmap_fragment>", `#include <envmap_fragment>
         float rimF = pow(1.0 - clamp(abs(dot(normal, normalize(vViewPosition))), 0.0, 1.0), 2.5);
         outgoingLight += diffuseColor.rgb * 0.07 + uRim * rimF * 0.55;`);
     };
-    m.customProgramCacheKey = () => "avon-painted-v1";
+    m.customProgramCacheKey = () => "avon-painted-v2";
     return m;
   });
 }
@@ -122,27 +138,27 @@ export function lit(): MeshBasicMaterial {
 // A soft dark disc under an object (no real-time shadows on the Quest).
 export function shadowMaterial(alphaMap: import("three").Texture): MeshBasicMaterial {
   return once("shadow", () => new MeshBasicMaterial({
-    color: color(C.skyZenith), alphaMap, transparent: true, opacity: 0.7, depthWrite: false,
+    color: color("#15120e"), alphaMap, transparent: true, opacity: 0.7, depthWrite: false,
     polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
   }));
 }
 
 // A soft colored pool of light on the ground, one per tone.
 export function groundGlow(tone: Tone, alphaMap: import("three").Texture): MeshBasicMaterial {
-  return once(`glow-${tone}`, () => new MeshBasicMaterial({
+  return once(`glow-${tone}`, () => nightPool(new MeshBasicMaterial({
     color: color(TONE_COLOR[tone]), alphaMap, transparent: true, opacity: tone === "ok" ? 0.24 : tone === "warn" ? 0.38 : 0.55,
     blending: AdditiveBlending, depthWrite: false, toneMapped: false,
     polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3,
-  }));
+  }), tone === "ok" ? 0.15 : 1));
 }
 
 // The flare's warm light on the desert around it.
 export function warmPool(alphaMap: import("three").Texture): MeshBasicMaterial {
-  return once("warm-pool", () => new MeshBasicMaterial({
+  return once("warm-pool", () => nightPool(new MeshBasicMaterial({
     color: color(C.duskGlow), alphaMap, transparent: true, opacity: 0.32,
     blending: AdditiveBlending, depthWrite: false, toneMapped: false,
     polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3,
-  }));
+  }), 0.1));
 }
 
 // ---- the tank's level gauge ---------------------------------------------------------------------
@@ -285,7 +301,7 @@ export function pipeMaterial(mode: PipeMode, spacing = 2.4, speed = 1.6): MeshLa
     const u = {
       uTime: TIME, uSpacing: { value: spacing }, uSpeed: { value: speed },
       uMode: { value: mode === "flowing" ? 1 : mode === "idle" ? 0 : 2 },
-      uDash: { value: color(C.holo) }, uAlert: { value: color(C.alert) }, uRim: { value: mix(C.skyHorizon, C.holo, 0.35) },
+      uDash: { value: color(C.holo) }, uAlert: { value: color(C.alert) }, uRim: RIM,
     };
     m.onBeforeCompile = (s) => {
       Object.assign(s.uniforms, u);
@@ -307,7 +323,7 @@ export function pipeMaterial(mode: PipeMode, spacing = 2.4, speed = 1.6): MeshLa
           outgoingLight += uAlert * dash * 0.25;
         }`);
     };
-    m.customProgramCacheKey = () => "avon-pipe-v1";
+    m.customProgramCacheKey = () => "avon-pipe-v2";
     return m;
   });
 }
@@ -358,7 +374,7 @@ export function glowMaterial(): ShaderMaterial {
 
 // On an open cone (uv.y 1 at the lamp): bright near the lamp, fading to the ground, soft at the edges.
 export function coneMaterial(): ShaderMaterial {
-  return once("cone", () => shader({ uColor: { value: mix(C.duskGlow, C.stars, 0.6) } }, /* glsl */ `
+  return once("cone", () => shader({ uColor: { value: mix("#ffc890", "#fff4e4", 0.6) }, uNight: NIGHT }, /* glsl */ `
     varying vec2 vUv; varying vec3 vN; varying vec3 vV;
     ${FOG_PARS_V}
     void main() {
@@ -367,11 +383,12 @@ export function coneMaterial(): ShaderMaterial {
       gl_Position = projectionMatrix * mvPosition; ${FOG_V}
     }`, /* glsl */ `
     uniform vec3 uColor;
+    uniform float uNight;
     varying vec2 vUv; varying vec3 vN; varying vec3 vV;
     ${FOG_PARS_F}
     void main() {
       float facing = abs(dot(normalize(vN), normalize(vV)));
-      float a = pow(vUv.y, 1.6) * pow(facing, 1.4) * 0.16;
+      float a = pow(vUv.y, 1.6) * pow(facing, 1.4) * 0.16 * uNight;
       gl_FragColor = vec4(uColor, a);
       ${FOG_FADE}
       #include <colorspace_fragment>

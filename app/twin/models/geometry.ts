@@ -5,30 +5,31 @@ import {
   BufferGeometry, ConeGeometry, CylinderGeometry, ExtrudeGeometry, Matrix4, PlaneGeometry, Shape, TorusGeometry, Vector3,
   type Color,
 } from "three";
-import { C } from "../theme";
-import { color, GAUGE, mix } from "./shaders";
+import { color, GAUGE } from "./shaders";
 import { at, between, Parts, type V3 } from "./kit";
 import { HOUSE, MAST_H, MASTS, SKID, TANK_R, mastAim } from "./pad";
 import { JACK } from "./rig";
 
+// Natural field colors, fixed here so the equipment never takes the UI theme's colors (sky clock
+// pass, Sun 06:13: daylight shows the real paint, the sun and moon light it).
 const PAL = () => ({
-  steel: color(C.steel),
-  steelDark: mix(C.steel, C.skyZenith, 0.5),
-  steelLight: mix(C.steel, C.stars, 0.35),
-  plate: mix(C.steel, C.skyMid, 0.1),
-  seam: mix(C.steel, C.ground, 0.45),
-  concrete: mix(C.ground, C.steel, 0.38),
+  steel: color("#c2c7cf"),
+  steelDark: color("#6e7279"),
+  steelLight: color("#dadde2"),
+  plate: color("#bcc0c8"),
+  seam: color("#85817c"),
+  concrete: color("#8f8a82"),
   // Field paint, not toy paint: a faded olive drab beam and a dirty cream horsehead, as on the
   // older units across the Permian (verifier, Sun 05:40). The keys keep their old names.
   blue: color("#6d7457"),
-  blueDark: mix("#6d7457", C.ground, 0.4),
+  blueDark: color("#535244"),
   white: color("#c4bca6"),
-  housing: mix(C.skyZenith, C.steel, 0.2),
-  wall: mix(C.steel, C.pumpjack, 0.16),
-  wallDark: mix(C.steel, C.skyZenith, 0.3),
-  lamp: mix(C.duskGlow, C.stars, 0.6),
-  window: mix(C.duskGlow, C.stars, 0.35),
-  screen: mix(C.holo, C.skyZenith, 0.25),
+  housing: color("#3a3d42"),
+  wall: color("#c3c0b8"),
+  wallDark: color("#7d8087"),
+  lamp: color("#ffe6c8"),
+  window: color("#f3d6a8"),
+  screen: color("#3d7fc4"),
   // Permian stock tanks are painted desert tan (docs/TWIN-THEME.md "Realism pass"), courses a shade apart.
   tan: color("#b9a37f"),
   tanDark: color("#a8916c"),
@@ -184,7 +185,7 @@ export function jackStatic(): BufferGeometry {
     p.add(new CylinderGeometry(0.5, 0.5, 0.72, 16), P.blue, at([JACK.crankX, JACK.crankY, 0], [Math.PI / 2, 0, 0]));
     p.rod([JACK.crankX, JACK.crankY, -0.66], [JACK.crankX, JACK.crankY, 0.66], 0.1, P.steel, 10);
     p.box(0.8, 0.35, 0.7, P.steelDark, at([-3.75, 0.5, 0]));
-    p.add(new CylinderGeometry(0.3, 0.3, 0.8, 14), mix(C.pumpjack, C.steel, 0.5), at([-3.75, 0.95, 0], [Math.PI / 2, 0, 0]));
+    p.add(new CylinderGeometry(0.3, 0.3, 0.8, 14), color("#a9a493"), at([-3.75, 0.95, 0], [Math.PI / 2, 0, 0]));
     p.box(1.05, 0.55, 0.08, P.white, at([-3.2, 1.05, 0.5]));
     // Wellhead: flange, tree, a side tee and the stuffing box the polished rod runs through.
     p.add(new CylinderGeometry(0.3, 0.3, 0.2, 12), P.steelDark, at([JACK.front, 0.25, 0]));

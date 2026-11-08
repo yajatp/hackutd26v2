@@ -4,18 +4,20 @@
 // and the site draw over them, the horizon never moves when the judge walks, and the camera's far
 // plane does not matter to them. Their directions are in the World group's frame, so a snap turn
 // of the world turns the sky with it.
-// The dome carries the gradient (zenith, mid sky at 30 degrees, horizon), the warm dusk band in
-// the west-north-west, the faint milky band (baked per vertex), a big gibbous moon lit from below
-// the western horizon, and a rare meteor.
+// The sky clock (Sun 06:05): the dome's colors, the sun and the moon follow the site's real local
+// time (clock.ts, sky.ts skyLook): a clear blue day with the sun's disc at noon, a pitch-black sky
+// with stars and a moon at midnight, warm dawn and dusk bands in between. The faint milky band
+// (baked per vertex) and a rare meteor show only at night.
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
   AdditiveBlending, BackSide, BufferAttribute, BufferGeometry, Color, ShaderMaterial, SphereGeometry, Vector3,
 } from "three";
-import { C } from "../theme";
 import {
-  DUSK_DIR, meteorAt, milkyGlow, MOON_DIR, normalize, starField, SUN_DIR, type V3,
+  DUSK_DIR, meteorAt, milkyGlow, MOON_DIR, normalize, starField, SUN_DIR, type SkyLook, type V3,
 } from "./sky";
+
+const STAR = "#e6ecf7";
 
 const HASH = /* glsl */ `
 float hash12(vec2 p) {
@@ -41,6 +43,12 @@ uniform vec3 uZenith;
 uniform vec3 uMid;
 uniform vec3 uHorizon;
 uniform vec3 uDusk;
+uniform float uGlowAmt;
+uniform vec3 uSunDir;
+uniform vec3 uSunCol;
+uniform float uSunDisc;
+uniform float uMoonDisc;
+uniform float uNight;
 uniform vec3 uStar;
 uniform vec3 uMilkyA;
 uniform vec3 uMilkyB;
@@ -64,26 +72,32 @@ void main() {
   float hi = smoothstep(0.30, 1.0, el);
   vec3 col = mix(mix(uHorizon, uMid, lo), uZenith, hi);
 
-  // Dusk: a thin hot band on the horizon under where the sun went down, a broad warm wash above it.
+  // Dawn and dusk: a thin warm band on the horizon under the sun, a broad wash above it.
   vec2 hz = d.xz / max(length(d.xz), 1e-4);
-  float az = max(dot(hz, normalize(uDuskDir.xz)), 0.0);
+  vec2 sunHz = uDuskDir.xz / max(length(uDuskDir.xz), 1e-4);
+  float az = max(dot(hz, sunHz), 0.0);
   float hp = max(h, 0.0);
-  float band = pow(az, 7.0) * exp(-hp * 17.0);
-  float wash = pow(az, 2.2) * exp(-hp * 4.5);
-  col = mix(col, uDusk * 0.55 + uHorizon * 0.45, clamp(wash * 0.55, 0.0, 1.0));
-  col = mix(col, uDusk, clamp(band * 0.95, 0.0, 1.0));
-  // Opposite the dusk, a faint rose belt over the earth's shadow.
-  float anti = pow(max(-dot(hz, normalize(uDuskDir.xz)), 0.0), 2.0);
-  col += uDusk * anti * 0.05 * smoothstep(0.02, 0.10, hp) * (1.0 - smoothstep(0.12, 0.3, hp));
+  float band = pow(az, 5.0) * exp(-hp * 14.0);
+  float wash = pow(az, 2.0) * exp(-hp * 4.0);
+  col = mix(col, uDusk * 0.55 + uHorizon * 0.45, clamp(wash * 0.6 * uGlowAmt, 0.0, 1.0));
+  col = mix(col, uDusk, clamp(band * 0.9 * uGlowAmt, 0.0, 1.0));
+  // Below the horizon (hidden by the desert, seen past its edge): the horizon's haze.
+  col = mix(col, uHorizon, smoothstep(0.0, -0.08, h));
 
-  // The milky band, warmer where it is densest.
-  col += mix(uMilkyA, uMilkyB, smoothstep(0.35, 0.9, vMilky)) * vMilky * 0.16;
+  // The milky band, at night only.
+  col += mix(uMilkyA, uMilkyB, smoothstep(0.35, 0.9, vMilky)) * vMilky * 0.10 * uNight;
+
+  // The sun: a soft aureole (the sky brightens round it) and a crisp disc.
+  float sa = acos(clamp(dot(d, uSunDir), -1.0, 1.0));
+  col += uSunCol * (0.22 * exp(-sa * 9.0) + 0.06 * exp(-sa * 2.5)) * uSunDisc;
+  const float SR = 0.022;
+  col = mix(col, uSunCol * 0.35 + vec3(0.9), (1.0 - smoothstep(SR * 0.82, SR, sa)) * uSunDisc);
 
   // The moon: a cool halo, then a gibbous disc lit from the sun below the western horizon.
   float ang = acos(clamp(dot(d, uMoonDir), -1.0, 1.0));
-  col += uStar * (0.24 * exp(-ang * 15.0) + 0.05 * exp(-ang * 3.2));
-  const float MR = 0.034;
-  if (ang < MR * 1.25) {
+  col += uStar * (0.10 * exp(-ang * 15.0) + 0.02 * exp(-ang * 3.2)) * uMoonDisc * uNight;
+  const float MR = 0.026;
+  if (uMoonDisc > 0.0 && ang < MR * 1.25) {
     vec2 uv = vec2(dot(d, uMoonE1), dot(d, uMoonE2)) / MR;
     float r = length(uv);
     float disc = 1.0 - smoothstep(0.93, 1.0, r);
@@ -92,11 +106,11 @@ void main() {
     float m = sin(uv.x * 4.1 + 1.7) * sin(uv.y * 3.3 + 0.4) + 0.5 * sin((uv.x + uv.y) * 6.7 + 2.0);
     float maria = 0.80 + 0.20 * smoothstep(-0.2, 0.7, m);
     vec3 moon = uStar * (0.06 + 1.02 * lit * maria * (0.72 + 0.28 * n.z));
-    col = mix(col, moon, disc);
+    col = mix(col, moon, disc * uMoonDisc);
   }
 
   // A meteor: a short bright streak, brightest at its head.
-  if (uMetI > 0.0) {
+  if (uMetI > 0.0 && uNight > 0.5) {
     vec3 ba = uMetB - uMetA;
     vec3 pa = d - uMetA;
     float t = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-8), 0.0, 1.0);
@@ -148,7 +162,25 @@ void main() {
 const v3 = (v: readonly number[]) => new Vector3(v[0], v[1], v[2]);
 const mixHex = (a: string, b: string, t: number) => new Color(a).lerp(new Color(b), t);
 
-export function SkyDome({ dim, still }: { dim: number; still: boolean }) {
+// The moon's right and up on the sky, and the sun's direction in that frame (for its phase).
+function moonFrame(moonDir: V3, sunDir: V3) {
+  const e1 = normalize([-moonDir[2], 0, moonDir[0]]);
+  const e2 = normalize([
+    e1[1] * moonDir[2] - e1[2] * moonDir[1],
+    e1[2] * moonDir[0] - e1[0] * moonDir[2],
+    e1[0] * moonDir[1] - e1[1] * moonDir[0],
+  ]);
+  const sunL = normalize([
+    sunDir[0] * e1[0] + sunDir[1] * e1[1] + sunDir[2] * e1[2],
+    sunDir[0] * e2[0] + sunDir[1] * e2[1] + sunDir[2] * e2[2],
+    -(sunDir[0] * moonDir[0] + sunDir[1] * moonDir[1] + sunDir[2] * moonDir[2]),
+  ]);
+  return { e1, e2, sunL };
+}
+
+export interface SkyState { look: SkyLook; sunDir: V3; moonDir: V3 }
+
+export function SkyDome({ dim, still, sky }: { dim: number; still: boolean; sky: SkyState }) {
   const geometry = useMemo(() => {
     const g = new SphereGeometry(1, 96, 48);
     const p = g.getAttribute("position");
@@ -158,17 +190,7 @@ export function SkyDome({ dim, still }: { dim: number; still: boolean }) {
     return g;
   }, []);
   const material = useMemo(() => {
-    const e1 = normalize([-MOON_DIR[2], 0, MOON_DIR[0]]);          // the moon's right on the sky
-    const e2 = normalize([                                          // and its up: right x moon
-      e1[1] * MOON_DIR[2] - e1[2] * MOON_DIR[1],
-      e1[2] * MOON_DIR[0] - e1[0] * MOON_DIR[2],
-      e1[0] * MOON_DIR[1] - e1[1] * MOON_DIR[0],
-    ]);
-    const sunL = normalize([
-      SUN_DIR[0] * e1[0] + SUN_DIR[1] * e1[1] + SUN_DIR[2] * e1[2],
-      SUN_DIR[0] * e2[0] + SUN_DIR[1] * e2[1] + SUN_DIR[2] * e2[2],
-      -(SUN_DIR[0] * MOON_DIR[0] + SUN_DIR[1] * MOON_DIR[1] + SUN_DIR[2] * MOON_DIR[2]),
-    ]);
+    const f = moonFrame(MOON_DIR, SUN_DIR);
     return new ShaderMaterial({
       vertexShader: DOME_VERT,
       fragmentShader: DOME_FRAG,
@@ -177,18 +199,24 @@ export function SkyDome({ dim, still }: { dim: number; still: boolean }) {
       depthWrite: false,
       fog: false,
       uniforms: {
-        uZenith: { value: new Color(C.skyZenith) },
-        uMid: { value: new Color(C.skyMid) },
-        uHorizon: { value: new Color(C.skyHorizon) },
-        uDusk: { value: new Color(C.duskGlow) },
-        uStar: { value: new Color(C.stars) },
-        uMilkyA: { value: mixHex(C.stars, C.skyHorizon, 0.35) },
-        uMilkyB: { value: mixHex(C.stars, C.duskGlow, 0.3) },
+        uZenith: { value: new Color() },
+        uMid: { value: new Color() },
+        uHorizon: { value: new Color() },
+        uDusk: { value: new Color() },
+        uGlowAmt: { value: 0 },
+        uSunDir: { value: v3(SUN_DIR) },
+        uSunCol: { value: new Color() },
+        uSunDisc: { value: 0 },
+        uMoonDisc: { value: 1 },
+        uNight: { value: 1 },
+        uStar: { value: new Color(STAR) },
+        uMilkyA: { value: new Color(STAR).lerp(new Color("#7f8ba8"), 0.35) },
+        uMilkyB: { value: new Color(STAR).lerp(new Color("#c9b49a"), 0.3) },
         uDuskDir: { value: v3(DUSK_DIR) },
         uMoonDir: { value: v3(MOON_DIR) },
-        uMoonE1: { value: v3(e1) },
-        uMoonE2: { value: v3(e2) },
-        uSunL: { value: v3(sunL) },
+        uMoonE1: { value: v3(f.e1) },
+        uMoonE2: { value: v3(f.e2) },
+        uSunL: { value: v3(f.sunL) },
         uDim: { value: 1 },
         uMetA: { value: new Vector3() },
         uMetB: { value: new Vector3() },
@@ -196,7 +224,27 @@ export function SkyDome({ dim, still }: { dim: number; still: boolean }) {
       },
     });
   }, []);
-  useEffect(() => { material.uniforms.uDim.value = dim; }, [material, dim]);
+  useEffect(() => {
+    const u = material.uniforms, L = sky.look;
+    u.uDim.value = dim;
+    (u.uZenith.value as Color).set(L.zenith);
+    (u.uMid.value as Color).set(L.mid);
+    (u.uHorizon.value as Color).set(L.horizon);
+    (u.uDusk.value as Color).set(L.glow);
+    u.uGlowAmt.value = L.glowAmt;
+    (u.uSunCol.value as Color).set(L.sun === "#000000" ? "#ffb070" : L.sun);
+    u.uSunDisc.value = L.sunDisc;
+    u.uMoonDisc.value = L.moonDisc;
+    u.uNight.value = L.stars;
+    (u.uSunDir.value as Vector3).set(...sky.sunDir);
+    // The warm band sits on the horizon under the sun.
+    (u.uDuskDir.value as Vector3).set(sky.sunDir[0], 0, sky.sunDir[2]);
+    (u.uMoonDir.value as Vector3).set(...sky.moonDir);
+    const f = moonFrame(sky.moonDir, sky.sunDir);
+    (u.uMoonE1.value as Vector3).set(...f.e1);
+    (u.uMoonE2.value as Vector3).set(...f.e2);
+    (u.uSunL.value as Vector3).set(...f.sunL);
+  }, [material, dim, sky]);
   useEffect(() => () => { geometry.dispose(); material.dispose(); }, [geometry, material]);
   useFrame(({ clock }) => {
     const u = material.uniforms;
@@ -208,6 +256,7 @@ export function SkyDome({ dim, still }: { dim: number; still: boolean }) {
 }
 
 export function Stars({ dim, still }: { dim: number; still: boolean }) {
+  // dim: the view's dimmer times the night (sky.ts skyLook stars); 0 hides the stars (no draw).
   const geometry = useMemo(() => {
     const f = starField();
     const g = new BufferGeometry();
@@ -230,9 +279,9 @@ export function Stars({ dim, still }: { dim: number; still: boolean }) {
       uTime: { value: 0 },
       uDim: { value: 1 },
       uPx: { value: 1 },
-      uStar: { value: new Color(C.stars) },
-      uWarm: { value: mixHex(C.stars, C.duskGlow, 0.4) },
-      uCool: { value: mixHex(C.stars, C.holo, 0.25) },
+      uStar: { value: new Color(STAR) },
+      uWarm: { value: mixHex(STAR, "#ffc9a0", 0.4) },
+      uCool: { value: mixHex(STAR, "#b8d0ff", 0.4) },
     },
   }), []);
   const t = useRef(0);
@@ -244,5 +293,5 @@ export function Stars({ dim, still }: { dim: number; still: boolean }) {
     material.uniforms.uPx.value = gl.xr.isPresenting ? 1.4 : gl.getPixelRatio();
   });
   // Opaque pass, right after the dome (additive blending still applies), so the desert draws over.
-  return <points name="world-stars" geometry={geometry} material={material} renderOrder={-999} frustumCulled={false} />;
+  return <points name="world-stars" geometry={geometry} material={material} renderOrder={-999} frustumCulled={false} visible={dim > 0.01} />;
 }

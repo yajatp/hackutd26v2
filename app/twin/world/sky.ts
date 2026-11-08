@@ -1,7 +1,8 @@
-// The night over the desert, as plain numbers (unit-tested in world.test.ts): where the moon and
-// the dusk are, the star field, the faint milky band, the rare meteor, and how each view mode
-// sets the fog and the light. Directions are unit vectors in the World's frame (x east, y up,
-// -z north). Colors are not here: they come from ../theme.ts.
+// The sky over the desert, as plain numbers (unit-tested in world.test.ts and sky.test.ts): the
+// star field, the faint milky band, the rare meteor, how each view mode sets the fog and dims the
+// world, and (at the end) skyLook, the sky clock's colors and lights by sun elevation. Directions
+// are unit vectors in the World's frame (x east, y up, -z north). The sun and moon positions come
+// from clock.ts; MOON_DIR, SUN_DIR and DUSK_DIR are only the defaults before the clock runs.
 import type { ViewMode } from "../theme";
 import { fbm3, hash3, rng, smoothstep } from "./terrain";
 
@@ -44,8 +45,9 @@ export const WORLD_FAR = 1600;
 // for a `flat` (no tone mapping) canvas, as /twin uses. padGlow is the faked warm pool at each pad
 // (strong where pads are small, weak at life size where the real point lights make the pools).
 // fogDim: the fog's color is the sky's horizon times this. The table and the overview fog the
-// desert into the violet horizon within a couple of hundred meters, so the floor fades into the
-// sky instead of ending in a hard dark line (the sky, mesas and far rigs ignore the fog).
+// desert into the horizon within a couple of hundred meters (farther on a clear day), so the floor
+// fades into the sky instead of ending in a hard line (the sky, mesas and far rigs ignore the fog).
+// moon and hemi now scale the sky clock's lights (moon / 1.7 and hemi / 1.1).
 // home: a warm lit pool on the desert round the judge's start (meters; 0 = none), so the first
 // thing seen on entering VR is ground, not a black floor; homeGlow its light.
 // warmHemi: the hemisphere light's ground color leans to the dusk (a warm under-light).
@@ -150,4 +152,81 @@ export function meteorAt(tS: number): Meteor | null {
     s[2] * Math.cos(q) + t[2] * Math.sin(q),
   ]);
   return { a: at(L * Math.max(0, p - 0.35)), b: at(L * p), i: Math.sin(Math.PI * p) };
+}
+
+// ---- The sky clock's look (Sun 06:05): every color and light of the sky as a pure function of the
+// sun's elevation in degrees (unit-tested in sky.test.ts). Noon is a clear blue day with a bright
+// sun; midnight is a pitch-black sky with stars and a moon; dawn and dusk blend in between. Colors
+// are sRGB hex. Light intensities are three.js physical units for the `flat` canvas /twin uses.
+export interface SkyLook {
+  zenith: string; mid: string; horizon: string;
+  glow: string;                       // the warm band on the horizon under the sun (dawn, dusk)
+  glowAmt: number;                    // 0..1
+  sun: string; sunI: number;          // the sun's directional light (0 below the horizon)
+  sunDisc: number;                    // 0..1: how much of the sun's disc shows
+  moonI: number;                      // the moon's directional light
+  moonDisc: number;                   // 0..1
+  hemiSky: string; hemiGround: string; hemiI: number;
+  stars: number;                      // 0..1 star and lamp visibility (1 = full night)
+  fog: string;                        // the fog: the horizon's color, so the desert fades into it
+  ridge: string;                      // the far mesas' tint (multiplies their baked rock color)
+}
+
+interface Key extends Omit<SkyLook, "fog"> { el: number }
+
+// Keyframes by sun elevation (degrees), interpolated linearly between neighbours.
+const KEYS: Key[] = [
+  { el: -18, zenith: "#010207", mid: "#020409", horizon: "#05070d", glow: "#05070d", glowAmt: 0, sun: "#000000", sunI: 0, sunDisc: 0,
+    moonI: 0.85, moonDisc: 1, hemiSky: "#2b3550", hemiGround: "#0c0b0a", hemiI: 0.55, stars: 1, ridge: "#0c0e13" },
+  { el: -10, zenith: "#03081a", mid: "#081228", horizon: "#141d33", glow: "#2a2230", glowAmt: 0.3, sun: "#000000", sunI: 0, sunDisc: 0,
+    moonI: 0.6, moonDisc: 1, hemiSky: "#34405e", hemiGround: "#14110e", hemiI: 0.6, stars: 0.85, ridge: "#1a1e28" },
+  { el: -4, zenith: "#0f2149", mid: "#2b4272", horizon: "#6d7088", glow: "#c97a55", glowAmt: 0.75, sun: "#000000", sunI: 0, sunDisc: 0,
+    moonI: 0, moonDisc: 0.4, hemiSky: "#56648a", hemiGround: "#2c241c", hemiI: 0.7, stars: 0.25, ridge: "#4b4652" },
+  { el: 0, zenith: "#2a508c", mid: "#5a80b8", horizon: "#e1b38c", glow: "#ff9a5a", glowAmt: 0.85, sun: "#ffa25c", sunI: 0.9, sunDisc: 1,
+    moonI: 0, moonDisc: 0, hemiSky: "#8ea3c8", hemiGround: "#5e4f3e", hemiI: 0.75, stars: 0.03, ridge: "#9a8278" },
+  { el: 6, zenith: "#2f66b0", mid: "#6c9ad0", horizon: "#d9d5cd", glow: "#ffc890", glowAmt: 0.45, sun: "#ffd6a6", sunI: 1.9, sunDisc: 1,
+    moonI: 0, moonDisc: 0, hemiSky: "#a9c4e6", hemiGround: "#7a6650", hemiI: 0.85, stars: 0, ridge: "#b3b0b0" },
+  { el: 20, zenith: "#2b6cc8", mid: "#5d97de", horizon: "#bcd5ee", glow: "#e8eef5", glowAmt: 0.1, sun: "#fff1dd", sunI: 2.7, sunDisc: 1,
+    moonI: 0, moonDisc: 0, hemiSky: "#b5cfee", hemiGround: "#8a7358", hemiI: 0.9, stars: 0, ridge: "#bcc4cf" },
+  { el: 45, zenith: "#2366c9", mid: "#4f8fdc", horizon: "#b6d1ee", glow: "#e2ebf6", glowAmt: 0, sun: "#fff8ee", sunI: 3.0, sunDisc: 1,
+    moonI: 0, moonDisc: 0, hemiSky: "#bcd4f0", hemiGround: "#927a5d", hemiI: 0.95, stars: 0, ridge: "#c2cad6" },
+];
+
+function hexRgb(h: string): V3 {
+  const n = parseInt(h.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function rgbHex(c: readonly number[]): string {
+  return "#" + c.map((x) => Math.round(Math.max(0, Math.min(255, x))).toString(16).padStart(2, "0")).join("");
+}
+export function mixColor(a: string, b: string, t: number): string {
+  const x = hexRgb(a), y = hexRgb(b);
+  return rgbHex([x[0] + (y[0] - x[0]) * t, x[1] + (y[1] - x[1]) * t, x[2] + (y[2] - x[2]) * t]);
+}
+
+// The sky at a sun elevation (degrees, -90..90).
+export function skyLook(elDeg: number): SkyLook {
+  const el = Math.max(KEYS[0].el, Math.min(KEYS[KEYS.length - 1].el, Number.isFinite(elDeg) ? elDeg : 0));
+  let i = 0;
+  while (i < KEYS.length - 2 && el > KEYS[i + 1].el) i++;
+  const a = KEYS[i], b = KEYS[i + 1];
+  const t = Math.max(0, Math.min(1, (el - a.el) / (b.el - a.el)));
+  const n = (k: "glowAmt" | "sunI" | "sunDisc" | "moonI" | "moonDisc" | "hemiI" | "stars") => a[k] + (b[k] - a[k]) * t;
+  const c = (k: "zenith" | "mid" | "horizon" | "glow" | "sun" | "hemiSky" | "hemiGround" | "ridge") => mixColor(a[k], b[k], t);
+  const horizon = c("horizon");
+  return {
+    zenith: c("zenith"), mid: c("mid"), horizon, glow: c("glow"), glowAmt: n("glowAmt"),
+    sun: c("sun"), sunI: n("sunI"), sunDisc: n("sunDisc"), moonI: n("moonI"), moonDisc: n("moonDisc"),
+    hemiSky: c("hemiSky"), hemiGround: c("hemiGround"), hemiI: n("hemiI"), stars: n("stars"),
+    fog: horizon, ridge: c("ridge"),
+  };
+}
+
+// Relative luminance (0..1) of an sRGB hex color, for the tests and for picking the key light.
+export function luma(h: string): number {
+  const [r, g, b] = hexRgb(h).map((x) => {
+    const s = x / 255;
+    return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }

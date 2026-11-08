@@ -1,47 +1,41 @@
 "use client";
 // The horizon, two draw calls. Ridges: two rings of low-poly mesas and buttes, 680 m and 930 m
-// out, as one unlit mesh whose vertex colors carry their own haze (they ignore the scene fog so
-// their silhouette stays crisp against the sky), with a warm rim where they face the dusk.
+// out, as one unlit mesh in the sky clock's haze and rock colors (they ignore the scene fog so their
+// silhouette stays crisp against the sky).
 // FarLights: far rigs and well sites between the dunes and the mesas, steady lamps, a few masts
 // blinking slowly, a flare or two flickering. Decoration only: dimmer than anything with data.
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import {
-  AdditiveBlending, BufferAttribute, BufferGeometry, Color, DoubleSide, MeshBasicMaterial, ShaderMaterial,
+  AdditiveBlending, BufferAttribute, BufferGeometry, Color, DoubleSide, ShaderMaterial,
 } from "three";
-import { C } from "../theme";
 import { DUSK_AZ_DEG } from "./sky";
 import { farLights, groundHeight, mesas, noise2, ridgeHeight, RIDGE_LAYERS } from "./terrain";
 
 const COLS = 720;                                       // half a degree per column
 
+// Vertex colors carry weights, not colors (the sky clock sets the colors live): r = rock (0 at the
+// hazy base, 1 at the body), g = 1 on the far ring (paler with distance).
 function buildRidges(): BufferGeometry {
   const duskAz = (DUSK_AZ_DEG * Math.PI) / 180;
-  const haze = new Color(C.skyHorizon);
-  const zen = new Color(C.skyZenith), ground = new Color(C.ground), dusk = new Color(C.duskGlow);
-  const bodies = [
-    haze.clone().lerp(zen, 0.58).lerp(ground, 0.12),    // far: hazier
-    haze.clone().lerp(zen, 0.82).lerp(ground, 0.25),    // near: darker, a little earthier
-  ];
   const pos: number[] = [], col: number[] = [], idx: number[] = [];
-  const c = new Color();
   for (const layer of [0, 1] as const) {
     const L = RIDGE_LAYERS[layer];
     const list = mesas(layer);
     const first = pos.length / 3;
+    const far = layer === 0 ? 1 : 0;
     for (let j = 0; j < COLS; j++) {
       const th = (j / COLS) * Math.PI * 2;
       const r = L.r + (noise2(th * 9, layer * 5, 13) - 0.5) * 70;
       const x = Math.sin(th) * r, z = -Math.cos(th) * r;
       const g = groundHeight(x, z);
       const h = ridgeHeight(th, layer, list, duskAz);
-      const toDusk = Math.max(0, Math.cos(th - duskAz));
-      const rim = Math.pow(toDusk, 3) * 0.55;
-      // Three rows: the base in the haze, the body, the rim at the top.
+      const shade = 0.88 + 0.24 * noise2(th * 31, layer * 3, 5);
+      // Three rows: the base in the haze, the body, the top.
       pos.push(x, g - 10, z, x, g + h * 0.5, z, x, g + h, z);
-      c.copy(haze); col.push(c.r, c.g, c.b);
-      c.copy(haze).lerp(bodies[layer], 0.8); col.push(c.r, c.g, c.b);
-      c.copy(bodies[layer]).lerp(dusk, rim * (layer === 0 ? 0.6 : 0.4)); col.push(c.r, c.g, c.b);
+      col.push(0, far, 0);
+      col.push(0.8 * shade, far, 0);
+      col.push(1 * shade, far, 0);
     }
     for (let j = 0; j < COLS; j++) {
       const a = first + j * 3, b = first + ((j + 1) % COLS) * 3;
@@ -56,10 +50,42 @@ function buildRidges(): BufferGeometry {
   return geo;
 }
 
-export function Ridges({ dim }: { dim: number }) {
+const RIDGE_VERT = /* glsl */ `
+attribute vec3 color;
+varying vec3 vW;
+void main() {
+  vW = color;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`;
+const RIDGE_FRAG = /* glsl */ `
+uniform vec3 uHaze;
+uniform vec3 uRock;
+uniform float uDim;
+varying vec3 vW;
+void main() {
+  vec3 rock = mix(uRock, uHaze, 0.35 + 0.25 * vW.g);     // distance haze: the far ring is paler
+  vec3 col = mix(uHaze, rock, clamp(vW.r, 0.0, 1.2));
+  gl_FragColor = vec4(col * uDim, 1.0);
+  #include <colorspace_fragment>
+}`;
+
+// The mesas' sunlit rock (a muted desert tan), tinted by the sky (sky.ts skyLook ridge).
+const ROCK = "#a08c76";
+
+export function Ridges({ dim, haze, tint }: { dim: number; haze: string; tint: string }) {
   const geometry = useMemo(buildRidges, []);
-  const material = useMemo(() => new MeshBasicMaterial({ vertexColors: true, fog: false, side: DoubleSide }), []);
-  useEffect(() => { material.color.setScalar(dim); }, [material, dim]);
+  const material = useMemo(() => new ShaderMaterial({
+    vertexShader: RIDGE_VERT,
+    fragmentShader: RIDGE_FRAG,
+    side: DoubleSide,
+    fog: false,
+    uniforms: { uHaze: { value: new Color() }, uRock: { value: new Color() }, uDim: { value: 1 } },
+  }), []);
+  useEffect(() => {
+    material.uniforms.uDim.value = dim;
+    (material.uniforms.uHaze.value as Color).set(haze);
+    (material.uniforms.uRock.value as Color).set(ROCK).multiply(new Color(tint));
+  }, [material, dim, haze, tint]);
   useEffect(() => () => { geometry.dispose(); material.dispose(); }, [geometry, material]);
   return <mesh name="world-ridges" geometry={geometry} material={material} />;
 }
@@ -124,9 +150,9 @@ export function FarLights({ dim, still }: { dim: number; still: boolean }) {
       uPx: { value: 1 },
       uDim: { value: 1 },
       uStill: { value: 0 },
-      uLamp: { value: new Color(C.duskGlow).lerp(new Color(C.stars), 0.4) },
-      uMast: { value: new Color(C.duskGlow).lerp(new Color(C.stars), 0.2) },
-      uFlare: { value: new Color(C.duskGlow) },
+      uLamp: { value: new Color("#ffc98f") },
+      uMast: { value: new Color("#ff4a3a") },
+      uFlare: { value: new Color("#ff9a4a") },
     },
   }), []);
   const t = useRef(0);
