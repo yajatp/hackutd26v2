@@ -177,10 +177,33 @@
   display: none;
 }
 
+.tankName {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
 .tankLabel {
   min-width: 0;
   overflow-wrap: anywhere;
   font-weight: 600;
+}
+
+/* The tank's county and state ("Martin County, TX"), and the site under the header. */
+.place {
+  display: block;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.site {
+  margin-top: 0.75rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 .side {
@@ -192,7 +215,8 @@
 
 /* On a Moonlight row the night inks swap: quiet words in a dark Dust, the console's badges in
    their darker state inks. */
-.tank[aria-checked="true"] :global(.text-muted) {
+.tank[aria-checked="true"] :global(.text-muted),
+.tank[aria-checked="true"] .place {
   color: rgb(255 255 255 / 0.8);
 }
 
