@@ -3,13 +3,18 @@
 // The incident report, drawn from one snapshot of the live Darkroom log. Pure: the screen
 // (ReportScreen) hands it what useDarkroom() returns, and tests render it directly.
 // Words we use: tamper-evident, isolated local network, integrity, not authenticity.
+//
+// Page 1 on paper is the cover: title, chain status, head fingerprint, who was in the room, and
+// when it opened and closed. Then the log drawn as a chain, the evidence, the scope board, how to
+// check the record yourself, and its limits. report.css holds the screen and the print design.
 
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { LogEvent } from "../../lib/chain";
 import { replayClosure, replayEvidence, replayIncidents, replayScope } from "../../lib/rules/darkroom/replay";
+import { parseActor } from "../../lib/rules/darkroom/roles";
 import type { ChainStatus } from "../../lib/rules/darkroom/status";
-import { actorAt, brokenWhy, isBroken, pickIncident, teamFromLog, timelineFor, verifyCommand } from "./model";
+import { actorAt, brokenWhy, describeEntry, isBroken, pickIncident, teamFromLog, verifyCommand } from "./model";
 
 // The part of DarkroomSnapshot (lib/darkroom-live.ts) the report reads.
 export interface ReportInput {
@@ -20,6 +25,8 @@ export interface ReportInput {
   status: ChainStatus;
 }
 
+type Broken = Extract<ChainStatus, { kind: "rollback" | "tampering" }>;
+
 function when(ts: string): string {
   const d = new Date(ts);
   if (Number.isNaN(d.getTime())) return ts;
@@ -28,50 +35,73 @@ function when(ts: string): string {
   });
 }
 
+function day(ts: string): string {
+  const d = new Date(ts);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" });
+}
+
+function clock(ts: string): string {
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return ts;
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
 function who(name: string, role: string): string {
   return role ? `${name} (${role})` : name;
 }
 
-function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+function hex8(hash: string): string {
+  return hash.slice(0, 8);
+}
+
+function Section({ id, title, lead, children }: { id: string; title: string; lead?: ReactNode; children: ReactNode }) {
   return (
-    <section aria-labelledby={id} className="card report-section">
-      <h2 id={id} className="section-title">{title}</h2>
+    <section aria-labelledby={id} className="r-section">
+      <div className="r-section-head">
+        <h2 id={id} className="r-h2">{title}</h2>
+        {lead && <p className="r-lead">{lead}</p>}
+      </div>
       {children}
     </section>
   );
 }
 
-function Th({ children }: { children: ReactNode }) {
-  return <th className="py-2 pr-3 align-bottom font-medium">{children}</th>;
-}
-
-function Td({ children, className = "", colSpan }: { children: ReactNode; className?: string; colSpan?: number }) {
-  return <td colSpan={colSpan} className={`py-2 pr-3 align-top ${className}`}>{children}</td>;
-}
-
-// Red, first on the page, in words. Every non-verified status takes this path.
-function BrokenBanner({ st }: { st: Extract<ChainStatus, { kind: "rollback" | "tampering" }> }) {
+// The status, worded exactly as the box screen says it. When the chain is broken this is the red
+// alert, first in the page's markup; report.css places the title above it on the cover.
+function CoverStatus({ st }: { st: ChainStatus }) {
+  if (isBroken(st)) {
+    return (
+      <div role="alert" data-chain-status={st.kind} className="report-alert r-status r-status-broken">
+        <p className="r-status-word"><span aria-hidden="true">▲ </span>{st.text}</p>
+        <p className="r-status-why">{brokenWhy(st)}</p>
+        <p className="r-status-why">Do not hand this report out as the record. Check the box with the command under &ldquo;How to check this record yourself&rdquo;.</p>
+      </div>
+    );
+  }
   return (
-    <div role="alert" data-chain-status={st.kind} className="report-alert rounded-lg border-4 border-alert-solid bg-alert-solid p-4 text-white">
-      <p className="text-3xl font-bold tracking-wide"><span aria-hidden="true">▲ </span>{st.text}</p>
-      <p className="mt-2 text-lg">{brokenWhy(st)}</p>
-      <p className="mt-1">Do not hand this report out as the record. Check the box with the command under &ldquo;How to check this record yourself&rdquo;.</p>
+    <div data-chain-status={st.kind} className="r-status">
+      <p className="r-status-word">
+        <span aria-hidden="true">{st.kind === "verified" ? "✓ " : "○ "}</span>{st.text}
+      </p>
+      {st.kind === "verified" && (
+        <p className="r-status-why">The chain is whole and nothing this device saw before is missing or changed.</p>
+      )}
     </div>
   );
 }
 
 function Toolbar({ others }: { others: string[] }) {
   return (
-    <nav aria-label="Report actions" className="report-no-print flex flex-wrap items-center gap-2 text-sm print:hidden">
-      <button type="button" className="report-no-print btn btn-primary print:hidden" onClick={() => window.print()}>Print / Save as PDF</button>
-      <Link href="/box" className="report-no-print btn print:hidden">Back to the incident room</Link>
+    <nav aria-label="Report actions" className="report-no-print r-tools">
+      <button type="button" className="r-btn r-btn-primary" onClick={() => window.print()}>Print / Save as PDF</button>
+      <Link href="/box" className="r-btn">Back to the incident room</Link>
       {others.length > 0 && (
-        <span className="text-muted">
+        <span className="r-muted">
           Other incidents:{" "}
           {others.map((id, i) => (
             <span key={id}>
               {i > 0 && ", "}
-              <Link className="underline" href={`/report?incident=${id}`}>{id}</Link>
+              <Link className="r-link" href={`/report?incident=${id}`}>{id}</Link>
             </span>
           ))}
         </span>
@@ -80,32 +110,144 @@ function Toolbar({ others }: { others: string[] }) {
   );
 }
 
-function ChainSection({ s, newest }: { s: ReportInput; newest: LogEvent | undefined }) {
-  const st = s.status;
+// Where the break goes in the drawn chain: on the entry itself when it is still there, or as a
+// marker where the missing entries would start.
+function breakPlacement(st: ChainStatus, events: readonly LogEvent[]): { onSeq: number | null; markerBefore: number | null } {
+  if (!isBroken(st)) return { onSeq: null, markerBefore: null };
+  const present = events.some(e => e.seq === st.at);
+  if (st.kind === "tampering" && present) return { onSeq: st.at, markerBefore: null };
+  const idx = events.findIndex(e => e.seq >= st.at);
+  return { onSeq: null, markerBefore: idx < 0 ? events.length : idx };
+}
+
+function BreakMarker({ st }: { st: Broken }) {
   return (
-    <Section id="chain" title="The record">
-      {st.kind === "verified" ? (
-        <p className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="badge text-base" data-chain-status="verified"><span aria-hidden="true">✓</span>{st.text}</span>
-          <span className="text-sm text-muted">The chain is whole and nothing this device saw before is missing or changed.</span>
+    <li className="r-entry r-entry-broken r-marker" data-break={st.at}>
+      <span className="r-rail" aria-hidden="true"><span className="r-node">▲</span></span>
+      <div className="r-entry-body">
+        <p className="r-break-word"><span aria-hidden="true">▲ </span>{st.text}</p>
+        <p className="r-payload">
+          {st.kind === "rollback"
+            ? `Entry #${st.at} and every entry after it were here when this device last looked, and are gone now.`
+            : brokenWhy(st)}
         </p>
-      ) : isBroken(st) ? (
-        <p className="mt-2 text-xl font-bold text-alert"><span aria-hidden="true">▲ </span>{st.text}</p>
+      </div>
+    </li>
+  );
+}
+
+function ChainEntry({ e, incidentId, isLast, broken, showDay }: {
+  e: LogEvent; incidentId: string | null; isLast: boolean; broken: Broken | null; showDay: boolean;
+}) {
+  const a = parseActor(e.actor);
+  // Team changes belong to every report; another incident's entries keep their place in the chain
+  // (their fingerprints are what link it) but not their words.
+  const shown = !e.incident_id || e.incident_id === incidentId;
+  const what = shown ? describeEntry(e) : `entry for ${e.incident_id}, left out of this report`;
+  const genesis = /^0+$/.test(e.prev_hash);
+  return (
+    <li className={`r-entry${broken ? " r-entry-broken" : ""}${shown ? "" : " r-entry-other"}`} data-seq={e.seq} data-break={broken ? broken.at : undefined}>
+      <span className="r-rail" aria-hidden="true"><span className="r-node">{broken ? "▲" : ""}</span></span>
+      <div className="r-entry-body">
+        {broken && <p className="r-break-word"><span aria-hidden="true">▲ </span>{broken.text}: this entry no longer matches its fingerprint.</p>}
+        <p className="r-entry-head">
+          <span className="r-seq">#{e.seq}</span>
+          <span>{showDay ? `${day(e.ts)}, ` : ""}{clock(e.ts)}</span>
+          <span>{who(a.name, a.role)}</span>
+          <span className="r-type">{e.type}</span>
+        </p>
+        <p className="r-payload" title={what}>{what}</p>
+      </div>
+      <div className="r-hashes">
+        <p className="r-hash-prev">
+          <span className="r-hash-label">prev</span> <code className="r-mono">{hex8(e.prev_hash)}</code>
+          {genesis && <span className="r-hash-note"> start of the log</span>}
+        </p>
+        <p className="r-hash-this">
+          <span className="r-hash-label">hash</span> <code className="r-mono">{hex8(e.hash)}</code>
+        </p>
+        {!isLast && <span className="r-chainlink" aria-hidden="true" />}
+      </div>
+    </li>
+  );
+}
+
+function ChainSection({ s, incidentId }: { s: ReportInput; incidentId: string | null }) {
+  const st = s.status;
+  const broken = isBroken(st) ? st : null;
+  const events = [...s.events].sort((x, y) => x.seq - y.seq);
+  const { onSeq, markerBefore } = breakPlacement(st, events);
+  const items: ReactNode[] = [];
+  events.forEach((e, i) => {
+    if (broken && markerBefore === i) items.push(<BreakMarker key="break" st={broken} />);
+    const showDay = i === 0 || day(events[i - 1].ts) !== day(e.ts);
+    items.push(
+      <ChainEntry key={e.seq} e={e} incidentId={incidentId} isLast={i === events.length - 1}
+        broken={broken && onSeq === e.seq ? broken : null} showDay={showDay} />,
+    );
+  });
+  if (broken && markerBefore === events.length) items.push(<BreakMarker key="break" st={broken} />);
+
+  return (
+    <Section
+      id="chain"
+      title="The log, entry by entry"
+      lead={<>Every entry on this box, oldest first. Each entry stores the fingerprint of the one above it (prev), and the line joins the two: if any entry were changed or removed, the next one would stop matching.</>}
+    >
+      {events.length === 0 ? <p className="r-muted">No entries yet.</p> : <ol className="r-chain">{items}</ol>}
+      <p className="r-fine">Fingerprints show their first 8 characters; the full head fingerprint is on page 1. Times are in this device&apos;s time zone; the log stores them in UTC.</p>
+    </Section>
+  );
+}
+
+function EvidenceSection({ evidence }: { evidence: ReturnType<typeof replayEvidence> }) {
+  return (
+    <Section id="evidence" title="Evidence" lead="References a person carried from the Avon console and typed in. The log records who brought each one and when.">
+      {evidence.length === 0 ? (
+        <p className="r-muted">No evidence logged.</p>
       ) : (
-        <p className="mt-2 text-xl font-bold"><span aria-hidden="true">○ </span>{st.text}</p>
+        <ul className="r-rows">
+          {evidence.map(ev => (
+            <li key={ev.seq} className="r-row r-evidence">
+              <p className="r-ref r-mono">{ev.ref}</p>
+              <p>Brought by <strong>{who(ev.collector, ev.role)}</strong> from {ev.source}, {when(ev.ts)}, entry #{ev.seq}.</p>
+              {ev.note && <p>{ev.note}</p>}
+              <p className="r-fp">
+                {ev.fingerprint
+                  ? <><span className="r-muted">Fingerprint </span><code className="r-mono">{ev.fingerprint}</code></>
+                  : <span className="r-muted">reference only, no fingerprint</span>}
+              </p>
+            </li>
+          ))}
+        </ul>
       )}
-      {newest && (
-        <dl className="mt-3 grid gap-x-4 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
-          <dt className="text-muted">{isBroken(st) ? "On the box now" : "Entries"}</dt>
-          <dd>{s.events.length} entries (#{s.events[0].seq} to #{newest.seq}), for every incident and team change on this box</dd>
-          <dt className="text-muted">Head fingerprint</dt>
-          <dd>
-            <span className="text-muted">hash of entry #{newest.seq}, written {when(newest.ts)}</span>
-            <code className="block break-all font-mono text-sm">{newest.hash}</code>
-          </dd>
-        </dl>
+    </Section>
+  );
+}
+
+function ScopeSection({ scope }: { scope: ReturnType<typeof replayScope> }) {
+  return (
+    <Section id="scope" title="Scope board" lead="Which systems and data are affected, as the board stands. The newest entry for a row wins.">
+      {scope.length === 0 ? (
+        <p className="r-muted">Nothing in scope.</p>
+      ) : (
+        <table className="r-table">
+          <thead>
+            <tr><th>System or data</th><th>What happened</th><th>How sure</th><th>Note</th><th>Last change</th></tr>
+          </thead>
+          <tbody>
+            {scope.map(r => (
+              <tr key={r.key}>
+                <td className="r-strong">{r.system}</td>
+                <td className="r-strong">{r.state}</td>
+                <td className={r.certainty === "CONFIRMED" ? "r-strong" : ""}>{r.certainty}</td>
+                <td>{r.note}</td>
+                <td>#{r.seq} by {r.by}, {when(r.ts)}{r.updates > 1 ? ` (${r.updates} changes)` : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
-      <p className="mt-2 text-xs text-muted">Times are shown in this device&apos;s time zone; the log stores them in UTC.</p>
     </Section>
   );
 }
@@ -113,181 +255,153 @@ function ChainSection({ s, newest }: { s: ReportInput; newest: LogEvent | undefi
 export function ReportView({ s, requested, host, db }: { s: ReportInput; requested: string; host: string; db: string }) {
   if (!s.ready) {
     return (
-      <main className="report-root mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
-        <div role="status" className="card text-muted">
+      <main className="report-root r-page">
+        <p role="status" className="r-muted">
           {s.connection === "offline" && s.error ? s.error : "Loading the record from the box…"}
-        </div>
+        </p>
       </main>
     );
   }
 
   const st = s.status;
-  const broken = isBroken(st) ? st : null;
   const incidents = replayIncidents(s.events);
   const { incident, notFound } = pickIncident(incidents, requested);
   const others = incidents.filter(i => i.id !== incident?.id).map(i => i.id);
-  const newest = s.events[s.events.length - 1];
+  const newest = s.events.reduce<LogEvent | undefined>((m, e) => (!m || e.seq > m.seq ? e : m), undefined);
+  const oldest = s.events.reduce<LogEvent | undefined>((m, e) => (!m || e.seq < m.seq ? e : m), undefined);
   const scope = incident ? replayScope(s.events, incident.id) : [];
   const evidence = incident ? replayEvidence(s.events, incident.id) : [];
   const closure = incident ? replayClosure(s.events, incident.id) : null;
-  const timeline = incident ? timelineFor(s.events, incident.id) : [];
   const team = teamFromLog(s.events);
   const opener = incident ? actorAt(s.events, incident.seq) : null;
   const closer = closure ? actorAt(s.events, closure.seq) : null;
+  const command = verifyCommand(host || "<box address>", db);
 
   return (
-    <main className="report-root mx-auto max-w-5xl space-y-5 p-4 sm:p-6">
-      {broken && <BrokenBanner st={broken} />}
+    <main className="report-root r-page">
+      <section aria-label="Summary" className="r-cover">
+        <CoverStatus st={st} />
 
-      <Toolbar others={others} />
+        <div className="r-cover-title">
+          {incident ? (
+            <>
+              <p className="r-kicker">Darkroom incident record <span className="r-mono">{incident.id}</span></p>
+              <h1 className="r-h1">{incident.title}</h1>
+            </>
+          ) : notFound ? (
+            <>
+              <h1 className="r-h1">{requested.trim().toUpperCase()} was not found in this log.</h1>
+              {incidents.length > 0 ? (
+                <ul className="r-list">
+                  {incidents.map(i => (
+                    <li key={i.id}><Link className="r-link" href={`/report?incident=${i.id}`}>{i.id}, {i.title}</Link></li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="r-muted">No incident has been opened on this box yet.</p>
+              )}
+            </>
+          ) : (
+            <h1 className="r-h1">No incident has been opened on this box yet.</h1>
+          )}
+        </div>
 
-      {s.connection !== "live" && (
-        <p role="status" className="rounded-lg border-2 border-warn-line bg-warn-bg p-3 text-sm">
-          Not connected to the box right now. This report shows the record as this screen last saw it.
-        </p>
-      )}
+        <Toolbar others={others} />
 
-      <header className="card report-section">
-        <p className="section-title">Darkroom incident report</p>
-        {incident ? (
-          <>
-            <h1 className="mt-1 text-2xl font-bold leading-tight">{incident.id} · {incident.title}</h1>
-            <p className="mt-1 text-sm">
-              Opened by {who(opener?.name || incident.openedBy, opener?.role ?? "")} on {when(incident.openedAt)} (entry #{incident.seq}).
-            </p>
-            {closure ? (
-              <p className="mt-2">
-                <span className="badge"><span aria-hidden="true">✓</span>CLOSED</span>{" "}
-                Closed by {who(closer?.name || closure.by, closer?.role ?? "")} on {when(closure.ts)} (entry #{closure.seq}). Resolution:{" "}
-                <strong>{closure.resolution}</strong>
-              </p>
-            ) : (
-              <p className="mt-2"><span className="badge badge-alert"><span aria-hidden="true">●</span>OPEN</span> Not closed yet.</p>
-            )}
-          </>
-        ) : notFound ? (
-          <>
-            <h1 className="mt-1 text-2xl font-bold">{requested.trim().toUpperCase()} was not found in this log.</h1>
-            {incidents.length > 0 ? (
-              <ul className="mt-2 list-disc pl-5 text-sm">
-                {incidents.map(i => (
-                  <li key={i.id}><Link className="underline" href={`/report?incident=${i.id}`}>{i.id} · {i.title}</Link></li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-1 text-sm text-muted">No incident has been opened on this box yet.</p>
-            )}
-          </>
-        ) : (
-          <h1 className="mt-1 text-2xl font-bold">No incident has been opened on this box yet.</h1>
+        {s.connection !== "live" && (
+          <p role="status" className="r-notice">
+            Not connected to the box right now. This report shows the record as this screen last saw it.
+          </p>
         )}
-      </header>
 
-      <ChainSection s={s} newest={newest} />
+        {newest && oldest && (
+          <div className="r-cover-head">
+            <p className="r-label">Head fingerprint, the hash of entry #{newest.seq}</p>
+            <p className="r-head8 r-mono" aria-label={`first 8 characters ${newest.hash.slice(0, 8).split("").join(" ")}`}>{hex8(newest.hash)}</p>
+            <p className="r-muted">
+              The box screen shows the same first 8 characters. {s.events.length} entries (#{oldest.seq} to #{newest.seq}),
+              for every incident and team change on this box; the newest was written {when(newest.ts)}.
+            </p>
+            <p className="r-head64 r-mono">{newest.hash}</p>
+          </div>
+        )}
+
+        <div className="r-cover-room">
+          <p className="r-label">Who was in the room</p>
+          {team.length === 0 ? (
+            <p className="r-muted">No members in the log.</p>
+          ) : (
+            <ul className="r-room">
+              {team.map(m => (
+                <li key={m.identity}>
+                  <strong>{who(m.name, m.role)}</strong>{" "}
+                  <span className="r-muted">identity <code className="r-mono">{m.identity.slice(0, 8)}</code>, added in entry #{m.seq}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="r-fine">The server stamps who wrote each entry from this list.</p>
+        </div>
+
+        {incident && (
+          <dl className="r-cover-times">
+            <div>
+              <dt className="r-label">Opened</dt>
+              <dd>
+                <span className="r-time">{when(incident.openedAt)}</span>
+                <span className="r-muted"> Opened by {who(opener?.name || incident.openedBy, opener?.role ?? "")} (entry #{incident.seq}).</span>
+              </dd>
+            </div>
+            <div>
+              <dt className="r-label">{closure ? "Closed" : "Now"}</dt>
+              <dd>
+                {closure ? (
+                  <>
+                    <span className="r-time">{when(closure.ts)}</span>
+                    <span className="r-muted"> <span className="r-word">CLOSED</span>. Closed by {who(closer?.name || closure.by, closer?.role ?? "")} (entry #{closure.seq}).</span>
+                    <span className="r-resolution">Resolution: <strong>{closure.resolution}</strong></span>
+                  </>
+                ) : (
+                  <span className="r-time"><span className="r-word">OPEN</span>, not closed yet</span>
+                )}
+              </dd>
+            </div>
+          </dl>
+        )}
+      </section>
+
+      <ChainSection s={s} incidentId={incident?.id ?? null} />
 
       {incident && (
         <>
-          <Section id="evidence" title="Evidence">
-            <p className="mt-1 text-sm text-muted">References a person carried from the Avon console and typed in; the log records who brought each one and when.</p>
-            <div className="mt-2 overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-line text-muted">
-                  <tr><Th>Reference</Th><Th>Fingerprint</Th><Th>Source</Th><Th>Logged by</Th><Th>When</Th><Th>Entry</Th></tr>
-                </thead>
-                <tbody>
-                  {evidence.length === 0 && <tr><Td colSpan={6} className="text-muted">No evidence logged.</Td></tr>}
-                  {evidence.map(ev => (
-                    <tr key={ev.seq} className="border-b border-line-soft">
-                      <Td className="font-mono font-bold">
-                        {ev.ref}
-                        {ev.note && <span className="block font-sans font-normal">{ev.note}</span>}
-                      </Td>
-                      <Td className="break-all font-mono text-xs">{ev.fingerprint || <span className="font-sans text-sm text-muted">reference only</span>}</Td>
-                      <Td>{ev.source}</Td>
-                      <Td>{who(ev.collector, ev.role)}</Td>
-                      <Td>{when(ev.ts)}</Td>
-                      <Td>#{ev.seq}</Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Section>
-
-          <Section id="scope" title="Scope board">
-            <p className="mt-1 text-sm text-muted">Which systems and data are affected, as the board stands. The newest entry for a row wins.</p>
-            <div className="mt-2 overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-line text-muted">
-                  <tr><Th>System or data</Th><Th>What happened</Th><Th>How sure</Th><Th>Note</Th><Th>Last change</Th></tr>
-                </thead>
-                <tbody>
-                  {scope.length === 0 && <tr><Td colSpan={5} className="text-muted">Nothing in scope.</Td></tr>}
-                  {scope.map(r => (
-                    <tr key={r.key} className="border-b border-line-soft">
-                      <Td className="font-medium">{r.system}</Td>
-                      <Td className="font-bold">{r.state}</Td>
-                      <Td className={r.certainty === "CONFIRMED" ? "font-semibold" : ""}>{r.certainty}</Td>
-                      <Td>{r.note}</Td>
-                      <Td>#{r.seq} by {r.by}, {when(r.ts)}{r.updates > 1 ? ` (${r.updates} changes)` : ""}</Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Section>
-
-          <Section id="timeline" title="Timeline">
-            <p className="mt-1 text-sm text-muted">Every entry for {incident.id}, in the order the log holds them.</p>
-            <div className="mt-2 overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-line text-muted">
-                  <tr><Th>Entry</Th><Th>When</Th><Th>Who</Th><Th>What</Th></tr>
-                </thead>
-                <tbody>
-                  {timeline.map(e => (
-                    <tr key={e.seq} className="border-b border-line-soft">
-                      <Td className="font-mono">#{e.seq}</Td>
-                      <Td className="whitespace-nowrap">{when(e.ts)}</Td>
-                      <Td>{who(e.name, e.role)}</Td>
-                      <Td className="whitespace-pre-wrap break-words">{e.what}</Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Section>
+          <EvidenceSection evidence={evidence} />
+          <ScopeSection scope={scope} />
         </>
       )}
 
-      <Section id="team" title="Team">
-        <p className="mt-1 text-sm text-muted">Members and roles as the log records them. The server stamps who wrote each entry from this list.</p>
-        <ul className="mt-2 space-y-1 text-sm">
-          {team.length === 0 && <li className="text-muted">No members in the log.</li>}
-          {team.map(m => (
-            <li key={m.identity}>
-              <strong>{m.name}</strong> ({m.role}) <span className="text-muted">· identity <span className="font-mono">{m.identity.slice(0, 8)}…</span> · added in entry #{m.seq}</span>
-            </li>
-          ))}
-        </ul>
+      <Section
+        id="check"
+        title="How to check this record yourself"
+        lead="Run the verifier on any laptop on the isolated local network. It is one file (scripts/verify-standalone.mjs in the project) and needs only Node 18 or newer. It reads the log from this box, rebuilds the chain and prints one status line, in the same words as page 1."
+      >
+        <ol className="r-steps">
+          <li>
+            <p>Check the chain once:</p>
+            <pre className="r-cmd r-mono">{command}</pre>
+          </li>
+          <li>
+            <p>Keep a witness file, and run the same line again later. The file remembers the newest entry the check saw, so a later run also catches entries deleted from the end, which the chain alone cannot show.</p>
+            <pre className="r-cmd r-mono">{command} --witness witness.json</pre>
+          </li>
+        </ol>
+        {newest && (
+          <p className="r-muted">Its head should end at entry #{newest.seq}, fingerprint <code className="r-mono">{hex8(newest.hash)}</code>, unless entries were added after this report.</p>
+        )}
       </Section>
 
-      <Section id="check" title="How to check this record yourself">
-        <p className="mt-1 text-sm">
-          Run the verifier on any laptop on the isolated local network. It is one file (scripts/verify-standalone.mjs in the project) and needs only Node 18 or newer.
-          It reads the log from this box, rebuilds the chain and prints one status line, in the same words as the top of this report.
-        </p>
-        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all rounded-md border border-line-soft bg-surface-2 p-2 font-mono text-sm">{verifyCommand(host || "<box address>", db)}</pre>
-        <p className="mt-2 text-sm">
-          Add <code className="font-mono">--witness witness.json</code> to keep a witness file: it remembers the newest entry the check saw, so a later run also catches
-          entries deleted from the end, which the chain alone cannot show.
-        </p>
-        {newest && <p className="mt-1 text-sm text-muted">Its head should end at entry #{newest.seq}, fingerprint {newest.hash.slice(0, 8)}…, unless entries were added after this report.</p>}
-      </Section>
-
-      <section aria-labelledby="limits" className="report-section rounded-lg border-2 border-line p-4 text-sm leading-relaxed">
-        <h2 id="limits" className="section-title">What this report can and cannot show</h2>
-        <ul className="mt-2 list-disc space-y-1 pl-5">
+      <section aria-labelledby="limits" className="r-section r-limits">
+        <h2 id="limits" className="r-h2">What this report can and cannot show</h2>
+        <ul className="r-list">
           <li>
             The log is tamper-evident: each entry carries the fingerprint of the one before it, so an entry changed or removed after it was written shows up as a break,
             here and on every device that saw it. It does not stop root on the box from trying.
@@ -299,7 +413,7 @@ export function ReportView({ s, requested, host, db }: { s: ReportInput; request
         </ul>
       </section>
 
-      <footer className="text-xs text-muted">
+      <footer className="r-fine r-footer">
         Built from the live Darkroom log on {host || "this box"}, database {db}{newest ? `, through entry #${newest.seq}` : ""}. Nothing on this page comes from a stored status.
       </footer>
     </main>

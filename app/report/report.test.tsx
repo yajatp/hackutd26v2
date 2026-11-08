@@ -141,9 +141,33 @@ test("verified: every section, the full head hash, the count, and no alert", () 
   }
   assert.ok(!html.includes('role="alert"'));
   assert.ok(!t.includes("A second incident"), "another incident leaks into the report");
-  const timeline = t.slice(t.indexOf("Timeline"));
-  const seqs = [...timeline.matchAll(/#(\d+)\b/g)].map(m => Number(m[1]));
-  assert.deepEqual(seqs.slice(0, 7), [4, 5, 6, 8, 9, 10, 11]);
+  // The log is drawn as a chain: every entry on the box, oldest first, each with its hash and prev.
+  const chain = html.slice(html.indexOf('<ol class="r-chain"'), html.indexOf("</ol>", html.indexOf('<ol class="r-chain"')));
+  assert.deepEqual([...chain.matchAll(/data-seq="(\d+)"/g)].map(m => Number(m[1])), LOG.map(e => e.seq));
+  for (const [i, e] of LOG.entries()) {
+    assert.ok(chain.includes(e.hash.slice(0, 8)), `entry #${e.seq}: its hash is not drawn`);
+    if (i > 0) assert.equal(e.prev_hash, LOG[i - 1].hash, "fixture: prev is the hash above");
+  }
+  assert.ok(text(chain).includes("entry for INC-0002, left out of this report"), "another incident's entry is not withheld");
+  assert.ok(!chain.includes("data-break"), "a verified chain marks a break");
+});
+
+test("tampering at #k marks that entry in the chain, in words", () => {
+  const html = render(input({ kind: "tampering", text: "TAMPERING AT #5", at: 5 }));
+  const marked = [...html.matchAll(/<li[^>]*data-break="(\d+)"[^>]*>/g)];
+  assert.equal(marked.length, 1);
+  assert.match(marked[0][0], /data-seq="5"/);
+  assert.match(marked[0][0], /r-entry-broken/);
+});
+
+test("rollback at #k adds one marker where the removed entries start", () => {
+  const events = LOG.slice(0, 9);
+  const html = render(input({ kind: "rollback", text: "ROLLBACK DETECTED AT #9", at: 9 }, events));
+  const marked = [...html.matchAll(/<li[^>]*data-break="9"[^>]*>/g)];
+  assert.equal(marked.length, 1);
+  assert.doesNotMatch(marked[0][0], /data-seq=/);
+  const t = text(html.slice(html.indexOf('<ol class="r-chain"')));
+  assert.ok(t.indexOf("#8") < t.indexOf("ROLLBACK DETECTED AT #9"), "the marker is not after the last entry left");
 });
 
 test("the closer and the opener are named in the header", () => {
