@@ -52,7 +52,11 @@ export function readConsole() {
         hash: (t.match(/Fingerprint \(SHA-256\): ([0-9a-f]{64})\b/) ?? [])[1] ?? null,
       };
     });
-  return { live, dataset: src.split(" · now ")[0] || null, top, sensors, evidence, changedAt: window.__e2eChangedAt ?? null };
+  const overlay = document.querySelector("main [data-lockdown]");
+  const lockdown = overlay?.getAttribute("data-lockdown") ?? null;
+  const card = overlay?.querySelector('section[aria-label="Evidence to carry"]');
+  const lockdownRef = (words(card).match(/\bAV-[0-9A-F]{4}-[0-9A-F]{4}\b/) ?? [])[0] ?? null;
+  return { live, dataset: src.split(" · now ")[0] || null, top, sensors, evidence, lockdown, lockdownRef, changedAt: window.__e2eChangedAt ?? null };
 }
 
 // /attack (app/attack/page.tsx): header badge, the tank list, the active faults and any error.
@@ -73,8 +77,16 @@ export function readPhone() {
   const ah = [...document.querySelectorAll("main h2")].find((x) => /Active faults \(\d+\)/.test(x.textContent));
   const active = ah ? Number(ah.textContent.match(/\((\d+)\)/)[1]) : null;
   const faults = ah ? [...ah.parentElement.querySelectorAll("li")].map(words) : [];
-  const alert = [...document.querySelectorAll("main [role=alert]")].map(words).join(" / ") || null;
-  return { live, radios, active, faults, alert };
+  const alerts = [...document.querySelectorAll("main [role=alert]")].map(words);
+  const alert = alerts.join(" / ") || null;
+  const lockdownBanner = alerts.find((text) => text.includes("The site is in LOCKDOWN.")) ?? null;
+  const faultButtons = {};
+  for (const button of document.querySelectorAll('section[aria-labelledby="break"] button')) {
+    const verb = words(button).match(/^(Kill|Fake|Drift)\b/)?.[1];
+    // Phone 1 folds the whole panel into an inert subtree during lockdown.
+    if (verb) faultButtons[verb] = button.disabled || !!button.closest("[inert]");
+  }
+  return { live, radios, active, faults, alert, lockdownBanner, faultButtons };
 }
 
 // Console: note the first moment the top card says CHECK THE TANK SENSOR FIRST (the change the
