@@ -11,7 +11,7 @@ import { useAvonConsole, type SiteFacility } from "@/lib/live";
 import { shortName } from "./model";
 import { C } from "./theme";
 import { usePainted, type Painter } from "./nav/glass";
-import { dot, glass, text } from "./nav/paint";
+import { dot, ellipsize, fitSize, glass, text, type TextStyle } from "./nav/paint";
 import { noRay } from "./models";
 import type { V3 } from "./plan";
 
@@ -22,13 +22,18 @@ const painter: Painter<PipeInfo, null> = {
   size: () => ({ w: W * PPM, h: 0.3 * PPM }),
   paint(ctx, s, Wp, Hp) {
     glass(ctx, 3, 3, Wp - 6, Hp - 6, { r: 22, edge: C.holoDim, edgeAlpha: 0.8, edgePx: 2, tintAlpha: 0.32 });
-    const x = 34;
-    text(ctx, s.title, x, 54, { size: 30, weight: 700, color: C.textDim, spacing: 4 });
+    const x = 34, room = Wp - 2 * x;
+    // Every row is measured: it shrinks to a floor, then ends in an ellipsis inside the card.
+    const fit = (str: string, px: number, py: number, w: number, st: TextStyle, min: number) => {
+      const size = fitSize(ctx, str, w, st, min);
+      text(ctx, ellipsize(ctx, str, w, { ...st, size }), px, py, { ...st, size });
+    };
     const fmt = (v: number | null) => (v == null || !Number.isFinite(v) ? "—" : `${Math.round(v)}`);
-    text(ctx, `IN ${fmt(s.inBpd)}   OUT ${fmt(s.outBpd)} bpd`, x, 128, { size: 50, weight: 700, color: C.text });
+    fit(s.title, x, 54, room, { size: 30, weight: 700, color: C.textDim, spacing: 4 }, 20);
+    fit(`IN ${fmt(s.inBpd)}   OUT ${fmt(s.outBpd)} bpd`, x, 128, room, { size: 50, weight: 700, color: C.text }, 30);
     dot(ctx, x + 10, 196, 10, s.tone);
-    text(ctx, s.status, x + 32, 196, { size: 36, weight: 700, color: s.tone, spacing: 2 });
-    text(ctx, s.on, x, 268, { size: 30, face: "body", weight: 500, color: C.textDim });
+    fit(s.status, x + 32, 196, room - 32, { size: 36, weight: 700, color: s.tone, spacing: 2 }, 24);
+    fit(s.on, x, 268, room, { size: 30, face: "body", weight: 500, color: C.textDim }, 22);
     return null;
   },
 };

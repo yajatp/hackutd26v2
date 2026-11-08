@@ -4,17 +4,16 @@
 // tilted to face them. It follows the judge's yaw lazily (catches up past 40 degrees, eased).
 // Pointing lifts a button toward the judge and lights its glow; pulling the trigger sinks it and
 // flashes. The buttons pop in one after another when the dock appears.
-import { useMemo, useRef, useSyncExternalStore } from "react";
+import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { AdditiveBlending, type Group, type Mesh, type MeshBasicMaterial } from "three";
 import { useAvonConsole } from "@/lib/live";
 import { shortName } from "../model";
 import { C } from "../theme";
 import { glowTexture, usePainted, type Painter } from "./glass";
-import { corners, dot, fitSize, glass, icon, rgba, scanlines, text } from "./paint";
+import { corners, dot, ellipsize, fitSize, glass, icon, rgba, scanlines, text } from "./paint";
 import { DOCK, DOCK_BUTTON, DOCK_BUTTONS, dockLayout, ease, stagger, type DockId } from "./motion";
 import { NO_HIT, useFollowHead, usePress } from "./follow";
-import { isMuted, setMuted, subscribeMuted, unlockAudio } from "../fx/audio";
 import { useStill, useView } from "./ViewContext";
 
 const PPM = 2400;                        // texture px per meter on the dock
@@ -43,7 +42,7 @@ const buttonPainter: Painter<ButtonSpec, null> = {
     icon(ctx, s.id, W / 2, p + h * 0.36, h * 0.34, ink);
     const style = { size: 50, weight: 700 as const, face: "label" as const, color: s.active ? C.skyZenith : C.text, align: "center" as const };
     const size = fitSize(ctx, s.label, w * 0.86, style, 30);
-    text(ctx, s.label, W / 2, p + h * 0.76, { ...style, size });
+    text(ctx, ellipsize(ctx, s.label, w * 0.86, { ...style, size }), W / 2, p + h * 0.76, { ...style, size });
     return null;
   },
 };
@@ -65,12 +64,17 @@ const railPainter: Painter<RailSpec, null> = {
     ctx.shadowBlur = 0;
     ctx.fillRect(-9, -9, 18, 18);
     ctx.restore();
-    const w = text(ctx, "AVON", x0 + 38, ty, { size: 44, weight: 700, color: C.holo, spacing: 6, glow: 8 });
-    text(ctx, "NIGHT SHIFT", x0 + 38 + w + 22, ty, { size: 44, weight: 600, color: C.textDim, spacing: 5 });
+    const w = text(ctx, "BRINE", x0 + 38, ty, { size: 44, weight: 700, color: C.holo, spacing: 6, glow: 8 });
+    const nw = text(ctx, "NIGHT SHIFT", x0 + 38 + w + 22, ty, { size: 44, weight: 600, color: C.textDim, spacing: 5 });
     const right = W - x0;
     const sw = text(ctx, s.status, right, ty, { size: 44, weight: 600, color: s.live ? C.ok : C.alert, align: "right", spacing: 3 });
     dot(ctx, right - sw - 22, ty, 8, s.live ? C.ok : C.alert);
-    text(ctx, s.view, right - sw - 52, ty, { size: 44, weight: 700, color: C.text, align: "right", spacing: 4 });
+    // The view's name fills the room between NIGHT SHIFT and the status, never over either: it
+    // shrinks, then ends in an ellipsis (Walk on a long pad name).
+    const room = right - sw - 52 - (x0 + 38 + w + 22 + nw + 36);
+    const vs = { size: 44, weight: 700 as const, color: C.text, align: "right" as const, spacing: 4 };
+    const size = fitSize(ctx, s.view, room, vs, 30);
+    text(ctx, ellipsize(ctx, s.view, room, { ...vs, size }), right - sw - 52, ty, { ...vs, size });
     return null;
   },
 };
@@ -132,36 +136,6 @@ function DockButton({ id, label, x, active, index, born, still, onPress }: {
   );
 }
 
-// The sound toggle: a sixth button at the dock's right end, as tall as the others (Meta: targets
-// at least 6 cm at 1 m). It reads the one shared mute state (fx/audio subscribeMuted).
-const SOUND = { w: 0.074, h: DOCK_BUTTON.hM } as const;
-const soundPainter: Painter<{ on: boolean }, null> = {
-  size: () => ({ w: SOUND.w * PPM, h: SOUND.h * PPM }),
-  paint(ctx, s, W, H) {
-    glass(ctx, 3, 3, W - 6, H - 6, { r: 22, edge: C.holo, edgeAlpha: s.on ? 0.7 : 0.35, edgePx: 3, tintAlpha: 0.18 });
-    dot(ctx, W / 2, H * 0.36, 11, s.on ? C.ok : C.textDim);
-    text(ctx, s.on ? "SOUND" : "MUTED", W / 2, H * 0.68, { size: 30, weight: 700, color: s.on ? C.text : C.textDim, align: "center", spacing: 3 });
-    return null;
-  },
-};
-
-export function useSoundOn(): boolean {
-  return !useSyncExternalStore(subscribeMuted, isMuted, () => false);
-}
-
-function SoundToggle({ x, y }: { x: number; y: number }) {
-  const on = useSoundOn();
-  const face = usePainted(soundPainter, { on });
-  const { handlers } = usePress(() => { unlockAudio(); setMuted(on); });
-  if (!face) return null;
-  return (
-    <mesh {...handlers} position={[x, y, 0.004]} renderOrder={3} name="nav-dock-sound">
-      <planeGeometry args={[SOUND.w, SOUND.h]} />
-      <meshBasicMaterial map={face.texture} transparent depthWrite={false} toneMapped={false} fog={false} />
-    </mesh>
-  );
-}
-
 const VIEW_WORD = { table: "TABLE VIEW", overview: "OVERVIEW", ground: "WALK" } as const;
 
 // `onReset` also runs on Reset (e.g. put the model's snap turn back to north). `still` defaults to
@@ -204,7 +178,6 @@ export function Dock({ onReset, still: stillProp, aheadM = DOCK.aheadM, downM = 
           onPress={() => press(b.id)}
         />
       ))}
-      <SoundToggle x={RAIL.w / 2 + 0.01 + SOUND.w / 2} y={BUTTON_Y} />
     </group>
   );
 }

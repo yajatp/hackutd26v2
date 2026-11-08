@@ -23,7 +23,7 @@ import { pumpFacts, type PumpFacts } from "./nav/board";
 import type { PlacedTank, TankState, Tone } from "./model";
 import { C, TONE_COLOR } from "./theme";
 import { usePainted, type Painter } from "./nav/glass";
-import { corners, glass, measure, rgba, text, wrap, type Ctx, type TextStyle } from "./nav/paint";
+import { corners, ellipsize, fitSize, glass, measure, rgba, text, wrap, type Ctx, type TextStyle } from "./nav/paint";
 import { usePress, NO_HIT } from "./nav/follow";
 import { followYaw, yawOf, type Follow } from "./nav/motion";
 import type { SiteTransform } from "./nav";
@@ -97,8 +97,12 @@ function layout(ctx: Ctx, s: PanelSpec, draw: boolean, H = 0): PanelMeta {
     if (draw) text(ctx, str, x, y + lh / 2, style);
     y += lh;
   };
-  put(s.short.toUpperCase(), M, T(24, { face: "mono", weight: 500, color: C.grey3, spacing: 1 }), 34);
-  put(s.name, M, T(52, { weight: 700 }), 62);
+  // The first two rows end left of the close ring: measured, shrunk, then ellipsized.
+  const headW = inner - CLOSE - 12;
+  const shortSt = T(24, { face: "mono", weight: 500, color: C.grey3, spacing: 1 });
+  put(ellipsize(ctx, s.short.toUpperCase(), headW, shortSt), M, shortSt, 34);
+  const nameSt = T(fitSize(ctx, s.name, headW, T(52, { weight: 700 }), 34), { weight: 700 });
+  put(ellipsize(ctx, s.name, headW, nameSt), M, nameSt, 62);
   y += 6;
   for (const l of s.lines) {
     if (draw) {
@@ -135,8 +139,10 @@ function layout(ctx: Ctx, s: PanelSpec, draw: boolean, H = 0): PanelMeta {
     s.facts.forEach(([k, v], i) => {
       const cx = M + (i % 3) * colW, cy = y + Math.floor(i / 3) * rowH;
       if (draw) {
-        text(ctx, k, cx, cy + 14, T(18, { face: "mono", weight: 500, color: C.grey3, spacing: 1 }));
-        text(ctx, v, cx, cy + 44, T(30, { weight: 600, color: k === "HOURS TO LIMIT" ? C.alert : C.text }));
+        const ks = T(18, { face: "mono", weight: 500, color: C.grey3, spacing: 1 });
+        const vs = T(fitSize(ctx, v, colW - 14, T(30, { weight: 600 }), 22), { weight: 600, color: k === "HOURS TO LIMIT" ? C.alert : C.text });
+        text(ctx, ellipsize(ctx, k, colW - 14, ks), cx, cy + 14, ks);
+        text(ctx, ellipsize(ctx, v, colW - 14, vs), cx, cy + 44, vs);
       }
     });
     y += Math.ceil(s.facts.length / 3) * rowH;

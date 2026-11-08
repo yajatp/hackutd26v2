@@ -63,12 +63,15 @@ export function paintChart(ctx: Ctx, chart: Chart, b: Box): void {
   // The title row (and the legend row, when it drops) is reserved: the top axis label sits under it.
   const plot: Box = { x: b.x + 54, y: b.y + 54 + drop, w: b.w - 68, h: b.h - (chart.note ? 96 : 74) - drop };
   // Grid: three horizontal rules with their values.
+  // On a short plot the middle value is dropped, so the three never touch (16 px figures).
+  const roomy = plot.h / 2 >= 24;
   for (let i = 0; i <= 2; i++) {
     const v = chart.y[0] + ((chart.y[1] - chart.y[0]) * i) / 2;
     const [, py] = toPx([chart.x[0], v], plot, chart.x, chart.y);
     ctx.strokeStyle = C.raised;
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(plot.x, py); ctx.lineTo(plot.x + plot.w, py); ctx.stroke();
+    if (i === 1 && !roomy) continue;
     mono(ctx, 16, C.grey1, "right");
     ctx.fillText(v >= 1000 ? `${Math.round(v / 100) / 10}k` : String(Math.round(v)), plot.x - 8, py);
   }

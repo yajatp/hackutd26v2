@@ -1,26 +1,29 @@
 "use client";
-// The dashboard (docs/TWIN-THEME.md "The menu and the dashboard"): a holo-glass panel about
-// 1.0 x 0.62 m, 1.2 m ahead, with the console's own live data from useAvonConsole(): the totals
-// (as three stat tiles that read as the console's line), the top fix card with a big "Confirm this
-// plan" (the judge works the shift from inside VR), "CONFIRMED, THEN CHANGED" when it applies, the
-// sensors to check, the other pump failures, and a Go to list that jumps to a facility pad at life
-// size. A footer holds the comfort setting and how to move. It unfolds like a hologram when
-// opened and follows the judge lazily.
+// The dashboard (docs/TWIN-THEME.md "The menu and the dashboard"): a panel about 1.19 x 0.74 m,
+// 1.0 m ahead, with the console's own live data from useAvonConsole(), in FOUR calm columns:
+// PROBLEM (the pump failure, its hours to limit, Previous / n of N / Next), ACTION (the plan, its
+// response cost and a big "Confirm this plan"; "CONFIRMED, THEN CHANGED" when it applies),
+// FORECAST (a level-to-limit sparkline, the next truck) and SITE (cost if unaddressed, response
+// cost, savings, spare trucks). Each column's one button pops its detail out of the dashboard's
+// left edge (DetailPopout: one at a time); the header's Health opens the flow charts on the right
+// and Go to lists the pads. A footer holds the comfort setting and how to move.
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Mesh, type Group, type MeshBasicMaterial } from "three";
 import { hhmm } from "@/lib/eog/alerts";
 import { useAvonConsole, type AvonConsole, type AvonStatus } from "@/lib/live";
-import { C, TONE_COLOR } from "../theme";
-import { boardModel, CHANGED_WORD, fillPtsH, localClock, page, STAT_WORDS, type BoardModel, type FixCardModel, type GoRow } from "./board";
+import { C } from "../theme";
+import { boardModel, CHANGED_WORD, fillPtsH, localClock, page, STAT_WORDS, type BoardModel, type FixCardModel } from "./board";
 import { usePainted, type Painter } from "./glass";
 import { dot, ellipsize, fitSize, measure, rgba, text, wrap, type Ctx, type TextStyle } from "./paint";
+import { COLUMNS, columnRects, toggleDetail, type ColumnId, type DetailKind } from "./columns";
+import type { DetailSpec } from "./detail";
+import { DetailPopout } from "./DetailPopout";
 import { impliedLimit, latestRun, levelFallback, levelFromProjection, rateChart, simChoices, simResult, type Chart } from "../sim/series";
-import { paintChart } from "../sim/chart";
 import type { WhatIfKind } from "@/lib/eog/whatif";
 import { BOARD, BOARD_TILT, ease } from "./motion";
 import { insightRows, insightSummary } from "../insight/rows";
-import { INSIGHT_PER_PAGE, paintInsight, type InsightSpec } from "../insight/paint";
+import { INSIGHT_PER_PAGE, type InsightSpec } from "../insight/paint";
 import { healthItems } from "../health/geom";
 import { HEALTH_PER_PAGE, type HealthSpec } from "../health/paint";
 import { HealthPopout } from "../health/Popout";
@@ -30,46 +33,30 @@ import { useStill, useView } from "./ViewContext";
 const W = BOARD.texW, H = BOARD.texH;    // the panel's texture: 1400 x 868 px
 const PPM = W / BOARD.wM;                // about 1176 px per meter: 30 px words are 0.0255 m
 const M = 44;                            // outer margin, px
-const LEFT = { x0: M, x1: 880 };
-const RIGHT = { x0: 912, x1: W - M };
 const HEADER_H = 100;
 const FOOTER_Y = 772;                    // the footer strip: comfort setting and how to move
-const ROW_H = 76, ROW_GAP = 8, PER_PAGE = 5;    // Go to rows
-const BTN = { w: 400, h: 88 };           // Confirm this plan
-const RENEW = { w: 400, h: 80 };
+const GOTO_PER_PAGE = 8;                 // Go to rows in the pop-out (two columns of four)
+const BTN = { h: 88 };                   // Confirm this plan (as wide as its column)
 const CLOSE = 76;
-const PAGER = { w: 124, h: 52 };
-const TAB = { h: 56 };
-const SIM = { h: 60 };
 
 interface Rect { x: number; y: number; w: number; h: number }
-export type BoardTab = "forecast" | "goto";
-interface SimSpec { label: string; lines: string[]; busy: boolean; error: string | null }
 interface BoardSpec {
   m: BoardModel;
   status: AvonStatus;
-  rows: GoRow[];
-  pageIndex: number;
-  pageCount: number;
-  here: string | null;
   error: string | null;
   comfort: boolean;
   card: FixCardModel | null;
   cardIndex: number;
   cardCount: number;
-  tab: BoardTab;
   level: Chart | null;
-  rate: Chart | null;
-  sim: SimSpec | null;
-  sims: { kind: string; label: string }[];
-  insight: InsightSpec | null;           // the Insight view, open in place of the body
+  detail: DetailKind | null;             // the open column detail (its button is lit)
   health: boolean;                       // the Health pop-out is open beside the dashboard (its button is lit)
+  siteSpare: string;                     // spare trucks across every system, as /insight and Site insight show it
 }
 interface BoardMeta {
-  confirm: Rect | null; renew: Rect | null; rows: { id: string; r: Rect }[]; more: Rect | null; close: Rect; comfort: Rect; alarm: Rect | null;
-  prev: Rect | null; next: Rect | null; tabs: { id: BoardTab; r: Rect }[]; sims: { kind: string; r: Rect }[];
-  insight: Rect; insightPrev: Rect | null; insightNext: Rect | null;
-  health: Rect;
+  confirm: Rect | null; renew: Rect | null; close: Rect; comfort: Rect;
+  prev: Rect | null; next: Rect | null; cols: { id: ColumnId; r: Rect }[];
+  goto: Rect; health: Rect;
 }
 
 const T = (size: number, extra: Partial<TextStyle> = {}): TextStyle => ({ size, face: "label", weight: 600, ...extra });
@@ -102,7 +89,7 @@ function button(ctx: Ctx, r: Rect, label: string, active = false, enabled = true
 }
 
 const INSIGHT_BTN = { w: 160, h: 60 };
-function header(ctx: Ctx, s: BoardSpec): { close: Rect; insight: Rect; health: Rect } {
+function header(ctx: Ctx, s: BoardSpec): { close: Rect; goto: Rect; health: Rect } {
   const cy = HEADER_H / 2 + 4;
   const w = text(ctx, "Operations", M, cy, T(38, { weight: 700, color: C.text }));
   const close: Rect = { x: W - M - CLOSE, y: cy - CLOSE / 2, w: CLOSE, h: CLOSE };
@@ -123,19 +110,18 @@ function header(ctx: Ctx, s: BoardSpec): { close: Rect; insight: Rect; health: R
   const word = live ? "LIVE" : s.status === "connecting" ? "CONNECTING" : "OFFLINE";
   const ww = text(ctx, word, x, cy, MONO(24, { color: live ? C.text : C.alert, align: "right" }));
   dot(ctx, x - ww - 16, cy, 7, live ? C.accent : C.alert);
-  // Insight opens the night's figures and pump table in place of the body and then reads "‹ Back";
-  // Health opens the rate in vs rate out charts in a pop-out beside the dashboard and stays lit
-  // while it is open (pressed again, it closes it).
-  const insight: Rect = { x: x - ww - 16 - 7 - 28 - INSIGHT_BTN.w, y: cy - INSIGHT_BTN.h / 2, w: INSIGHT_BTN.w, h: INSIGHT_BTN.h };
-  button(ctx, insight, s.insight ? "‹ Back" : "Insight", !!s.insight, true, 26);
-  const health: Rect = { x: insight.x - 12 - INSIGHT_BTN.w, y: insight.y, w: INSIGHT_BTN.w, h: INSIGHT_BTN.h };
+  // Go to lists the pads in the left pop-out; Health opens the rate in vs rate out charts in the
+  // right pop-out. Each stays lit while its pop-out is open (pressed again, it closes it).
+  const health: Rect = { x: x - ww - 16 - 7 - 28 - INSIGHT_BTN.w, y: cy - INSIGHT_BTN.h / 2, w: INSIGHT_BTN.w, h: INSIGHT_BTN.h };
   button(ctx, health, "Health", s.health, true, 26);
-  const sub = s.insight ? "Night shift insight" : "Night shift dashboard";
-  const room = health.x - 24 - (M + w + 18);
+  const goto: Rect = { x: health.x - 12 - INSIGHT_BTN.w, y: health.y, w: INSIGHT_BTN.w, h: INSIGHT_BTN.h };
+  button(ctx, goto, "Go to", s.detail === "goto", true, 26);
+  const sub = "Night shift dashboard";
+  const room = goto.x - 24 - (M + w + 18);
   if (room > 80) text(ctx, ellipsize(ctx, sub, room, B(28)), M + w + 18, cy + 2, B(28, { color: C.grey3 }));
   ctx.fillStyle = C.line;
   ctx.fillRect(M, HEADER_H + 8, W - 2 * M, 2);
-  return { close, insight, health };
+  return { close, goto, health };
 }
 
 // The comfort setting and a line on how to move, under a hairline.
@@ -153,210 +139,198 @@ function footer(ctx: Ctx, s: BoardSpec): Rect {
   return r;
 }
 
-// The totals as four tiles: pump failures, Cost if unaddressed, Response cost, Savings.
-function tiles(ctx: Ctx, s: BoardSpec, y: number): number {
-  const st = s.m.stats!;
-  const x0 = LEFT.x0, gap = 12, h = 96, span = LEFT.x1 - x0 - 3 * gap;
-  const items = [
-    { label: st.failuresWord.toUpperCase(), big: String(st.failures), color: C.alert },
-    { label: STAT_WORDS.doNothing.toUpperCase(), big: st.doNothing, color: C.text },
-    { label: STAT_WORDS.plans.toUpperCase(), big: st.plans, color: C.text },
-    { label: STAT_WORDS.savings.toUpperCase(), big: st.savings, color: C.accent },
-  ];
-  const widths = [0.2, 0.28, 0.26, 0.26].map((k) => k * span);
-  let x = x0;
-  items.forEach((it, i) => {
-    const r: Rect = { x, y, w: widths[i], h };
-    box(ctx, r, 10, C.raised, C.line);
-    const lab = MONO(18);
-    text(ctx, it.label, r.x + 16, r.y + 24, { ...lab, size: fitSize(ctx, it.label, r.w - 28, lab, 13) });
-    text(ctx, it.big, r.x + 16, r.y + 64, T(fitSize(ctx, it.big, r.w - 28, T(44, { weight: 700 }), 28), { weight: 700, color: it.color }));
-    x += widths[i] + gap;
-  });
-  return y + h;
+// The four columns: PROBLEM, ACTION, FORECAST, SITE. Each is a calm summary in large type with
+// ONE button at its foot that pops its detail out of the dashboard's left edge (DetailPopout).
+// Rows are reserved from the top and the button from the foot; every string is measured.
+const COL_PAD = 22, COL_BTN_H = 72, COL_GAP = 16;
+
+function colLabel(ctx: Ctx, label: string, c: Rect, right?: string): number {
+  text(ctx, label, c.x + COL_PAD, c.y + COL_PAD + 12, MONO(20, { color: C.grey3 }));
+  if (right) text(ctx, right, c.x + c.w - COL_PAD, c.y + COL_PAD + 12, MONO(20, { color: C.text, align: "right" }));
+  return c.y + COL_PAD + 42;
 }
 
-// One pump failure's card: name, pager, the plan, confirm, and this pump's own numbers.
-function card(ctx: Ctx, s: BoardSpec, y0: number, bottom: number): { y: number; confirm: Rect | null; renew: Rect | null; prev: Rect | null; next: Rect | null } {
-  const c = s.card!;
-  const x0 = LEFT.x0, x1 = LEFT.x1, x = x0 + 28, inner = x1 - 24 - x;
-  box(ctx, { x: x0, y: y0, w: x1 - x0, h: bottom - y0 }, 12, C.panel, C.line);
-  ctx.fillStyle = C.alert;
-  ctx.fillRect(x0, y0 + 14, 4, 40);
-  let y = y0 + 16;
-  // Top row: the facility, and Previous / 1 of 3 / Next.
-  let prev: Rect | null = null, next: Rect | null = null;
-  const pagerW = s.cardCount > 1 ? 2 * PAGER.w + 96 : 0;
-  const title = T(fitSize(ctx, `${c.facility} · Pump failed`, inner - pagerW - 10, T(32, { weight: 700 }), 24), { weight: 700, color: C.text });
-  text(ctx, ellipsize(ctx, `${c.facility} · Pump failed`, inner - pagerW - 10, title), x, y + 22, title);
-  if (s.cardCount > 1) {
-    next = { x: x1 - 18 - PAGER.w, y: y - 6, w: PAGER.w, h: PAGER.h };
-    prev = { x: next.x - 96 - PAGER.w, y: y - 4, w: PAGER.w, h: PAGER.h };
-    next.y = y - 4;
-    button(ctx, prev, "‹ Previous", false, true, 21);
-    button(ctx, next, "Next ›", false, true, 21);
-    text(ctx, `${s.cardIndex + 1} of ${s.cardCount}`, prev.x + PAGER.w + 48, y + 22, MONO(21, { color: C.text, align: "center" }));
-  }
-  y += 60;
-  if (c.sensorFirst) {
-    const band = MONO(22, { color: C.warn });
-    box(ctx, { x, y, w: inner, h: 42 }, 8, rgba(C.warn, 0.1), rgba(C.warn, 0.6));
-    text(ctx, c.sensorFirst, x + 14, y + 21, { ...band, size: fitSize(ctx, c.sensorFirst, inner - 28, band, 15) });
-    y += 54;
-  }
-  text(ctx, "RECOMMENDED ACTION", x, y + 12, MONO(19));
-  y += 30;
-  const headStyle = T(40, { weight: 700, color: C.text });
-  const costW = measure(ctx, c.cost, headStyle) + 26;
-  const head = wrap(ctx, c.headline, inner - costW, headStyle).slice(0, 2);
-  const yHead = y;
-  y = lines(ctx, head, x, y, 48, headStyle);
-  text(ctx, c.cost, x1 - 24, yHead + (head.length - 1) * 48 + 24, { ...headStyle, color: C.accent, align: "right" });
-  text(ctx, STAT_WORDS.plans.toUpperCase(), x1 - 24, yHead - 18, MONO(16, { align: "right" }));
-  y += 12;
+// Rows wrapped to at most `max`, the last ending in an ellipsis when cut.
+function clampRows(ctx: Ctx, str: string, w: number, st: TextStyle, max: number): string[] {
+  if (max <= 0) return [];
+  const all = wrap(ctx, str, w, st);
+  if (all.length <= max) return all;
+  const keep = all.slice(0, max);
+  keep[max - 1] = ellipsize(ctx, `${keep[max - 1]} ${all[max]}…`, w, st);
+  return keep;
+}
 
+// A big figure with its small label above, fitted to the column.
+function figure(ctx: Ctx, label: string, value: string, x: number, y: number, w: number, size: number, color: string): number {
+  text(ctx, ellipsize(ctx, label, w, MONO(18)), x, y + 10, MONO(18));
+  const st = T(fitSize(ctx, value, w, T(size, { weight: 700 }), Math.round(size * 0.55)), { weight: 700, color });
+  text(ctx, ellipsize(ctx, value, w, st), x, y + 28 + st.size * 0.55, st);
+  return y + 28 + st.size * 1.1 + 14;
+}
+
+function colProblem(ctx: Ctx, s: BoardSpec, c: Rect, foot: number): { prev: Rect | null; next: Rect | null } {
+  const x = c.x + COL_PAD, w = c.w - 2 * COL_PAD;
+  let y = colLabel(ctx, "PROBLEM", c, s.cardCount > 1 ? `${s.cardIndex + 1} of ${s.cardCount}` : undefined);
+  const card = s.card;
+  if (!card) {
+    const msg = !s.m.now ? (s.status === "connected" ? "No site loaded yet." : "Waiting for the live data…") : `✓ ${s.m.calm ?? "No pump failures right now."}`;
+    lines(ctx, clampRows(ctx, msg, w, B(28), 6), x, y, 38, B(28, { color: C.text }));
+    return { prev: null, next: null };
+  }
+  ctx.fillStyle = C.alert;
+  ctx.fillRect(c.x, c.y + COL_PAD, 4, 28);
+  const name = T(34, { weight: 700, color: C.text });
+  y = lines(ctx, clampRows(ctx, card.facility, w, name, 2), x, y, 42, name) + 2;
+  text(ctx, "Pump failed", x, y + 16, T(26, { color: C.alert }));
+  y += 50;
+  y = figure(ctx, "HOURS TO LIMIT", card.pump.toLimit, x, y, w, 60, C.alert);
+  const lvl = `Level ${card.pump.level} · ${card.pump.fill}`;
+  text(ctx, ellipsize(ctx, lvl, w, B(24)), x, y + 12, B(24, { color: C.grey3 }));
+  y += 40;
+  const pagerY = foot - (s.cardCount > 1 ? 56 + 12 : 0);
+  if (card.sensorFirst && pagerY - y > 60) {
+    const band = MONO(17, { color: C.warn });
+    const rows = clampRows(ctx, card.sensorFirst, w - 24, band, Math.min(3, Math.floor((pagerY - y - 24) / 24)));
+    const h = rows.length * 24 + 18;
+    box(ctx, { x, y, w, h }, 8, rgba(C.warn, 0.1), rgba(C.warn, 0.6));
+    lines(ctx, rows, x + 12, y + 9, 24, band);
+  }
+  if (s.cardCount < 2) return { prev: null, next: null };
+  const bw = (w - 12) / 2;
+  const prev: Rect = { x, y: pagerY, w: bw, h: 56 }, next: Rect = { x: x + bw + 12, y: pagerY, w: bw, h: 56 };
+  button(ctx, prev, "‹ Previous", false, true, fitSize(ctx, "‹ Previous", bw - 20, T(23), 16));
+  button(ctx, next, "Next ›", false, true, 23);
+  return { prev, next };
+}
+
+function colAction(ctx: Ctx, s: BoardSpec, c: Rect, foot: number): { confirm: Rect | null; renew: Rect | null } {
+  const x = c.x + COL_PAD, w = c.w - 2 * COL_PAD;
+  let y = colLabel(ctx, "ACTION", c);
+  const card = s.card;
+  if (!card) {
+    lines(ctx, clampRows(ctx, "Nothing to confirm. Plans appear here when a pump fails.", w, B(26), 5), x, y, 36, B(26, { color: C.grey3 }));
+    return { confirm: null, renew: null };
+  }
+  const head = T(32, { weight: 700, color: C.text });
+  y = lines(ctx, clampRows(ctx, card.headline, w, head, 3), x, y, 40, head) + 14;
+  y = figure(ctx, STAT_WORDS.plans.toUpperCase(), card.cost, x, y, w, 50, C.accent);
   let confirm: Rect | null = null, renew: Rect | null = null;
-  const showConfirm = c.confirm.kind === "open" && c.canConfirm;
-  if (showConfirm) {
-    confirm = { x, y, w: BTN.w, h: BTN.h };
-    y += BTN.h + 14;
-  } else if (c.confirm.kind === "confirmed") {
-    const pw = measure(ctx, "✓ Confirmed", T(26, { weight: 700 })) + 32;
-    box(ctx, { x, y: y + 2, w: pw, h: 46 }, 23, rgba(C.accent, 0.14), C.accent, 2);
-    text(ctx, "✓ Confirmed", x + 16, y + 25, T(26, { weight: 700, color: C.accent }));
-    text(ctx, ellipsize(ctx, c.confirm.text, inner - pw - 20, B(24)), x + pw + 16, y + 25, B(24, { color: C.grey3 }));
+  const room = foot - 14 - y - (s.error ? 34 : 0);
+  if (card.confirm.kind === "open" && card.canConfirm) {
+    confirm = { x, y, w, h: Math.min(BTN.h, Math.max(60, room)) };
+    y += confirm.h + 12;
+  } else if (card.confirm.kind === "confirmed") {
+    const pill = T(26, { weight: 700, color: C.accent });
+    const pw = Math.min(w, measure(ctx, "✓ Confirmed", pill) + 32);
+    box(ctx, { x, y, w: pw, h: 46 }, 23, rgba(C.accent, 0.14), C.accent, 2);
+    text(ctx, "✓ Confirmed", x + 16, y + 23, pill);
     y += 58;
-  } else if (c.confirm.kind === "changed") {
-    const rows = wrap(ctx, c.confirm.text, inner - 30, B(24)).slice(0, 3);
-    const bh = 14 + 34 + rows.length * 30 + (c.confirm.renew ? RENEW.h + 14 : 0) + 8;
-    box(ctx, { x, y, w: inner, h: bh }, 10, rgba(C.warn, 0.08), rgba(C.warn, 0.5));
-    text(ctx, CHANGED_WORD, x + 16, y + 14 + 17, MONO(22, { color: C.warn }));
-    const yy = lines(ctx, rows, x + 16, y + 14 + 34, 30, B(24, { color: C.text }));
-    if (c.confirm.renew) renew = { x: x + 16, y: yy + 8, w: RENEW.w, h: RENEW.h };
+    y = lines(ctx, clampRows(ctx, card.confirm.text, w, B(22), Math.max(0, Math.floor((foot - 14 - y) / 28))), x, y, 28, B(22, { color: C.grey3 }));
+  } else if (card.confirm.kind === "changed") {
+    const renewH = card.confirm.renew ? 72 + 12 : 0;
+    const max = Math.max(1, Math.floor((room - 16 - 30 - renewH - 10) / 26));
+    const rows = clampRows(ctx, card.confirm.text, w - 24, B(20), max);
+    const bh = 12 + 30 + rows.length * 26 + renewH + 10;
+    box(ctx, { x, y, w, h: bh }, 10, rgba(C.warn, 0.08), rgba(C.warn, 0.5));
+    const tag = MONO(18, { color: C.warn });
+    text(ctx, CHANGED_WORD, x + 12, y + 12 + 13, { ...tag, size: fitSize(ctx, CHANGED_WORD, w - 24, tag, 13) });
+    const yy = lines(ctx, rows, x + 12, y + 42, 26, B(20, { color: C.text }));
+    if (card.confirm.renew) renew = { x: x + 12, y: yy + 8, w: w - 24, h: 72 };
     y += bh + 12;
   }
-  if (s.error) {
-    text(ctx, ellipsize(ctx, `▲ ${s.error}`, inner, B(24)), x, y + 14, B(24, { color: C.alert }));
-    y += 32;
-  }
-  // This pump's own numbers, three across.
-  const f = c.pump;
-  const facts = [
-    ["LEVEL", f.level], ["FILL RATE", f.fill], ["HOURS TO LIMIT", f.toLimit],
-    ["LOST REVENUE", f.lostPerHour], ["TRUCK ETA", f.truckEta], ["WELLS AFFECTED", f.wells],
-  ];
-  const colW = inner / 3, rowH = Math.max(62, Math.min(92, Math.floor((bottom - 22 - y) / 2)));
-  const rowsFit = Math.max(0, Math.min(2, Math.floor((bottom - 12 - y) / rowH)));
-  ctx.fillStyle = C.line;
-  if (rowsFit) ctx.fillRect(x, y, inner, 2);
-  y += 10;
-  facts.slice(0, rowsFit * 3).forEach(([k, v], i) => {
-    const cx = x + (i % 3) * colW, cy = y + Math.floor(i / 3) * rowH;
-    const big = rowH >= 80 ? 36 : 30;
-    text(ctx, k, cx, cy + 16, MONO(18));
-    text(ctx, ellipsize(ctx, v, colW - 16, T(big)), cx, cy + 16 + big * 0.55 + 22, T(big, { weight: 600, color: k === "HOURS TO LIMIT" ? C.alert : C.text }));
-  });
-  return { y: bottom, confirm, renew, prev, next };
+  if (s.error) text(ctx, ellipsize(ctx, `▲ ${s.error}`, w, B(22)), x, Math.min(y, foot - 30) + 14, B(22, { color: C.alert }));
+  return { confirm, renew };
 }
 
-// Sensors to check, at the top of the Go to column.
-const SENSOR_ROW_H = 76, SENSORS_MAX = 2;
-function goToPerPage(sensorCount: number): number {
-  const n = Math.min(SENSORS_MAX, sensorCount);
-  return n ? Math.max(2, PER_PAGE - n - 1) : PER_PAGE;
+// A small level-to-limit sparkline from the level chart's lines (no axes; the pop-out has those).
+function sparkline(ctx: Ctx, chart: Chart | null, r: Rect): void {
+  box(ctx, r, 10, C.panel, C.line);
+  if (!chart) {
+    text(ctx, "No forecast yet.", r.x + 14, r.y + r.h / 2, B(22, { color: C.grey2 }));
+    return;
+  }
+  const p = { x: r.x + 12, y: r.y + 14, w: r.w - 24, h: r.h - 28 };
+  const [x0, x1] = chart.x, [y0, y1] = chart.y;
+  const px = (v: number) => p.x + ((v - x0) / Math.max(1e-9, x1 - x0)) * p.w;
+  const py = (v: number) => p.y + p.h - ((v - y0) / Math.max(1e-9, y1 - y0)) * p.h;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(r.x + 2, r.y + 2, r.w - 4, r.h - 4);
+  ctx.clip();
+  if (chart.rule !== null) {
+    ctx.strokeStyle = C.alert;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 6]);
+    ctx.beginPath(); ctx.moveTo(p.x, py(chart.rule)); ctx.lineTo(p.x + p.w, py(chart.rule)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  const COLOR: Record<string, string> = { past: C.grey3, plan: C.accent, noplan: C.alert, lie: C.warn, inflow: C.accent, outflow: C.grey3 };
+  for (const l of chart.lines) {
+    if (l.pts.length < 2) continue;
+    ctx.strokeStyle = COLOR[l.key] ?? C.grey3;
+    ctx.lineWidth = l.key === "plan" ? 4 : 3;
+    ctx.setLineDash(l.dashed ? [8, 6] : []);
+    ctx.beginPath();
+    l.pts.forEach(([a, b], i) => (i ? ctx.lineTo(px(a), py(b)) : ctx.moveTo(px(a), py(b))));
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
-function sensors(ctx: Ctx, s: BoardSpec, y0: number): number {
-  const list = s.m.sensors, n = Math.min(SENSORS_MAX, list.length);
-  if (n === 0) return y0;
-  const x0 = RIGHT.x0, x1 = RIGHT.x1;
-  let y = y0;
-  text(ctx, "SENSORS TO CHECK", x0, y + 14, MONO(20, { color: C.warn }));
-  if (list.length > n) text(ctx, `+${list.length - n}`, x1, y + 14, MONO(20, { align: "right" }));
-  y += 32;
-  for (const r of list.slice(0, n)) {
-    box(ctx, { x: x0, y, w: x1 - x0, h: SENSOR_ROW_H }, 10, rgba(C.warn, 0.08), rgba(C.warn, 0.5));
-    text(ctx, `${r.icon} ${r.word}`, x0 + 16, y + 22, MONO(22, { color: C.warn }));
-    if (r.simulated) text(ctx, "SIMULATED", x1 - 14, y + 22, MONO(18, { color: C.warn, align: "right" }));
-    text(ctx, ellipsize(ctx, r.what, x1 - x0 - 30, T(26)), x0 + 16, y + 54, T(26, { color: C.text }));
-    y += SENSOR_ROW_H + 8;
+function colForecast(ctx: Ctx, s: BoardSpec, c: Rect): void {
+  const x = c.x + COL_PAD, w = c.w - 2 * COL_PAD;
+  let y = colLabel(ctx, "FORECAST", c);
+  const card = s.card;
+  if (!card) {
+    lines(ctx, clampRows(ctx, "No pump failure to forecast.", w, B(26), 4), x, y, 36, B(26, { color: C.grey3 }));
+    return;
   }
-  return y + 6;
-}
-
-function tabs(ctx: Ctx, s: BoardSpec, y: number): { id: BoardTab; r: Rect }[] {
-  const x0 = RIGHT.x0, w = (RIGHT.x1 - x0 - 8) / 2;
-  const out: { id: BoardTab; r: Rect }[] = [
-    { id: "forecast", r: { x: x0, y, w, h: TAB.h } },
-    { id: "goto", r: { x: x0 + w + 8, y, w, h: TAB.h } },
-  ];
-  for (const t of out) button(ctx, t.r, t.id === "forecast" ? "Forecast" : "Go to", s.tab === t.id, true, 24);
-  return out;
-}
-
-function goTo(ctx: Ctx, s: BoardSpec, y0: number): { rows: { id: string; r: Rect }[]; more: Rect | null } {
-  const x0 = RIGHT.x0, x1 = RIGHT.x1;
-  const top = sensors(ctx, s, y0);
-  text(ctx, "WALK A PAD, LIFE SIZE", x0, top + 14, MONO(20));
-  const rowsTop = top + 34;
-  const out: { id: string; r: Rect }[] = [];
-  s.rows.forEach((row, i) => {
-    const r: Rect = { x: x0, y: rowsTop + i * (ROW_H + ROW_GAP), w: x1 - x0, h: ROW_H };
-    const here = row.facility_id === s.here;
-    const tone = TONE_COLOR[row.tone];
-    box(ctx, r, 10, C.raised, here ? C.accent : C.line, 2);
-    dot(ctx, r.x + 26, r.y + r.h / 2, 8, row.tone === "ok" ? C.grey1 : tone);
-    text(ctx, row.label, r.x + 48, r.y + r.h / 2, T(30, { weight: 600, color: C.text }));
-    const right = here ? "YOU ARE HERE" : row.state;
-    text(ctx, right, r.x + r.w - 16, r.y + r.h / 2, MONO(right.length > 11 ? 17 : 20, { color: here ? C.accent : row.tone === "ok" ? C.grey2 : tone, align: "right" }));
-    out.push({ id: row.facility_id, r });
-  });
-  let more: Rect | null = null;
-  if (s.pageCount > 1) {
-    more = { x: x0, y: rowsTop + s.rows.length * (ROW_H + ROW_GAP), w: x1 - x0, h: ROW_H - 12 };
-    box(ctx, more, 10, C.raised, C.line);
-    text(ctx, "More ›", more.x + 20, more.y + more.h / 2, T(26, { color: C.accent }));
-    text(ctx, `${s.pageIndex + 1} of ${s.pageCount}`, more.x + more.w - 16, more.y + more.h / 2, MONO(20, { align: "right" }));
-  }
-  return { rows: out, more };
-}
-
-// Forecast: the tank level with and without the plan, rate in vs rate out, and Simulate.
-function forecast(ctx: Ctx, s: BoardSpec, y0: number, bottom: number): { kind: string; r: Rect }[] {
-  const x0 = RIGHT.x0, x1 = RIGHT.x1, w = x1 - x0;
-  let y = y0;
-  if (!s.card) {
-    lines(ctx, wrap(ctx, "No pump failure to forecast. Open the Go to tab to walk a pad.", w, B(26)), x0, y, 34, B(26, { color: C.grey3 }));
-    return [];
-  }
-  const simH = SIM.h + 40 + (s.sim ? 30 + s.sim.lines.length * 28 : 0);
-  const room = bottom - y - simH;
-  const levelH = Math.max(150, Math.round(room * 0.6)), rateH = Math.max(110, room - levelH - 12);
-  if (s.level) paintChart(ctx, s.level, { x: x0, y, w, h: levelH });
-  else box(ctx, { x: x0, y, w, h: levelH }, 10, C.panel, C.line);
-  y += levelH + 12;
-  if (s.rate) paintChart(ctx, s.rate, { x: x0, y, w, h: rateH });
-  else {
-    box(ctx, { x: x0, y, w, h: rateH }, 10, C.panel, C.line);
-    text(ctx, "No rate data for this pad yet.", x0 + 14, y + rateH / 2, B(22, { color: C.grey2 }));
-  }
-  y += rateH + 14;
-  text(ctx, "SIMULATE", x0, y + 12, MONO(20));
+  // One label, measured: "LEVEL TO LIMIT" and the limit's value never share a row.
+  const rule = s.level?.rule;
+  const lab = rule !== null && rule !== undefined ? `LEVEL TO ${Math.round(rule)}% LIMIT` : "LEVEL TO LIMIT";
+  text(ctx, ellipsize(ctx, lab, w, MONO(18)), x, y + 10, MONO(18));
   y += 28;
-  const bw = (w - 10) / 2;
-  const out = s.sims.map((c, i) => {
-    const r: Rect = { x: x0 + i * (bw + 10), y, w: bw, h: SIM.h };
-    button(ctx, r, c.label, s.sim?.label === c.label, true, 24);
-    return { kind: c.kind, r };
-  });
-  y += SIM.h + 10;
-  if (s.sim) {
-    const head = s.sim.busy ? `Simulating: ${s.sim.label}…` : s.sim.error ? `▲ ${s.sim.error}` : `Simulated: ${s.sim.label}`;
-    text(ctx, ellipsize(ctx, head, w, T(24)), x0, y + 12, T(24, { color: s.sim.error ? C.alert : C.accent }));
-    y += 30;
-    s.sim.lines.forEach((l, i) => text(ctx, ellipsize(ctx, l, w, B(22)), x0, y + 12 + i * 28, B(22, { color: C.text })));
+  sparkline(ctx, s.level, { x, y, w, h: 170 });
+  y += 170 + 22;
+  y = figure(ctx, "NEXT TRUCK ETA", card.pump.truckEta, x, y, w, 50, C.accent);
+  figure(ctx, "FILL RATE", card.pump.fill, x, y, w, 34, C.text);
+}
+
+function colSite(ctx: Ctx, s: BoardSpec, c: Rect): void {
+  const x = c.x + COL_PAD, w = c.w - 2 * COL_PAD;
+  let y = colLabel(ctx, "SITE", c);
+  const st = s.m.stats;
+  if (!st) {
+    lines(ctx, clampRows(ctx, s.m.now ? "Every pump is running. Open Site insight for the night's figures." : "Waiting for the live data…", w, B(26), 5), x, y, 36, B(26, { color: C.grey3 }));
+    return;
   }
-  return out;
+  y = figure(ctx, STAT_WORDS.doNothing.toUpperCase(), st.doNothing, x, y, w, 40, C.text);
+  y = figure(ctx, STAT_WORDS.plans.toUpperCase(), st.plans, x, y, w, 40, C.text);
+  y = figure(ctx, STAT_WORDS.savings.toUpperCase(), st.savings, x, y, w, 40, C.accent);
+  // Site-wide, the same figure as the Site insight pop-out beside it (not the failed pump's system).
+  figure(ctx, STAT_WORDS.spare.toUpperCase(), s.siteSpare, x, y, w, 40, C.text);
+}
+
+interface BodyMeta { confirm: Rect | null; renew: Rect | null; prev: Rect | null; next: Rect | null; cols: { id: ColumnId; r: Rect }[] }
+function body(ctx: Ctx, s: BoardSpec, y0: number, bottom: number): BodyMeta {
+  const rects = columnRects(M, W - M, y0, bottom, COL_GAP);
+  const cols: { id: ColumnId; r: Rect }[] = [];
+  let confirm: Rect | null = null, renew: Rect | null = null, prev: Rect | null = null, next: Rect | null = null;
+  COLUMNS.forEach((col, i) => {
+    const c = rects[i];
+    const lit = s.detail === col.id;
+    box(ctx, c, 12, C.panel, lit ? C.accent : C.line, 2);
+    const btn: Rect = { x: c.x + COL_PAD, y: c.y + c.h - COL_PAD - COL_BTN_H, w: c.w - 2 * COL_PAD, h: COL_BTN_H };
+    const foot = btn.y - 16;
+    if (col.id === "pump") ({ prev, next } = colProblem(ctx, s, c, foot));
+    else if (col.id === "why") ({ confirm, renew } = colAction(ctx, s, c, foot));
+    else if (col.id === "forecast") colForecast(ctx, s, c);
+    else colSite(ctx, s, c);
+    const label = `${col.button} ${lit ? "‹" : "›"}`;
+    button(ctx, btn, label, lit, true, fitSize(ctx, label, btn.w - 24, T(26), 18));
+    cols.push({ id: col.id, r: btn });
+  });
+  return { confirm, renew, prev, next, cols };
 }
 
 const boardPainter: Painter<BoardSpec, BoardMeta> = {
@@ -364,33 +338,10 @@ const boardPainter: Painter<BoardSpec, BoardMeta> = {
   paint(ctx, s) {
     // A flat, opaque panel with a thin border: nothing behind it shows through its words.
     box(ctx, { x: 2, y: 2, w: W - 4, h: H - 4 }, 20, C.panel, C.line, 2);
-    const { close, insight, health } = header(ctx, s);
+    const { close, goto, health } = header(ctx, s);
     const comfort = footer(ctx, s);
-    const bottom = FOOTER_Y - 18;
-    const none = { confirm: null, renew: null, alarm: null, close, comfort, rows: [], more: null, prev: null, next: null, tabs: [], sims: [], insight, health };
-    if (s.insight) {
-      const im = paintInsight(ctx, s.insight, { x0: M, x1: W - M, y0: HEADER_H + 30, bottom });
-      return { ...none, insightPrev: im.prev, insightNext: im.next };
-    }
-    let y = HEADER_H + 30;
-    let confirm: Rect | null = null, renew: Rect | null = null, prev: Rect | null = null, next: Rect | null = null;
-    if (!s.m.now) {
-      text(ctx, s.status === "connected" ? "No site loaded yet." : "Waiting for the live data…", LEFT.x0, y + 24, B(32, { color: C.grey3 }));
-      y += 60;
-    } else if (s.m.stats) {
-      y = tiles(ctx, s, y) + 16;
-    } else if (s.m.calm) {
-      y = lines(ctx, wrap(ctx, `✓ ${s.m.calm}`, LEFT.x1 - LEFT.x0, B(30, { weight: 500 })).slice(0, 2), LEFT.x0, y, 40, B(30, { weight: 500, color: C.text })) + 16;
-    }
-    if (s.card) ({ confirm, renew, prev, next } = card(ctx, s, y, bottom));
-    ctx.fillStyle = C.line;
-    ctx.fillRect(LEFT.x1 + 15, HEADER_H + 30, 2, bottom - HEADER_H - 30);
-    const tabRects = tabs(ctx, s, HEADER_H + 30);
-    const y2 = HEADER_H + 30 + TAB.h + 16;
-    let rows: { id: string; r: Rect }[] = [], more: Rect | null = null, sims: { kind: string; r: Rect }[] = [];
-    if (s.tab === "goto") ({ rows, more } = goTo(ctx, s, y2));
-    else sims = forecast(ctx, s, y2, bottom);
-    return { confirm, renew, alarm: null, close, comfort, rows, more, prev, next, tabs: tabRects, sims, insight, insightPrev: null, insightNext: null, health };
+    const b = body(ctx, s, HEADER_H + 26, FOOTER_Y - 18);
+    return { ...b, close, comfort, goto, health };
   },
 };
 
@@ -401,12 +352,15 @@ const buttonPainter: Painter<ButtonSpec, null> = {
   paint(ctx, s, cw, ch) {
     const w = cw - 2 * BPAD, h = ch - 2 * BPAD;
     box(ctx, { x: BPAD, y: BPAD, w, h }, 12, s.enabled ? C.accent : C.raised, s.enabled ? C.accent : C.line);
-    const style = T(h > 96 ? 40 : 34, { weight: 600, color: s.enabled ? C.text : C.grey2, align: "center" });
-    text(ctx, s.label, cw / 2 - (s.enabled ? 14 : 0), ch / 2, style);
-    if (s.enabled) {
-      const lw = measure(ctx, s.label, style);
-      text(ctx, "›", cw / 2 + lw / 2 + 10, ch / 2 - 3, { ...style, size: style.size + 10 });
-    }
+    // The label and its chevron are measured together and shrink to fit inside the button.
+    const base = T(h > 96 ? 40 : 34, { weight: 600, color: s.enabled ? C.text : C.grey2, align: "center" });
+    const chev = s.enabled ? 34 : 0;
+    const size = fitSize(ctx, s.label, w - 36 - chev, base, 18);
+    const style = { ...base, size };
+    const label = ellipsize(ctx, s.label, w - 36 - chev, style);
+    const lw = measure(ctx, label, style);
+    text(ctx, label, cw / 2 - chev / 2, ch / 2, style);
+    if (s.enabled) text(ctx, "›", cw / 2 - chev / 2 + lw / 2 + 10, ch / 2 - 3, { ...style, align: "left", size: size + 8 });
     return null;
   },
 };
@@ -493,8 +447,7 @@ export function Dashboard({ open, onClose, still: stillProp, source }: { open?: 
   const shown = open ?? nav.dashboard;
   const [pageIndex, setPage] = useState(0);
   const [cardIndex, setCard] = useState(0);
-  const [tab, setTab] = useState<BoardTab>("forecast");
-  const [insightOpen, setInsightOpen] = useState(false);
+  const [detail, setDetail] = useState<DetailKind | null>(null);
   const [insightPage, setInsightPage] = useState(0);
   const [healthOpen, setHealthOpen] = useState(false);
   const [healthPage, setHealthPage] = useState(0);
@@ -502,43 +455,40 @@ export function Dashboard({ open, onClose, still: stillProp, source }: { open?: 
   const [error, setError] = useState<string | null>(null);
   const [sim, setSim] = useState<{ kind: WhatIfKind; label: string; facilityId: string; sinceMs: number; busy: boolean; error: string | null } | null>(null);
   const m = useMemo(() => boardModel(view, confirmations, facilities, localClock, { flows: insight.flows, budget: insight.budget }), [view, confirmations, facilities, insight.flows, insight.budget]);
-  const p = page(m.goTo, pageIndex, goToPerPage(m.sensors.length));
+  const p = page(m.goTo, pageIndex, GOTO_PER_PAGE);
   const cardCount = m.cards.length;
   const ci = cardCount ? ((cardIndex % cardCount) + cardCount) % cardCount : 0;
   const shownCard: FixCardModel | null = m.cards[ci] ?? null;
   // The charts for the shown card: a Simulate run on it first, else the engine's own pump_fail
   // run for it, else the recorded level with a straight line at the fill rate.
   const charts = useMemo(() => {
-    if (!shownCard) return { level: null as Chart | null, rate: null as Chart | null, simSpec: null as { label: string; lines: string[]; busy: boolean; error: string | null } | null };
+    if (!shownCard) return { level: null as Chart | null, rate: null as Chart | null, simSpec: null as { label: string; lines: string[]; busy: boolean; error: string | null } | null, base: null as Chart | null };
     const flow = insight.flows.find((f) => f.facility_id === shownCard.facilityId);
     const rate = rateChart(flow);
-    const mine = sim && sim.facilityId === shownCard.facilityId ? sim : null;
-    // This screen's own run (clocks may differ a little between the headset and the database).
-    const own = insight.scenarios.filter((r) => r.mine);
-    const run = mine ? latestRun(own.length ? own : insight.scenarios, shownCard.facilityId, mine.kind, mine.sinceMs - 60000) : null;
-    if (mine) {
-      const r = run ? simResult(run.ripple) : null;
-      return {
-        level: r?.chart ?? null, rate,
-        simSpec: { label: mine.label, lines: r?.lines ?? [], busy: !run && !mine.error, error: mine.error },
-      };
-    }
-    const base = latestRun(insight.scenarios, shownCard.facilityId, "pump_fail");
     const lvl = view?.alerts.find((x) => x.event.facility_id === shownCard.facilityId)?.event.level_pct;
     const hours = view?.alerts.find((x) => x.event.facility_id === shownCard.facilityId)?.hours_to_limit ?? null;
+    const baseRun = latestRun(insight.scenarios, shownCard.facilityId, "pump_fail");
     // Limit from the card's own countdown (level + fill x hours), so the chart and HOURS TO LIMIT agree.
     const fill = fillPtsH(flow, lvl, hours);
-    const level = base?.ripple.projection ? levelFromProjection(base.ripple.projection) : levelFallback(flow, lvl, fill, impliedLimit(lvl, fill, hours));
-    return { level, rate, simSpec: null };
+    const base = baseRun?.ripple.projection ? levelFromProjection(baseRun.ripple.projection) : levelFallback(flow, lvl, fill, impliedLimit(lvl, fill, hours));
+    const mine = sim && sim.facilityId === shownCard.facilityId ? sim : null;
+    if (mine) {
+      // This screen's own run (clocks may differ a little between the headset and the database).
+      const own = insight.scenarios.filter((r) => r.mine);
+      const run = latestRun(own.length ? own : insight.scenarios, shownCard.facilityId, mine.kind, mine.sinceMs - 60000);
+      const r = run ? simResult(run.ripple) : null;
+      return { level: r?.chart ?? null, rate, simSpec: { label: mine.label, lines: r?.lines ?? [], busy: !run && !mine.error, error: mine.error }, base };
+    }
+    return { level: base, rate, simSpec: null, base };
   }, [shownCard, insight.flows, insight.scenarios, sim, view]);
   const sims = shownCard ? simChoices(shownCard.assetId, shownCard.tankId) : [];
-  // The Insight view: the same figures and pump rows as /insight, built only while it is open.
+  // Site insight: the same figures and pump rows as /insight, built only while it is open.
   const insightSpec = useMemo((): InsightSpec | null => {
-    if (!insightOpen) return null;
+    if (detail !== "site") return null;
     const all = insightRows(view, insight.flows, insight.breaches, facilities);
     const ip = page(all, insightPage, INSIGHT_PER_PAGE);
     return { summary: insightSummary(view, insight.budget), rows: ip.rows, pageIndex: ip.index, pageCount: ip.count, total: all.length };
-  }, [insightOpen, insightPage, view, insight.flows, insight.breaches, insight.budget, facilities]);
+  }, [detail, insightPage, view, insight.flows, insight.breaches, insight.budget, facilities]);
   // The Health view: the same charts, shared scale, failure spans and trip limit as /insight.
   const healthSpec = useMemo((): HealthSpec | null => {
     if (!healthOpen) return null;
@@ -547,17 +497,27 @@ export function Dashboard({ open, onClose, still: stillProp, source }: { open?: 
     const shutdownPct = insight.scenarios.find((r) => r.ripple.projection)?.ripple.projection?.shutdown_pct ?? 92;
     return { items: hp.rows, max, shutdownPct, pageIndex: hp.index, pageCount: hp.count, total: items.length };
   }, [healthOpen, healthPage, view, insight.flows, insight.scenarios]);
+  const here = nav.mode === "ground" ? nav.focus : null;
+  const simKey = sims.map((c) => `${c.kind}:${c.label}`).join("|");
+  const detailSpec = useMemo((): DetailSpec | null => {
+    if (!detail) return null;
+    return {
+      kind: detail, card: shownCard, cardIndex: ci, cardCount, level: charts.level, rate: charts.rate, sim: charts.simSpec,
+      sims: simKey ? simKey.split("|").map((x) => { const i = x.indexOf(":"); return { kind: x.slice(0, i), label: x.slice(i + 1) }; }) : [],
+      insight: insightSpec, rows: p.rows, pageIndex: p.index, pageCount: p.count, here, sensors: m.sensors,
+    };
+  }, [detail, shownCard, ci, cardCount, charts, simKey, insightSpec, p.rows, p.index, p.count, here, m.sensors]);
+  const siteSpare = useMemo(() => insightSummary(view, insight.budget).spare, [view, insight.budget]);
   const panel = usePainted(boardPainter, {
-    m, status, rows: p.rows, pageIndex: p.index, pageCount: p.count, here: nav.mode === "ground" ? nav.focus : null, error,
-    comfort: nav.comfort, card: shownCard, cardIndex: ci, cardCount, tab, level: charts.level, rate: charts.rate, sim: charts.simSpec,
-    sims: sims.map((c) => ({ kind: c.kind, label: c.label })), insight: insightSpec, health: healthOpen,
+    m, status, error, comfort: nav.comfort, card: shownCard, cardIndex: ci, cardCount,
+    level: charts.base, detail, health: healthOpen, siteSpare,
   });
   const root = useRef<Group>(null);
   const unfold = useRef<Group>(null);
   const openK = useRef(0);
-  // With the Health pop-out open the judge turns to read it (its middle is about 50 degrees right),
-  // so the dashboard waits for a wider turn before it follows.
-  useFollowHead(root, { aheadM: BOARD.aheadM, downM: BOARD.downM, tilt: BOARD_TILT, followDeg: healthOpen ? 75 : BOARD.followDeg, still, active: shown });
+  // With a pop-out open the judge turns to read it (its middle is about 50 degrees aside), so the
+  // dashboard waits for a wider turn before it follows.
+  useFollowHead(root, { aheadM: BOARD.aheadM, downM: BOARD.downM, tilt: BOARD_TILT, followDeg: healthOpen || detail ? 75 : BOARD.followDeg, still, active: shown });
 
   useFrame((_, dt) => {
     const ms = Math.min(dt, 0.1) * 1000;
@@ -581,11 +541,26 @@ export function Dashboard({ open, onClose, still: stillProp, source }: { open?: 
     if (!c) return;
     const sinceMs = Date.now();
     setSim({ kind: c.kind, label: c.label, facilityId: shownCard.facilityId, sinceMs, busy: true, error: null });
-    setTab("forecast");
+    setDetail("forecast");
     try { await live.whatIf(c.kind, c.asset); } catch (e) {
       setSim({ kind: c.kind, label: c.label, facilityId: shownCard.facilityId, sinceMs, busy: false, error: e instanceof Error ? e.message : String(e) });
     }
   }, [shownCard, live]);
+
+  const onSpot = useCallback((name: string) => {
+    if (name === "walk") { if (shownCard) nav.setMode("ground", shownCard.facilityId); }
+    else if (name.startsWith("sim:")) void runSim(name.slice(4));
+    else if (name.startsWith("goto:")) nav.setMode("ground", name.slice(5));
+    else if (name === "more") setPage((i) => i + 1);
+    else if (name === "prev") setInsightPage((i) => i - 1);
+    else if (name === "next") setInsightPage((i) => i + 1);
+  }, [shownCard, nav, runSim]);
+
+  const openDetail = (id: DetailKind) => {
+    const nextKind = toggleDetail(detail, id);
+    if (nextKind === "site" && detail !== "site") setInsightPage(0);
+    setDetail(nextKind);
+  };
 
   const meta = panel?.meta;
   const top = shownCard;
@@ -604,6 +579,7 @@ export function Dashboard({ open, onClose, still: stillProp, source }: { open?: 
           open={shown && healthOpen} spec={healthSpec} still={still}
           onClose={() => setHealthOpen(false)} onPage={(d) => setHealthPage((i) => i + d)}
         />
+        <DetailPopout open={shown && !!detail} spec={detailSpec} still={still} onClose={() => setDetail(null)} onSpot={onSpot} />
         {meta && shown && (
           <>
             {meta.confirm && top && (
@@ -618,24 +594,13 @@ export function Dashboard({ open, onClose, still: stillProp, source }: { open?: 
             )}
             <HotSpot name="nav-board-close" r={meta.close} still={still} onPress={() => (onClose ? onClose() : nav.setDashboard(false))} />
             <HotSpot name="nav-board-comfort" r={meta.comfort} still={still} onPress={() => nav.setComfort(!nav.comfort)} />
-            {insightOpen
-              ? <HotSpot key="insight-close" name="nav-board-insight-close" r={meta.insight} still={still} onPress={() => setInsightOpen(false)} />
-              : <HotSpot key="insight-open" name="nav-board-insight" r={meta.insight} still={still} onPress={() => { setInsightOpen(true); setInsightPage(0); }} />}
+            <HotSpot name="nav-board-goto" r={meta.goto} still={still} onPress={() => openDetail("goto")} />
             <HotSpot name="nav-board-health" r={meta.health} still={still} onPress={() => { if (!healthOpen) setHealthPage(0); setHealthOpen(!healthOpen); }} />
-            {meta.insightPrev && <HotSpot name="nav-board-insight-prev" r={meta.insightPrev} still={still} onPress={() => setInsightPage((i) => i - 1)} />}
-            {meta.insightNext && <HotSpot name="nav-board-insight-next" r={meta.insightNext} still={still} onPress={() => setInsightPage((i) => i + 1)} />}
+            {meta.cols.map((c) => (
+              <HotSpot key={c.id} name={`nav-board-col-${c.id}`} r={c.r} still={still} onPress={() => openDetail(c.id)} />
+            ))}
             {meta.prev && <HotSpot name="nav-board-prev" r={meta.prev} still={still} onPress={() => { setCard(ci - 1); setSim(null); }} />}
             {meta.next && <HotSpot name="nav-board-next" r={meta.next} still={still} onPress={() => { setCard(ci + 1); setSim(null); }} />}
-            {meta.tabs.map((t) => (
-              <HotSpot key={t.id} name={`nav-board-tab-${t.id}`} r={t.r} still={still} onPress={() => setTab(t.id)} />
-            ))}
-            {meta.sims.map((x) => (
-              <HotSpot key={x.kind} name={`nav-board-sim-${x.kind}`} r={x.r} still={still} onPress={() => { void runSim(x.kind); }} />
-            ))}
-            {meta.rows.map((row) => (
-              <HotSpot key={row.id} name={`nav-board-goto-${row.id}`} r={row.r} still={still} onPress={() => nav.setMode("ground", row.id)} />
-            ))}
-            {meta.more && <HotSpot name="nav-board-more" r={meta.more} still={still} onPress={() => setPage((i) => i + 1)} />}
           </>
         )}
       </group>

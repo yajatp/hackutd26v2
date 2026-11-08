@@ -126,6 +126,19 @@ export interface FixCardModel {
   assetId: string;                       // the failed pump: what Simulate runs on
   tankId: string;                        // the facility's tank
   pump: PumpFacts;
+  alternatives: AltRow[];                // "Why not the others" (the console's table), "No action" last
+}
+
+// One row of the console's "Why not the others" table, in the console's words.
+export interface AltRow { label: string; cost: string; why: string }
+
+// Ids as people read them: "S5_WELL_C2" -> "S5 well C2" (the console's readableIds).
+export function readable(s: string): string {
+  return s.replace(/\b([A-Z]+\d+)_(WELL|FACILITY|TANK|PUMP|LINE)_([A-Z0-9]+)\b/g, (_, a: string, b: string, c: string) => `${a} ${b.toLowerCase()} ${c}`);
+}
+
+export function altRows(alts: readonly { label: string; cost: number; why: string }[]): AltRow[] {
+  return alts.map((a) => ({ label: readable(a.label === "Do nothing" ? "No action" : a.label), cost: money(a.cost), why: readable(a.why) }));
 }
 
 // The console's detail line under a fix card.
@@ -171,6 +184,7 @@ function cardOf(a: Alert, confirmations: Record<string, Confirmed>, clock: (ms: 
     assetId: a.event.asset_id,
     tankId: a.facility?.tank?.id ?? facilityId.replace("FACILITY", "TANK"),
     pump: pumpFacts(a, insight.flows?.find((f) => f.facility_id === facilityId), insight.budget?.find((b) => b.system_id === a.event.system_id)),
+    alternatives: altRows(fix.alternatives ?? []),
   };
 }
 
