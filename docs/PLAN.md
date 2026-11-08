@@ -10,23 +10,23 @@ Why: ChatGPT and Gemini, acting as harsh judges, both said the same thing. The i
 
 **The 5-second version:** "Avon tells oil-field night crews what's broken, what it costs to fix, and which sensors are lying."
 
-**The 15-second version:** "EOG told us every site uses different tools, and they only find out a sensor died when its data stops. Avon reads any site's data, finds the problem, plans the cheapest fix, and checks every sensor against physics. If a sensor might be hacked, the evidence goes to a sealed room that proves nobody edited the record."
+**The 15-second version:** "EOG told us every site uses different tools, and they only find out a sensor died when its data stops. Avon reads any site's data, finds the problem, plans the cheapest fix, checks every tank level against physics and every sensor for silence. If a sensor might be hacked, the evidence goes to a sealed room that proves nobody edited the record."
 
 Three ideas, in this order. Everything else is optional.
 1. **What's broken and the cheapest fix** (EOG). The hero.
 2. **Which sensors to trust** (dead, drifting, lying). The twist.
 3. **A record nobody can secretly edit** (Darkroom). The ending.
 
-### The default demo: 90 seconds, one laptop, one judge phone
+### The default demo: 90 seconds, one laptop, the judge works the shift
 
-The judge only ever holds **one phone** (Phone 1, the "break a sensor" remote). Teammates hold everything else. Laptop 1 is the main screen; Laptop 2 (the Darkroom) sits next to it.
+(Changed Sun 00:15, Mohan: the judge plays the night-shift operator, not the hacker.) The judge drives Laptop 1 (/console) as the person on shift. A teammate holds Phone 1 (/attack) out of the judge's view and plays the bad night. Laptop 2 (the Darkroom) sits next to Laptop 1.
 
 | Time | What happens | Who |
 |---|---|---|
-| 0:00-0:15 | "An EOG engineer told us she only finds out a sensor died when its data stops. And every site uses different software." | Mohan |
-| 0:15-0:45 | Load their data folder. Top alert card: what broke, when the tank shuts in, the cheapest fix, and **why the other options lose** (see the fix card below). | Yajat |
-| 0:45-1:10 | Hand the judge Phone 1. They tap **Kill**: "DEAD, last heard 10 min ago, bring a replacement." They tap **Fake**: "LYING: water in says rising, sensor says flat." Every fault shows a **SIMULATED** badge. | Sreesh hands, Mohan narrates |
-| 1:10-1:30 | Click **Send to Darkroom**. The incident opens on Laptop 2. A teammate deletes log entries as root. **ROLLBACK DETECTED** on Laptop 2 and on the witness phone. "Nobody can quietly rewrite what happened." | Sreesh, Mohan |
+| 0:00-0:15 | "You're on the night shift for EOG. An engineer told us she only finds out a sensor died when its data stops, and every site runs different software." | Mohan |
+| 0:15-0:45 | The judge reads the top card: what broke, when the tank shuts in, the cheapest fix and **why the other options lose**. The judge presses **Confirm** on it. | Judge, Mohan narrates |
+| 0:45-1:10 | Out of view, a teammate taps **Fake** on Phone 1. The console puts **LYING · SIMULATED** on top: "Physics says +9.4 pts/h. Sensor says 0." The plan for that tank changed because of the bad reading. The judge decides not to trust it. | Sreesh (Phone 1), judge |
+| 1:10-1:30 | The judge presses **Open an incident in the Darkroom**, walks the AV- reference to Laptop 2 and types it in. A teammate deletes log entries as root: **ROLLBACK DETECTED** on Laptop 2 and on the witness phone. "Nobody can quietly rewrite what happened." | Judge, Sreesh, Mohan |
 
 Close: "One view for every site, the cheapest fix, and you know which sensors to trust."
 
