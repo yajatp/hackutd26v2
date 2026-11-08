@@ -38,3 +38,5 @@ npm run demo          # boot everything on the EOG laptop (scripts/boot-avon.mjs
 \* The Avon side trusts its own network in this prototype; that is a stated limit (docs/ARCHITECTURE.md, the threat model card). The isolated Darkroom module checks every caller.
 
 Tests: `npm run test:st` (ingest, parity with the engine run directly in Node, the live subscription, a disconnect), `npm run smoke` (the whole demo path through these reducers).
+
+The whole system, both databases and the known limits: [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md).

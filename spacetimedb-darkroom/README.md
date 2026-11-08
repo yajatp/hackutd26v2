@@ -33,3 +33,5 @@ node scripts/verify-standalone.mjs --host <box ip>   # one file, Node only, for 
 ## What the screens and verifiers catch
 
 Deleted entries (ROLLBACK DETECTED AT #k, from each device's witness), edited or unhashable entries and stored bytes that differ from what the module wrote (TAMPERING AT #k), member rows changed outside the log, and a chain head that does not match the last entry. Not caught: the box owner appending a brand-new forged entry (entries are not signed per device). Full results: REDTEAM-claude.md.
+
+The whole system, both databases and the known limits: [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md).
