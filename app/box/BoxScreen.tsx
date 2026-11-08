@@ -4,19 +4,21 @@ import { useMemo, useState, type FormEvent } from "react";
 import { darkroom, useDarkroom } from "@/lib/darkroom-live";
 import { replayChat, replayClosure, replayEvidence, replayIncidents, replayScope } from "@/lib/rules/darkroom/replay";
 import { CERTAINTIES, LIMITS, SCOPE_STATES, type Certainty, type ScopeState } from "@/lib/rules/darkroom/entries";
-import { can, parseActor } from "@/lib/rules/darkroom/roles";
+import { can } from "@/lib/rules/darkroom/roles";
+import { AppHeader } from "@/app/ui/AppHeader";
+import { Badge, type Tone } from "@/app/ui/Badge";
+import { LogEntries } from "@/app/ui/LogEntries";
 import { ConnectionChip, StatusBanner } from "./StatusBanner";
 import { ThreatModelCard } from "./ThreatModelCard";
 
 const SUGGESTED_SYSTEMS = ["Tank level sensor", "SCADA historian", "Field VPN credentials", "Royalty owner records", "Billing database"];
 
-const TYPE_LABEL: Record<string, string> = {
-  member_added: "member added",
-  incident_opened: "incident opened",
-  scope_update: "scope update",
-  chat: "chat",
-  evidence_imported: "evidence logged",
-  incident_closed: "incident closed",
+// What happened to a system, as a word plus an icon: ▲ for data lost or locked, ● otherwise.
+const SCOPE_TONE: Record<string, { tone: Tone; icon: string }> = {
+  ENCRYPTED: { tone: "alert", icon: "▲" },
+  EXFILTRATED: { tone: "alert", icon: "▲" },
+  ACCESSED: { tone: "warn", icon: "●" },
+  SUSPECTED: { tone: "warn", icon: "●" },
 };
 
 function time(ts: string): string {
@@ -53,8 +55,9 @@ function Choice<T extends string>({ label, options, value, onChange, disabled }:
           type="button"
           aria-pressed={value === o}
           onClick={() => onChange(o)}
-          className={`rounded border px-3 py-1.5 text-sm ${value === o ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-300 bg-white"}`}
+          className={`btn ${value === o ? "btn-primary" : ""}`}
         >
+          {value === o && <span aria-hidden="true">✓</span>}
           {o}
         </button>
       ))}
@@ -132,52 +135,44 @@ export default function BoxScreen() {
     if (await closeAction.run(() => darkroom.append(current.id, "incident_closed", { resolution }))) setResolution("");
   }
 
-  const recent = s.events.slice(-10).reverse();
-
   return (
-    <main className="mx-auto min-h-screen max-w-6xl space-y-5 bg-white p-4 text-neutral-900 sm:p-6">
-      <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-bold">Darkroom</h1>
-          <p className="text-neutral-600">Incident room on the box. Every change below is an entry in a hash-chained log.</p>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <ConnectionChip s={s} />
-          <span className="text-sm text-neutral-600">
-            {s.me ? `You: ${s.me.name} (${s.me.role})` : s.identity ? "You: not on the team (read only)" : ""}
-          </span>
-        </div>
-      </header>
+    <main className="mx-auto min-h-screen max-w-6xl space-y-5 p-4 sm:p-6">
+      <AppHeader product="Darkroom" title="incident room" sub="Every change below is an entry in a tamper-evident log on this box.">
+        <span>{s.me ? `You: ${s.me.name} (${s.me.role})` : s.identity ? "You: not on the team (read only)" : ""}</span>
+        <ConnectionChip s={s} />
+      </AppHeader>
 
       <StatusBanner s={s} />
 
       {s.identity && s.ready && !s.me && (
-        <div className="rounded-lg border border-neutral-300 p-4 text-sm">
-          <p className="font-semibold">This screen can read the record but cannot write to it.</p>
+        <div className="rounded-lg border-2 border-warn-line bg-warn-bg p-4 text-sm">
+          <p className="flex flex-wrap items-center gap-2 font-semibold">
+            <Badge tone="warn" icon="●">READ ONLY</Badge> This screen can read the record but cannot write to it.
+          </p>
           <p className="mt-1">The box owner adds it from a terminal on the box:</p>
-          <pre className="mt-2 overflow-x-auto rounded bg-neutral-100 p-2 text-xs">{`node scripts/darkroom-seed.mjs --add ${s.identity} --name "Box screen" --role Commander`}</pre>
+          <pre className="mt-2 overflow-x-auto rounded bg-surface p-2 text-xs">{`node scripts/darkroom-seed.mjs --add ${s.identity} --name "Box screen" --role Commander`}</pre>
         </div>
       )}
 
-      <section aria-labelledby="incident" className="rounded-lg border border-neutral-300 p-4">
+      <section aria-labelledby="incident" className="card">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 id="incident" className="text-sm font-medium uppercase tracking-wide text-neutral-600">Incident</h2>
+            <h2 id="incident" className="section-title">Incident</h2>
             {current ? (
               <>
-                <p className="text-xl font-semibold">
+                <p className="text-2xl font-semibold">
                   {current.id} · {current.title}
                 </p>
-                <p className="text-sm text-neutral-600">
+                <p className="text-sm text-muted">
                   Opened by {current.openedBy} at {time(current.openedAt)} (entry #{current.seq})
                 </p>
                 {closure ? (
                   <p className="mt-1 text-sm">
-                    <span className="rounded border border-neutral-900 px-1.5 py-0.5 text-xs font-bold">CLOSED</span>{" "}
+                    <Badge icon="✓">CLOSED</Badge>{" "}
                     by {closure.by} at {time(closure.ts)} (entry #{closure.seq}): {closure.resolution}
                   </p>
                 ) : (
-                  <p className="mt-1 text-sm"><span className="rounded border border-neutral-400 px-1.5 py-0.5 text-xs font-bold">OPEN</span></p>
+                  <p className="mt-1 text-sm"><Badge tone="alert" icon="●">OPEN</Badge></p>
                 )}
               </>
             ) : (
@@ -186,7 +181,7 @@ export default function BoxScreen() {
             {incidents.length > 1 && (
               <label className="mt-2 block text-sm">
                 Show incident{" "}
-                <select className="rounded border border-neutral-300 p-1" value={current?.id ?? ""} onChange={e => setChosen(e.target.value)}>
+                <select className="field p-1" value={current?.id ?? ""} onChange={e => setChosen(e.target.value)}>
                   {incidents.map(i => (
                     <option key={i.id} value={i.id}>
                       {i.id} · {i.title}
@@ -201,7 +196,7 @@ export default function BoxScreen() {
               <label className="text-sm">
                 <span className="block font-medium">Open a new incident</span>
                 <input
-                  className="mt-1 w-72 rounded border border-neutral-300 p-2"
+                  className="field mt-1 w-72 max-w-full"
                   placeholder="What happened, in a few words"
                   value={title}
                   maxLength={LIMITS.title}
@@ -209,86 +204,86 @@ export default function BoxScreen() {
                   disabled={!writable || openAction.busy}
                 />
               </label>
-              <button type="submit" className="rounded bg-neutral-900 px-4 py-2 text-white disabled:opacity-40" disabled={!writable || openAction.busy || !title.trim()}>
+              <button type="submit" className="btn btn-primary" disabled={!writable || openAction.busy || !title.trim()}>
                 Open incident
               </button>
-              {openAction.error && <p className="w-full text-sm text-red-700">{openAction.error}</p>}
+              {openAction.error && <p role="alert" className="w-full text-sm font-semibold text-alert">▲ {openAction.error}</p>}
             </form>
           )}
         </div>
       </section>
 
       {current && (
-        <section aria-labelledby="evidence" className="rounded-lg border border-neutral-300 p-4">
-          <h2 id="evidence" className="text-lg font-semibold">Evidence</h2>
-          <p className="text-sm text-neutral-600">
+        <section aria-labelledby="evidence" className="card">
+          <h2 id="evidence" className="section-title">Evidence</h2>
+          <p className="mt-1 text-sm text-muted">
             Nothing reaches this box over the network. A person carries the reference from the Avon console and types it here;
             the log records who brought it and when. This proves the record was not changed later (integrity), not that the reading was true.
           </p>
           <ul className="mt-3 space-y-2 text-sm">
-            {evidence.length === 0 && <li className="text-neutral-600">No evidence logged yet.</li>}
+            {evidence.length === 0 && <li className="text-muted">No evidence logged yet.</li>}
             {evidence.map(ev => (
-              <li key={ev.seq} className="rounded border border-neutral-200 p-2">
+              <li key={ev.seq} className="rounded-md border border-line-soft p-2">
                 <span className="font-mono text-base font-bold">{ev.ref}</span> · from {ev.source}
-                <span className="text-neutral-600"> · logged by {ev.collector}{ev.role ? ` (${ev.role})` : ""} at {time(ev.ts)}, entry #{ev.seq}</span>
+                <span className="text-muted"> · logged by {ev.collector}{ev.role ? ` (${ev.role})` : ""} at {time(ev.ts)}, entry #{ev.seq}</span>
                 {ev.fingerprint
-                  ? <p className="break-all font-mono text-xs text-neutral-600">Fingerprint {ev.fingerprint}</p>
-                  : <p className="text-xs text-neutral-600">Reference only; full fingerprint not typed.</p>}
+                  ? <p className="break-all font-mono text-xs text-muted">Fingerprint {ev.fingerprint}</p>
+                  : <p className="text-sm text-muted">Reference only; full fingerprint not typed.</p>}
                 {ev.note && <p>{ev.note}</p>}
               </li>
             ))}
           </ul>
           {can(role, "evidence_imported") && !closure && (
-            <form onSubmit={logEvidence} className="mt-3 flex flex-wrap items-end gap-2 border-t border-neutral-200 pt-3">
+            <form onSubmit={logEvidence} className="mt-3 flex flex-wrap items-end gap-2 border-t border-line-soft pt-3">
               <label className="text-sm">
-                <span className="block font-medium">Reference from the console</span>
-                <input className="mt-1 w-44 rounded border border-neutral-300 p-2 font-mono uppercase" placeholder="AV-1A2B-3C4D" value={ref}
+                <span className="block font-semibold">Reference from the console</span>
+                <input className="field mt-1 w-60 max-w-full font-mono text-xl uppercase" placeholder="AV-1A2B-3C4D" value={ref}
                   maxLength={20} onChange={e => setRef(e.target.value)} disabled={!writable || evidenceAction.busy} />
               </label>
               <label className="text-sm">
                 <span className="block font-medium">Source</span>
-                <input className="mt-1 w-40 rounded border border-neutral-300 p-2" value={source} maxLength={LIMITS.system}
+                <input className="field mt-1 w-40" value={source} maxLength={LIMITS.system}
                   onChange={e => setSource(e.target.value)} disabled={!writable || evidenceAction.busy} />
               </label>
               <label className="min-w-0 flex-1 text-sm">
                 <span className="block font-medium">Full fingerprint (optional)</span>
-                <input className="mt-1 w-full rounded border border-neutral-300 p-2 font-mono text-xs" placeholder="64 characters, if you have it" value={fingerprint}
+                <input className="field mt-1 w-full font-mono text-xs" placeholder="64 characters, if you have it" value={fingerprint}
                   maxLength={64} onChange={e => setFingerprint(e.target.value)} disabled={!writable || evidenceAction.busy} />
               </label>
               <label className="w-full text-sm">
                 <span className="block font-medium">Note (optional)</span>
-                <input className="mt-1 w-full rounded border border-neutral-300 p-2" value={evNote} maxLength={LIMITS.note}
+                <input className="field mt-1 w-full" value={evNote} maxLength={LIMITS.note}
                   onChange={e => setEvNote(e.target.value)} disabled={!writable || evidenceAction.busy} />
               </label>
-              <button type="submit" className="rounded bg-neutral-900 px-4 py-2 text-white disabled:opacity-40" disabled={!writable || evidenceAction.busy || !ref.trim()}>
+              <button type="submit" className="btn btn-primary text-base" disabled={!writable || evidenceAction.busy || !ref.trim()}>
                 Log evidence
               </button>
-              {evidenceAction.error && <p className="w-full text-sm text-red-700">{evidenceAction.error}</p>}
+              {evidenceAction.error && <p role="alert" className="w-full text-sm font-semibold text-alert">▲ {evidenceAction.error}</p>}
             </form>
           )}
           {can(role, "incident_closed") && !closure && (
-            <form onSubmit={closeIncident} className="mt-3 flex flex-wrap items-end gap-2 border-t border-neutral-200 pt-3">
+            <form onSubmit={closeIncident} className="mt-3 flex flex-wrap items-end gap-2 border-t border-line-soft pt-3">
               <label className="min-w-0 flex-1 text-sm">
                 <span className="block font-medium">Close this incident: what was decided</span>
-                <input className="mt-1 w-full rounded border border-neutral-300 p-2" placeholder="e.g. Sensor replaced; no data left the site" value={resolution}
+                <input className="field mt-1 w-full" placeholder="e.g. Sensor replaced; no data left the site" value={resolution}
                   maxLength={LIMITS.note} onChange={e => setResolution(e.target.value)} disabled={!writable || closeAction.busy} />
               </label>
-              <button type="submit" className="rounded border border-neutral-900 px-4 py-2 disabled:opacity-40" disabled={!writable || closeAction.busy || !resolution.trim()}>
+              <button type="submit" className="btn" disabled={!writable || closeAction.busy || !resolution.trim()}>
                 Close incident
               </button>
-              {closeAction.error && <p className="w-full text-sm text-red-700">{closeAction.error}</p>}
+              {closeAction.error && <p role="alert" className="w-full text-sm font-semibold text-alert">▲ {closeAction.error}</p>}
             </form>
           )}
         </section>
       )}
 
       <div className="grid gap-5 lg:grid-cols-3">
-        <section aria-labelledby="scope" className="rounded-lg border border-neutral-300 p-4 lg:col-span-2">
-          <h2 id="scope" className="text-lg font-semibold">Scope board</h2>
-          <p className="text-sm text-neutral-600">Which systems and data are affected. Rebuilt from the log on every change; the newest entry for a row wins.</p>
+        <section aria-labelledby="scope" className="card lg:col-span-2">
+          <h2 id="scope" className="section-title">Scope board</h2>
+          <p className="mt-1 text-sm text-muted">Which systems and data are affected. Rebuilt from the log on every change; the newest entry for a row wins.</p>
           <div className="mt-3 overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-neutral-300 text-neutral-600">
+              <thead className="border-b border-line text-muted">
                 <tr>
                   <th className="py-2 pr-3 font-medium">System or data</th>
                   <th className="py-2 pr-3 font-medium">What happened</th>
@@ -300,18 +295,23 @@ export default function BoxScreen() {
               <tbody>
                 {scope.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="py-3 text-neutral-600">
+                    <td colSpan={5} className="py-3 text-muted">
                       {current ? "Nothing in scope yet." : "Open an incident first."}
                     </td>
                   </tr>
                 )}
                 {scope.map(r => (
-                  <tr key={r.key} className="border-b border-neutral-200 align-top">
+                  <tr key={r.key} className="border-b border-line-soft align-top">
                     <td className="py-2 pr-3 font-medium">{r.system}</td>
-                    <td className="py-2 pr-3 font-semibold">{r.state}</td>
-                    <td className={`py-2 pr-3 ${r.certainty === "CONFIRMED" ? "font-semibold" : ""}`}>{r.certainty}</td>
+                    <td className="py-2 pr-3">
+                      <Badge tone={SCOPE_TONE[r.state]?.tone ?? "ok"} icon={SCOPE_TONE[r.state]?.icon}>{r.state}</Badge>
+                    </td>
+                    <td className={`py-2 pr-3 ${r.certainty === "CONFIRMED" ? "font-semibold" : ""}`}>
+                      {r.certainty === "CONFIRMED" && <span aria-hidden="true">✓ </span>}
+                      {r.certainty}
+                    </td>
                     <td className="py-2 pr-3">{r.note}</td>
-                    <td className="py-2 text-neutral-600">
+                    <td className="py-2 text-muted">
                       #{r.seq} by {r.by}, {time(r.ts)}
                       {r.updates > 1 ? ` (${r.updates} changes)` : ""}
                     </td>
@@ -322,11 +322,11 @@ export default function BoxScreen() {
           </div>
 
           {current && can(role, "scope_update") && (
-            <form onSubmit={updateScope} className="mt-4 space-y-3 border-t border-neutral-200 pt-4">
+            <form onSubmit={updateScope} className="mt-4 space-y-3 border-t border-line-soft pt-4">
               <label className="block text-sm">
                 <span className="font-medium">System or data</span>
                 <input
-                  className="mt-1 w-full rounded border border-neutral-300 p-2"
+                  className="field mt-1 w-full"
                   list="darkroom-systems"
                   placeholder="e.g. Royalty owner records"
                   value={system}
@@ -345,30 +345,30 @@ export default function BoxScreen() {
               <label className="block text-sm">
                 <span className="font-medium">Note (optional)</span>
                 <input
-                  className="mt-1 w-full rounded border border-neutral-300 p-2"
+                  className="field mt-1 w-full"
                   value={note}
                   maxLength={LIMITS.note}
                   onChange={e => setNote(e.target.value)}
                   disabled={!writable || scopeAction.busy}
                 />
               </label>
-              <button type="submit" className="rounded bg-neutral-900 px-4 py-2 text-white disabled:opacity-40" disabled={!writable || scopeAction.busy || !system.trim()}>
+              <button type="submit" className="btn btn-primary" disabled={!writable || scopeAction.busy || !system.trim()}>
                 Add to the record
               </button>
-              {scopeAction.error && <p className="text-sm text-red-700">{scopeAction.error}</p>}
+              {scopeAction.error && <p role="alert" className="text-sm font-semibold text-alert">▲ {scopeAction.error}</p>}
             </form>
           )}
-          {current && s.me && !can(role, "scope_update") && <p className="mt-3 text-sm text-neutral-600">Your role ({role}) can read the scope board and chat, but not change scope.</p>}
+          {current && s.me && !can(role, "scope_update") && <p className="mt-3 text-sm text-muted">Your role ({role}) can read the scope board and chat, but not change scope.</p>}
         </section>
 
-        <section aria-labelledby="chat" className="flex flex-col rounded-lg border border-neutral-300 p-4">
-          <h2 id="chat" className="text-lg font-semibold">Team chat</h2>
-          <p className="text-sm text-neutral-600">Every message is a log entry.</p>
+        <section aria-labelledby="chat" className="card flex flex-col">
+          <h2 id="chat" className="section-title">Team chat</h2>
+          <p className="mt-1 text-sm text-muted">Every message is a log entry.</p>
           <ol className="mt-3 max-h-96 flex-1 space-y-2 overflow-y-auto text-sm">
-            {chat.length === 0 && <li className="text-neutral-600">{current ? "No messages yet." : "Open an incident first."}</li>}
+            {chat.length === 0 && <li className="text-muted">{current ? "No messages yet." : "Open an incident first."}</li>}
             {chat.map(c => (
               <li key={c.seq}>
-                <span className="text-neutral-600">
+                <span className="text-muted">
                   #{c.seq} {time(c.ts)} · {c.name}
                   {c.role ? ` (${c.role})` : ""}
                 </span>
@@ -379,7 +379,7 @@ export default function BoxScreen() {
           {current && s.me && (
             <form onSubmit={sendChat} className="mt-3 flex gap-2">
               <input
-                className="min-w-0 flex-1 rounded border border-neutral-300 p-2 text-sm"
+                className="field min-w-0 flex-1 text-sm"
                 placeholder="Message the team"
                 value={message}
                 maxLength={LIMITS.text}
@@ -387,12 +387,12 @@ export default function BoxScreen() {
                 disabled={!writable || chatAction.busy}
                 aria-label="Message"
               />
-              <button type="submit" className="rounded bg-neutral-900 px-3 py-2 text-sm text-white disabled:opacity-40" disabled={!writable || chatAction.busy || !message.trim()}>
+              <button type="submit" className="btn btn-primary" disabled={!writable || chatAction.busy || !message.trim()}>
                 Send
               </button>
             </form>
           )}
-          {chatAction.error && <p className="mt-1 text-sm text-red-700">{chatAction.error}</p>}
+          {chatAction.error && <p role="alert" className="mt-1 text-sm font-semibold text-alert">▲ {chatAction.error}</p>}
         </section>
       </div>
 
@@ -401,23 +401,13 @@ export default function BoxScreen() {
           <ThreatModelCard />
         </div>
         <div className="space-y-5">
-          <section aria-labelledby="record" className="rounded-lg border border-neutral-300 p-4 text-sm">
-            <h2 id="record" className="text-base font-semibold">Newest log entries</h2>
-            <ol className="mt-2 space-y-1 font-mono text-xs">
-              {recent.length === 0 && <li className="font-sans text-neutral-600">None yet.</li>}
-              {recent.map(e => (
-                <li key={e.seq}>
-                  #{e.seq} {TYPE_LABEL[e.type] ?? e.type} · {parseActor(e.actor).name} · {e.hash.slice(0, 8)}
-                </li>
-              ))}
-            </ol>
-          </section>
-          <section aria-labelledby="team" className="rounded-lg border border-neutral-300 p-4 text-sm">
-            <h2 id="team" className="text-base font-semibold">Team</h2>
+          <LogEntries events={s.events} max={10} />
+          <section aria-labelledby="team" className="card text-sm">
+            <h2 id="team" className="section-title">Team</h2>
             <ul className="mt-2 space-y-1">
               {s.members.filter(m => m.active).map(m => (
                 <li key={m.identity}>
-                  {m.name} · {m.role} <span className="font-mono text-xs text-neutral-600">{m.identity.slice(0, 8)}…</span>
+                  {m.name} · {m.role} <span className="font-mono text-xs text-muted">{m.identity.slice(0, 8)}…</span>
                 </li>
               ))}
             </ul>

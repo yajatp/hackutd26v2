@@ -1,26 +1,163 @@
 @import "tailwindcss";
 
+/* One palette for Avon (/console, /attack) and the Darkroom (/box, /witness).
+   Hex values on purpose, so computed colors stay rgb(). No web fonts: the box runs offline.
+   Color only when something is wrong, and every status is also a word or an icon. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light dark;
+  --background: #fafafa;
+  --foreground: #18181b;
+  --surface: #ffffff;
+  --surface-2: #f4f4f5;
+  --muted: #52525b;
+  --line: #d4d4d8;
+  --line-soft: #e4e4e7;
+  --alert: #b91c1c;
+  --alert-bg: #fef2f2;
+  --alert-line: #dc2626;
+  --alert-solid: #b91c1c;
+  --warn: #78350f;
+  --warn-bg: #fffbeb;
+  --warn-line: #f59e0b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0b;
+    --foreground: #f4f4f5;
+    --surface: #18181b;
+    --surface-2: #27272a;
+    --muted: #a1a1aa;
+    --line: #3f3f46;
+    --line-soft: #27272a;
+    --alert: #fca5a5;
+    --alert-bg: #3b0d0d;
+    --alert-line: #ef4444;
+    --alert-solid: #b91c1c;
+    --warn: #fde68a;
+    --warn-bg: #2e2208;
+    --warn-line: #f59e0b;
+  }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-alert: var(--alert);
+  --color-alert-bg: var(--alert-bg);
+  --color-alert-line: var(--alert-line);
+  --color-alert-solid: var(--alert-solid);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-line: var(--warn-line);
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Shared pieces. app/ui/ wraps the badges; screens use these classes directly for the rest. */
+@layer components {
+  .card {
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+    background: var(--surface);
+    padding: 1rem;
+  }
+
+  .section-title {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    min-height: 2.5rem;
+    border: 1px solid var(--line);
+    border-radius: 0.375rem;
+    background: var(--surface);
+    color: var(--foreground);
+    padding: 0.375rem 0.875rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+  }
+  .btn:hover:not(:disabled) {
+    border-color: var(--foreground);
+  }
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    border-color: var(--foreground);
+    background: var(--foreground);
+    color: var(--background);
+  }
+  .btn-on {
+    border-color: var(--foreground);
+    box-shadow: inset 0 0 0 1px var(--foreground);
+  }
+
+  .field {
+    border: 1px solid var(--line);
+    border-radius: 0.375rem;
+    background: var(--surface);
+    color: var(--foreground);
+    padding: 0.5rem;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    white-space: nowrap;
+    vertical-align: middle;
+    border: 1px solid var(--line);
+    border-radius: 0.25rem;
+    background: var(--surface);
+    color: var(--foreground);
+    padding: 0.0625rem 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.025em;
+  }
+  .badge-alert {
+    border-color: var(--alert-line);
+    background: var(--alert-bg);
+    color: var(--alert);
+  }
+  .badge-warn {
+    border-color: var(--warn-line);
+    background: var(--warn-bg);
+    color: var(--warn);
+  }
+  .badge-solid {
+    border-color: var(--alert-solid);
+    background: var(--alert-solid);
+    color: #ffffff;
+  }
+  .badge-sim {
+    border-style: dashed;
+    border-color: currentColor;
+    background: transparent;
+    color: inherit;
+  }
 }

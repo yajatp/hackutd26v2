@@ -3,9 +3,9 @@
 
 export function ThreatModelCard() {
   return (
-    <section aria-labelledby="threat-model" className="rounded-lg border border-neutral-300 p-4 text-sm leading-relaxed">
-      <h2 id="threat-model" className="text-base font-semibold">Threat model</h2>
-      <p className="mt-1 text-neutral-600">An isolated incident documentation and evidence-integrity room.</p>
+    <section aria-labelledby="threat-model" className="card text-sm leading-relaxed">
+      <h2 id="threat-model" className="section-title">Threat model</h2>
+      <p className="mt-1 text-muted">An isolated incident documentation and evidence-integrity room.</p>
 
       <h3 className="mt-3 font-semibold">Protects against</h3>
       <ul className="mt-1 list-disc space-y-1 pl-5">

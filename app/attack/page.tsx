@@ -2,31 +2,26 @@
 // Phone 1, the "break a sensor" remote the judge holds. Talks to the backend only through
 // useAttack() (lib/attack.ts), so swapping in Spacetime reducers does not touch this file.
 // Every fault is simulated: an overlay on the live tank panel, never a change to the data files.
-// Light by default, dark when the phone is in dark mode (Tailwind dark: follows the system).
+// Light by default, dark when the phone is in dark mode (the shared tokens in globals.css follow the system).
 import { useState } from "react";
-import { useAttack, type AttackTarget, type Conn, type FaultKind } from "@/lib/attack";
+import { useAttack, type AttackTarget, type FaultKind } from "@/lib/attack";
+import { AppHeader } from "@/app/ui/AppHeader";
+import { ConnBadge, SENSOR_STATE, SensorBadge, SimulatedBadge, connState } from "@/app/ui/Badge";
 
 interface FaultButton {
   kind: FaultKind;
   verb: string;    // the button
-  state: string;   // what the console should call the sensor
-  icon: string;    // ▲ critical, ● warning (never color alone)
-  what: string;    // one line for the judge
+  sensor: "dead" | "lying" | "drifting";   // what the console calls the sensor (word and icon from app/ui)
+  what: string;    // a few words for whoever holds the phone
 }
 
 const FAULTS: FaultButton[] = [
-  { kind: "kill", verb: "Kill", state: "DEAD", icon: "▲", what: "Sensor goes silent." },
-  { kind: "fake_flat", verb: "Fake", state: "LYING", icon: "▲", what: "Reading freezes at its current value." },
-  { kind: "drift", verb: "Drift", state: "DRIFTING", icon: "●", what: "Reading slowly drifts off the truth." },
+  { kind: "kill", verb: "Kill", sensor: "dead", what: "goes silent" },
+  { kind: "fake_flat", verb: "Fake", sensor: "lying", what: "freezes" },
+  { kind: "drift", verb: "Drift", sensor: "drifting", what: "drifts off" },
 ];
 
 const byKind = new Map(FAULTS.map((f) => [f.kind, f]));
-
-// Shared looks, light first then dark.
-const card = "border-2 border-zinc-300 bg-white dark:border-zinc-700 dark:bg-zinc-900";
-const muted = "text-zinc-600 dark:text-zinc-400";
-const plainBtn = `min-h-14 rounded-lg px-4 font-semibold ${card} active:bg-zinc-100 dark:active:bg-zinc-800 disabled:opacity-40`;
-const alertTag = "rounded bg-red-100 px-2 py-0.5 text-sm font-bold text-red-800 dark:bg-red-500/15 dark:text-red-300";
 
 function utc(unix: number): string {
   return new Date(unix * 1000).toISOString().slice(11, 16) + " UTC";
@@ -34,24 +29,6 @@ function utc(unix: number): string {
 
 function errText(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
-}
-
-function ConnChip({ status }: { status: Conn }) {
-  if (status === "connected") {
-    return <span className={`rounded px-2 py-1 text-sm font-semibold tracking-wide ${card}`}>■ LIVE</span>;
-  }
-  if (status === "connecting") {
-    return (
-      <span className="rounded border-2 border-amber-500 bg-amber-100 px-2 py-1 text-sm font-semibold text-amber-900 dark:bg-amber-400/10 dark:text-amber-200">
-        ● Connecting...
-      </span>
-    );
-  }
-  return (
-    <span className="rounded border-2 border-red-600 bg-red-600 px-2 py-1 text-sm font-bold tracking-wide text-white">
-      ▲ DISCONNECTED
-    </span>
-  );
 }
 
 export default function AttackPage() {
@@ -82,26 +59,25 @@ export default function AttackPage() {
   const disabled = !live || busy || !target;
 
   return (
-    <main className="min-h-dvh bg-zinc-50 px-4 pb-10 pt-4 text-[16px] text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50">
-      <header className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-bold">Break a sensor</h1>
-        <ConnChip status={api.status} />
-      </header>
+    <main className="mx-auto min-h-dvh max-w-md px-4 pt-4">
+      <AppHeader product="Avon" title="Break a sensor">
+        <ConnBadge state={connState(api.status)} />
+      </AppHeader>
 
       {api.status === "disconnected" && (
-        <p role="alert" className="mt-3 rounded-lg bg-red-600 p-3 font-bold text-white">
+        <p role="alert" className="mt-3 rounded-lg bg-alert-solid p-3 font-bold text-white">
           ▲ DISCONNECTED from the console. Faults can&apos;t be sent until it reconnects.
         </p>
       )}
 
-      <p className="mt-3 rounded-lg border-2 border-amber-500 bg-amber-100 p-3 font-semibold text-amber-950 dark:bg-amber-400/15 dark:text-amber-100">
-        SIMULATED: these faults are injected for the demo. EOG&apos;s data has no broken sensors.
+      <p className="mt-3 rounded-lg border-2 border-warn-line bg-warn-bg p-3 text-sm font-semibold">
+        <SimulatedBadge /> These faults are injected for the demo. EOG&apos;s data has no broken sensors.
       </p>
 
       <section className="mt-5" aria-labelledby="pick">
-        <h2 id="pick" className={`text-sm font-semibold uppercase tracking-wide ${muted}`}>1 · Pick a tank</h2>
+        <h2 id="pick" className="section-title">1 · Pick a tank</h2>
         {api.targets.length === 0 ? (
-          <p className={`mt-2 ${muted}`}>No tanks yet. Load a site on the console first.</p>
+          <p className="mt-2 text-muted">No tanks yet. Load a site on the console first.</p>
         ) : (
           <div className="mt-2 flex flex-col gap-2" role="radiogroup">
             {api.targets.map((t) => {
@@ -113,18 +89,12 @@ export default function AttackPage() {
                   role="radio"
                   aria-checked={on}
                   onClick={() => setPicked(t.asset_id)}
-                  className={`flex min-h-14 items-center justify-between gap-3 rounded-lg border-2 px-4 py-2 text-left ${
-                    on
-                      ? "border-zinc-950 bg-white dark:border-zinc-50 dark:bg-zinc-900"
-                      : "border-zinc-300 bg-white/60 dark:border-zinc-800 dark:bg-zinc-900/60"
+                  className={`flex min-h-12 items-center justify-between gap-3 rounded-lg border-2 bg-surface px-4 py-2 text-left ${
+                    on ? "border-foreground" : "border-line"
                   }`}
                 >
                   <span className="min-w-0 break-words font-semibold">{on ? "◉" : "○"} {t.label}</span>
-                  {f && (
-                    <span className={`shrink-0 ${alertTag}`}>
-                      {byKind.get(f.kind)?.icon} {byKind.get(f.kind)?.state}
-                    </span>
-                  )}
+                  {f && <SensorBadge state={byKind.get(f.kind)?.sensor ?? f.kind} />}
                 </button>
               );
             })}
@@ -132,29 +102,27 @@ export default function AttackPage() {
         )}
       </section>
 
-      <section className="mt-6" aria-labelledby="break">
-        <h2 id="break" className={`text-sm font-semibold uppercase tracking-wide ${muted}`}>2 · Break it</h2>
-        <div className="mt-2 flex flex-col gap-2">
+      {/* Sticks to the bottom of the screen, so the next action never scrolls away behind the tank list. */}
+      <section aria-labelledby="break" className="sticky bottom-0 z-10 -mx-4 mt-4 border-t border-line bg-background px-4 pb-3 pt-2">
+        <h2 id="break" className="section-title truncate">
+          2 · Break it{target ? <span className="normal-case text-foreground">: {target.label}</span> : null}
+        </h2>
+        <div className="mt-2 grid grid-cols-3 gap-2">
           {FAULTS.map((f) => {
             const on = current?.kind === f.kind;
+            const st = SENSOR_STATE[f.sensor];
             return (
               <button
                 key={f.kind}
                 disabled={disabled}
                 onClick={() => target && act(() => api.inject(f.kind, target.asset_id))}
-                className={`min-h-20 rounded-xl border-2 px-4 py-3 text-left transition-opacity disabled:opacity-40 ${
-                  on
-                    ? "border-red-600 bg-red-50 dark:border-red-400 dark:bg-red-500/20"
-                    : `${card} active:bg-zinc-100 dark:active:bg-zinc-800`
+                className={`flex min-h-20 min-w-0 flex-col items-start justify-center rounded-xl border-2 px-2 py-2 text-left transition-opacity disabled:opacity-40 ${
+                  on ? "border-alert-line bg-alert-bg" : "border-line bg-surface active:border-foreground"
                 }`}
               >
-                <span className="flex items-baseline justify-between gap-3">
-                  <span className="text-2xl font-bold">{f.verb}</span>
-                  <span className={`text-sm font-semibold tracking-wide ${on ? "text-red-700 dark:text-red-300" : muted}`}>
-                    {on ? `${f.icon} ${f.state} · ON` : `→ ${f.state}`}
-                  </span>
-                </span>
-                <span className={`mt-1 block ${muted}`}>{f.what}</span>
+                <span className="text-2xl font-bold leading-tight">{f.verb}</span>
+                <span className={`text-sm font-semibold ${on ? "text-alert" : "text-muted"}`}>{st.word}</span>
+                <span className={`text-sm ${on ? "font-semibold text-alert" : "text-muted"}`}>{on ? `${st.icon} ON now` : f.what}</span>
               </button>
             );
           })}
@@ -162,35 +130,35 @@ export default function AttackPage() {
       </section>
 
       {error && (
-        <p role="alert" className="mt-4 rounded-lg border-2 border-red-600 bg-red-50 p-3 font-semibold text-red-800 dark:bg-red-500/10 dark:text-red-200">
+        <p role="alert" className="mt-4 rounded-lg border-2 border-alert-line bg-alert-bg p-3 font-semibold text-alert">
           ▲ {error}
         </p>
       )}
 
-      <section className="mt-6" aria-labelledby="active">
-        <h2 id="active" className={`text-sm font-semibold uppercase tracking-wide ${muted}`}>
+      <section className="mt-6 pb-10" aria-labelledby="active">
+        <h2 id="active" className="section-title">
           3 · Active faults ({api.active.length})
         </h2>
         {api.active.length === 0 ? (
-          <p className={`mt-2 ${muted}`}>None. Every sensor is telling the truth.</p>
+          <p className="mt-2 text-muted"><span aria-hidden="true">✓ </span>None. Every sensor is telling the truth.</p>
         ) : (
           <ul className="mt-2 flex flex-col gap-2" aria-live="polite">
             {api.active.map((f) => {
               const b = byKind.get(f.kind);
               return (
-                <li key={f.asset_id} className={`flex items-center justify-between gap-3 rounded-lg p-3 ${card}`}>
+                <li key={f.asset_id} className="card flex items-center justify-between gap-3 p-3">
                   <span className="min-w-0">
                     <span className="block break-words font-semibold">{labelOf(f.asset_id)}</span>
                     <span className="mt-1 flex flex-wrap items-center gap-2 text-sm">
-                      <span className={alertTag}>{b?.icon} {b?.state ?? f.kind}</span>
-                      <span className={muted}>since {utc(f.since_ts)}</span>
+                      <SensorBadge state={b?.sensor ?? f.kind} />
+                      <span className="text-muted">since {utc(f.since_ts)}</span>
                     </span>
                   </span>
                   <button
                     disabled={!live || busy}
                     onClick={() => act(() => api.clear(f.asset_id))}
                     aria-label={`Clear fault on ${labelOf(f.asset_id)}`}
-                    className={`shrink-0 ${plainBtn}`}
+                    className="btn min-h-12 shrink-0 px-4 text-base"
                   >
                     Clear
                   </button>
@@ -202,7 +170,7 @@ export default function AttackPage() {
         <button
           disabled={!live || busy || api.active.length === 0}
           onClick={() => act(() => api.clear())}
-          className={`mt-3 w-full ${plainBtn}`}
+          className="btn mt-3 min-h-14 w-full text-base"
         >
           Clear all
         </button>

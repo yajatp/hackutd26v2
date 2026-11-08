@@ -5,6 +5,8 @@ import type { DatasetFiles } from "@/lib/eog/load";
 import { validateFiles, type Validation } from "@/lib/eog/validate";
 import { AvonProvider, useAvonConsole } from "@/lib/live";
 import { Board, ConnBanner } from "./Board";
+import { AppHeader } from "@/app/ui/AppHeader";
+import { ConnBadge, connState } from "@/app/ui/Badge";
 
 type Status = { kind: "idle" } | { kind: "busy"; what: string } | { kind: "error"; msg: string };
 
@@ -32,7 +34,7 @@ function day(unix: number): string {
 function Checked({ v }: { v: Validation }) {
   const s = v.summary!;
   return (
-    <div className="mt-2 text-xs opacity-70 tabular-nums">
+    <div className="mt-2 text-sm text-muted tabular-nums">
       Checked: {s.readings.toLocaleString("en-US")} readings · {s.systems} systems · {s.facilities} facilities ·
       {" "}{s.wells} wells · every {Math.round(s.step_s / 60)} min · {day(s.start)} to {day(s.end)} UTC
       {v.warnings.length > 0 && (
@@ -101,25 +103,29 @@ function ConsoleScreen() {
   }
 
   return (
-    <main className="mx-auto max-w-4xl p-4 font-sans sm:p-8">
-      <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-current/15 pb-3">
-        <h1 className="text-lg font-bold">Avon <span className="font-normal opacity-60">· every site, one view</span></h1>
+    <main className="mx-auto max-w-4xl p-4 sm:p-8">
+      <AppHeader product="Avon" title="every site, one view" sub="What broke, the cheapest fix, and which sensors to trust.">
         {view && (
-          <p className="text-sm tabular-nums opacity-70">
+          <span className="tabular-nums">
             {source} · now {new Date(view.now * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC
-          </p>
+          </span>
         )}
-      </header>
+        <ConnBadge state={connState(conn)} />
+      </AppHeader>
 
-      <section className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-        <span className="opacity-60">Load a site:</span>
-        {folders.map((f) => (
-          <button key={f} onClick={() => loadServerFolder(f)}
-            className={`rounded border px-2 py-1 hover:bg-current/5 ${f.endsWith(source) && source ? "border-current" : "border-current/20"}`}>
-            {f.split("/").pop()}
-          </button>
-        ))}
-        <button onClick={() => pickRef.current?.click()} className="rounded border border-current/20 px-2 py-1 hover:bg-current/5">
+      {/* Before a site is loaded, loading one is the next action, so the buttons are big. After, they step back. */}
+      <section aria-label="Site data" className={`flex flex-wrap items-center gap-2 ${view ? "mt-3 text-sm" : "card mt-6"}`}>
+        <span className={view ? "text-muted" : "w-full text-lg font-semibold"}>{view ? "Site data:" : "Start here: load a site's data"}</span>
+        {folders.map((f) => {
+          const on = !!source && f.endsWith(source);
+          return (
+            <button key={f} onClick={() => loadServerFolder(f)} aria-pressed={on}
+              className={`btn ${view ? `min-h-8 px-2.5 py-1 ${on ? "btn-on" : "font-normal"}` : "btn-primary text-base"}`}>
+              {on && <span aria-hidden="true">✓ </span>}{f.split("/").pop()}
+            </button>
+          );
+        })}
+        <button onClick={() => pickRef.current?.click()} className={`btn ${view ? "min-h-8 px-2.5 py-1 font-normal" : "text-base"}`}>
           Open a folder…
         </button>
         <input ref={pickRef} type="file" multiple hidden onChange={(e) => loadPicked(e.target.files)}
@@ -127,17 +133,17 @@ function ConsoleScreen() {
       </section>
 
       <ConnBanner conn={conn} />
-      {status.kind === "busy" && <p className="mt-6 animate-pulse">{status.what}…</p>}
+      {status.kind === "busy" && <p role="status" className="mt-6 animate-pulse text-lg font-semibold">{status.what}…</p>}
       {status.kind === "error" && (
-        <div className="mt-6 rounded border border-red-500 p-3 text-red-600 dark:text-red-400">
-          <p className="font-semibold">This folder can&apos;t be used yet. Nothing was planned from it.</p>
+        <div role="alert" className="mt-6 rounded-lg border-2 border-alert-line bg-alert-bg p-3 text-alert">
+          <p className="font-semibold">▲ This folder can&apos;t be used yet. Nothing was planned from it.</p>
           <ul className="mt-1 list-disc pl-5 text-sm">{status.msg.split("\n").map((m) => <li key={m}>{m}</li>)}</ul>
         </div>
       )}
       {view && status.kind === "idle" && validation?.ok && validation.summary && <Checked v={validation} />}
       {view && status.kind === "idle" && <Board view={view} dataset={source} />}
       {!view && status.kind === "idle" && (
-        <p className="mt-10 opacity-60">Pick a site above, or open any folder that holds network.json, ops.json and telemetry.csv.</p>
+        <p className="mt-4 text-muted">Pick a site above, or open any folder that holds network.json, ops.json and telemetry.csv.</p>
       )}
     </main>
   );
