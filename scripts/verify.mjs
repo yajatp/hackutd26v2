@@ -24,7 +24,7 @@ import { tsImport } from "tsx/esm/api";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const lib = p => tsImport(pathToFileURL(join(root, p)).href, import.meta.url);
 const { verifyChain } = await lib("lib/chain.ts");
-const { chainStatus, advanceWitness, parseWitness } = await lib("lib/rules/darkroom/status.ts");
+const { chainStatus, advanceWitness, parseWitness, memberMismatch } = await lib("lib/rules/darkroom/status.ts");
 const { rowToEvent } = await lib("lib/rules/darkroom/replay.ts");
 
 function arg(name, fallback) {
@@ -70,6 +70,16 @@ async function readLog() {
   return result.rows.map(r => toEvent(Object.fromEntries(names.map((n, i) => [n, r[i]]))));
 }
 
+// Server mode only: the member table, to compare with the member_added entries in the log.
+async function readMembers() {
+  if (file) return null;
+  const url = `http://${host}:${port}/v1/database/${db}/sql`;
+  const res = await fetch(url, { method: "POST", body: "SELECT identity, name, role, active FROM member" });
+  if (!res.ok) throw new Error(`${url}: HTTP ${res.status} ${await res.text()}`);
+  const [result] = await res.json();
+  return result.rows.map(([id, name, role, active]) => ({ identity: String(Array.isArray(id) ? id[0] : id), name, role, active }));
+}
+
 function readWitness() {
   if (!witnessPath || !existsSync(witnessPath)) return null;
   const w = parseWitness(JSON.parse(readFileSync(witnessPath, "utf8")));
@@ -85,11 +95,18 @@ function report(log, witness, status) {
   console.log(`  entries: ${sorted.length}${last ? ` (#${sorted[0].seq}..#${last.seq}), head ${short(last.hash)}` : ""}`);
   if (witness) console.log(`  witness: saw up to #${witness.seq}, head ${short(witness.head)}${witnessPath ? ` (${witnessPath})` : ""}`);
   else console.log(`  witness: none${witnessPath ? ` yet (will save to ${witnessPath})` : " (pass --witness to catch deleted entries)"}`);
-  if (status.kind === "tampering") {
-    const v = verifyChain(sorted);
-    const why = !v.ok
-      ? { seq: "an entry is missing or out of order", link: "it does not link to the entry before it", hash: "its contents do not match its hash" }[v.reason]
-      : "the chain was rebuilt: it no longer matches the head this witness saw";
+  if (status.kind === "tampering" && status.members) {
+    console.log(`  why:     member ${status.members} in the member table does not match the member entries in the log`);
+  } else if (status.kind === "tampering") {
+    let why;
+    try {
+      const v = verifyChain(sorted);
+      why = !v.ok
+        ? { seq: "an entry is missing or out of order", link: "it does not link to the entry before it", hash: "its contents do not match its hash" }[v.reason]
+        : "the chain was rebuilt: it no longer matches the head this witness saw";
+    } catch {
+      why = "its contents cannot be hashed, so the module did not write it";
+    }
     console.log(`  why:     entry #${status.at}: ${why}`);
   }
   if (status.kind === "rollback") console.log(`  why:     entries from #${status.at} on were removed after this witness saw them`);
@@ -97,10 +114,13 @@ function report(log, witness, status) {
 
 async function checkOnce(witness, quiet) {
   const log = await readLog();
-  const status = chainStatus(log, witness);
+  let status = chainStatus(log, witness);
+  const members = status.kind === "verified" ? await readMembers() : null;
+  const stray = members ? memberMismatch(members, log) : null;
+  if (stray) status = { kind: "tampering", text: `MEMBER LIST CHANGED OUTSIDE THE LOG (${stray.slice(0, 8)})`, at: log.length, members: stray };
   if (!quiet) report(log, witness, status);
   if (exportPath) writeFileSync(exportPath, JSON.stringify([...log].sort((a, b) => a.seq - b.seq), null, 2));
-  const next = advanceWitness(log, witness);
+  const next = stray ? witness : advanceWitness(log, witness);
   if (witnessPath && next && JSON.stringify(next) !== JSON.stringify(witness)) {
     writeFileSync(witnessPath, JSON.stringify(next, null, 2));
     if (!quiet) console.log(`  saved:   witness now #${next.seq}, head ${short(next.head)}`);

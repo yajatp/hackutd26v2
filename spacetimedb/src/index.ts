@@ -89,6 +89,8 @@ const consoleMeta = table({ name: 'console_meta', public: true }, {
   builtAt: t.timestamp(),
 });
 
+const LOAD_LOCK_MICROS = 60_000_000n;  // a load older than this no longer blocks others
+
 // Which screen is loading a site right now. Batches and finish_ingest from any other screen are
 // refused, so two screens loading at once cannot mix their readings (review finding 2).
 const loadLock = table({ name: 'load_lock' }, {
@@ -141,11 +143,16 @@ export const load_dataset = spacetimedb.reducer(
     } catch (e) {
       throw new SenderError(String((e as Error).message ?? e));
     }
+    // Another screen's load still in progress: refuse rather than interrupt it (review 2, finding 2).
+    const busy = ctx.db.load_lock.id.find(0);
+    if (busy && !busy.loader.isEqual(ctx.sender)
+        && ctx.timestamp.microsSinceUnixEpoch - busy.startedAt.microsSinceUnixEpoch < LOAD_LOCK_MICROS) {
+      throw new SenderError('another screen is loading a site right now; try again in a minute');
+    }
+    // The board (alert, console_meta, sensor_issue) keeps showing the last site until
+    // finish_ingest replaces it, so a load that never finishes cannot leave it empty.
     ctx.db.reading.clear();
-    ctx.db.alert.clear();
-    ctx.db.console_meta.clear();
     ctx.db.fault.clear();
-    ctx.db.sensor_issue.clear();
     ctx.db.confirmation.clear();
     ctx.db.facility.clear();
     ctx.db.dataset_source.clear();
@@ -252,6 +259,7 @@ function requireLoader(ctx: Ctx) {
 export const finish_ingest = spacetimedb.reducer((ctx) => {
   requireLoader(ctx);
   rebuild(ctx);
+  ctx.db.load_lock.clear();         // load complete: anyone may load the next site
 });
 
 // Faults start this far back in the recording, so the console shows them at once:
