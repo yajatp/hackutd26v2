@@ -219,3 +219,9 @@ test("ConnBanner speaks only when the live data is lost", () => {
   assert.equal(p.attrs.role, "alert");
   assert.equal(words(p), "▲ DISCONNECTED from the live data. Showing the last data received.");
 });
+
+test("planner sentences show asset IDs as words (QA bug 12)", async () => {
+  const { readableIds } = await import("./Board");
+  assert.equal(readableIds("Shut in S5_WELL_C2 at 15:30, and shut in S5_WELL_C3 at 18:09"), "Shut in S5 well C2 at 15:30, and shut in S5 well C3 at 18:09");
+  assert.equal(readableIds("Call 2 trucks now, 1 trip each"), "Call 2 trucks now, 1 trip each");
+});

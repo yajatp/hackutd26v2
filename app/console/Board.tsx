@@ -30,6 +30,11 @@ function countdown(h: number | null): string {
   return `trips in ${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m`;
 }
 
+// Asset IDs inside planner sentences, as a person reads them: "S5_WELL_C2" -> "S5 well C2" (QA bug 12).
+export function readableIds(text: string): string {
+  return text.replace(/\b(S\d+)_WELL_([A-Z0-9]+)\b/g, "$1 well $2").replace(/\b(S\d+)_(TANK|PUMP|FACILITY)_([A-Z0-9]+)\b/g, (_m, sys: string, kind: string, id: string) => `${sys} ${kind.toLowerCase()} ${id}`);
+}
+
 function pretty(id: string): string {
   return id.replace(/^(S\d+)_/, "$1 · ").replace(/_/g, " ");
 }
@@ -266,9 +271,9 @@ function FixCardView({ a, top, dataset, now }: { a: Alert; top: boolean; dataset
             <tbody>
               {fix.alternatives.map((alt) => (
                 <tr key={alt.label} className="border-t border-line-soft">
-                  <td className="py-1.5 pr-3">{alt.label}</td>
+                  <td className="py-1.5 pr-3">{readableIds(alt.label)}</td>
                   <td className="py-1.5 pr-4 text-right">{money(alt.cost)}</td>
-                  <td className="py-1.5 text-muted">{alt.why}</td>
+                  <td className="py-1.5 text-muted">{readableIds(alt.why)}</td>
                 </tr>
               ))}
             </tbody>
