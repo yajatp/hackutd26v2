@@ -200,6 +200,7 @@
 
 .night :global(.btn-on) {
   border-color: #298dff;
+  background: color-mix(in srgb, #298dff 16%, #131518);
   box-shadow: none;
 }
 
@@ -211,16 +212,48 @@
   font-weight: 600;
   letter-spacing: normal;
   text-transform: none;
-  color: #ffffff;
+  color: #7db9ff;
 }
 
 /* No boxes: a hairline above, text on the page's one left margin. */
 /* Sui panels: #131518 on the black page, a thin border, a modest radius. */
 .night :global(.card) {
-  border: 1px solid #222529;
+  border: 1px solid rgb(41 141 255 / 0.35);
   border-radius: 12px;
-  background: #131518;
+  background: color-mix(in srgb, #298dff 8%, #131518);
   box-shadow: none;
+}
+
+/* The totals line ("2 pump failures. Cost if unaddressed ...; response cost ..."): a blue-tinted
+   summary strip with a blue hairline, its figures in the one blue. */
+.night :global(p.mt-10.text-xl.text-muted) {
+  border: 1px solid rgb(41 141 255 / 0.35);
+  border-left: 3px solid #298dff;
+  border-radius: 10px;
+  background: color-mix(in srgb, #298dff 10%, #131518);
+  padding: 14px 18px;
+  color: #c4ddff;
+}
+
+.night :global(p.mt-10.text-xl.text-muted b) {
+  color: #7db9ff;
+}
+
+/* Buttons lift to a blue tint on hover. */
+.night :global(.btn:not(.btn-primary):hover:not(:disabled)) {
+  border-color: rgb(41 141 255 / 0.55);
+  background: color-mix(in srgb, #298dff 16%, #131518);
+}
+
+/* Headings inside an amber or red alert block stay white: blue never sits on an alert. */
+.night :global(.bg-warn-bg .section-title),
+.night :global(.bg-alert-bg .section-title) {
+  color: #ffffff;
+}
+
+/* The decision's facts (Truck arrives, Tank would trip, ...): labels in light blue. */
+.night :global(dl.mt-5 dt.text-xs) {
+  color: #7db9ff;
 }
 
 /* ---- Motion for the moment of change (app/console/motion.tsx, Board.tsx) -------------------

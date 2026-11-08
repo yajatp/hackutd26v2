@@ -51,6 +51,11 @@
   font-weight: 700;
   font-size: 1.125rem;
   letter-spacing: 0.01em;
+  /* The page's one solid-blue surface: the wordmark on a Sui-blue chip. */
+  padding: 2px 12px;
+  border-radius: 8px;
+  background: #298dff;
+  color: #ffffff;
 }
 
 .barStatus {
@@ -119,7 +124,7 @@
 }
 
 .num {
-  color: var(--dust);
+  color: #298dff;
   font-family: var(--font-label);
   font-size: 0.875rem;
   font-weight: 500;
@@ -140,7 +145,7 @@
 }
 
 .hint {
-  color: var(--dust);
+  color: #7db9ff;
   font-family: var(--font-label);
   font-size: 0.8125rem;
   font-weight: 500;
@@ -156,7 +161,8 @@
 
 .row:hover,
 .row:focus-visible {
-  background: #131518;
+  background: color-mix(in srgb, #298dff 12%, #131518);
+  box-shadow: inset 3px 0 0 #298dff;
   color: #ffffff;
 }
 
@@ -167,10 +173,18 @@
 }
 
 .row:hover .what,
-.row:focus-visible .what,
-.row:hover .hint,
-.row:focus-visible .hint {
-  color: #a1a7b2;
+.row:focus-visible .what {
+  color: #c4ddff;
+}
+
+.row:hover .hint:not([data-tone]),
+.row:focus-visible .hint:not([data-tone]) {
+  color: #a8d0ff;
+}
+
+/* The index opens on a Sui-blue rule. */
+.index {
+  border-top-color: #298dff;
 }
 
 .foot {

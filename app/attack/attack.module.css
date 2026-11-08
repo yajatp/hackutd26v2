@@ -116,7 +116,8 @@
 .step {
   display: inline-block;
   width: 20px;
-  color: var(--muted);
+  color: #298dff;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -192,7 +193,7 @@
 /* On a Moonlight row the night inks swap: quiet words in a dark Dust, the console's badges in
    their darker state inks. */
 .tank[aria-checked="true"] :global(.text-muted) {
-  color: #6c7584;
+  color: rgb(255 255 255 / 0.8);
 }
 
 .tank[aria-checked="true"] :global(.badge-alert) {
@@ -323,9 +324,11 @@
   background: var(--night);
 }
 
-/* Kill / Fake / Drift: one segmented row, 1 px dividers, square. */
+/* Kill / Fake / Drift: one segmented row, 1 px dividers, square, on a blue-tinted panel with a
+   blue hairline. */
 .grid {
-  border: 1px solid var(--line);
+  border: 1px solid rgb(41 141 255 / 0.35);
+  background: color-mix(in srgb, #298dff 8%, #131518);
 }
 
 .hit {
@@ -346,7 +349,7 @@
 }
 
 .hit + .hit {
-  border-left: 1px solid var(--line);
+  border-left: 1px solid rgb(41 141 255 / 0.25);
 }
 
 /* Dim only when nothing can be sent (no connection, no tank), or, while one button charges and
@@ -395,7 +398,7 @@
 .hit:active:not(:disabled),
 .hit:active:not(:disabled) .word,
 .hit:active:not(:disabled) .what {
-  background: #222529;
+  background: color-mix(in srgb, #298dff 24%, #131518);
   color: #ffffff;
 }
 
@@ -675,8 +678,8 @@
   .undo:hover:not(:disabled),
   .undo:hover:not(:disabled) .undoLine,
   .red :global(.btn:hover:not(:disabled)) {
-    border-color: #6c7584;
-    background: #222529;
+    border-color: rgb(41 141 255 / 0.55);
+    background: color-mix(in srgb, #298dff 16%, #131518);
     color: #ffffff;
   }
 

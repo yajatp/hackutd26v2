@@ -546,3 +546,43 @@
   margin-left: auto;
   color: var(--dust);
 }
+
+/* The landing (/ and /vr): everything in one centred column under the table (Mohan, Sun 06:40). */
+.deck,
+.runsheet,
+.more,
+.foot {
+  box-sizing: border-box;
+  width: min(880px, calc(100% - 2 * var(--gutter)));
+  max-width: none;
+  margin-inline: auto;
+  padding-inline: 0;
+}
+.deck {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+}
+.lead,
+.rail {
+  width: 100%;
+  max-width: none;
+}
+.lead,
+.h2,
+.finish,
+.goNote {
+  text-align: center;
+}
+.summary,
+.goNote {
+  margin-inline: auto;
+}
+.foot {
+  justify-content: center;
+  gap: 1.5rem;
+}
+.footNote {
+  margin-left: 0;
+  width: 100%;
+  text-align: center;
+}

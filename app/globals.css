@@ -19,6 +19,12 @@
   --sui-white: #ffffff;
   --sui-blue: #298dff;
   --sui-blue-soft: rgb(41 141 255 / 0.12);
+  /* More of the one blue (Mohan, Sun 06:30): tinted panels, a blue hairline on key cards, light
+     blue labels and figures. Same hue throughout; no glow. */
+  --sui-blue-light: #7db9ff;
+  --sui-blue-tint: color-mix(in srgb, #298dff 8%, #131518);
+  --sui-blue-tint-2: color-mix(in srgb, #298dff 16%, #131518);
+  --sui-blue-line: rgb(41 141 255 / 0.35);
   --font-text: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-label: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --radius-s: 8px;
@@ -85,9 +91,9 @@ a { color: inherit; }
 /* Shared pieces. app/ui/ wraps the badges; screens use these classes directly for the rest. */
 @layer components {
   .card {
-    border: 1px solid var(--line);
+    border: 1px solid var(--sui-blue-line);
     border-radius: var(--radius-l);
-    background: var(--surface);
+    background: var(--sui-blue-tint);
     padding: 1.25rem;
   }
 
@@ -97,7 +103,7 @@ a { color: inherit; }
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--sui-grey-2);
+    color: var(--sui-blue-light);
   }
 
   .btn {
@@ -116,8 +122,8 @@ a { color: inherit; }
     font-weight: 600;
   }
   .btn:hover:not(:disabled) {
-    border-color: var(--sui-grey-1);
-    background: var(--surface-2);
+    border-color: var(--sui-blue-line);
+    background: var(--sui-blue-tint-2);
   }
   .btn:disabled {
     opacity: 0.4;
@@ -134,6 +140,7 @@ a { color: inherit; }
   }
   .btn-on {
     border-color: var(--accent);
+    background: var(--sui-blue-tint-2);
     box-shadow: inset 0 0 0 1px var(--accent);
   }
 
@@ -187,4 +194,12 @@ a { color: inherit; }
 /* The live square in the one accent (unlayered, so a page's .badge color does not reach it). */
 .badge-ok > span[aria-hidden="true"] {
   color: #298dff;
+}
+
+/* Pump details (app/console/PumpFacts.tsx, on /console and /insight) read these tokens inline: a
+   blue-tinted panel, a blue hairline and light blue Plex Mono labels. */
+[data-pump-facts] {
+  --sui-panel: var(--sui-blue-tint);
+  --sui-hair: var(--sui-blue-line);
+  --sui-grey-1: var(--sui-blue-light);
 }

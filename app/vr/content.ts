@@ -3,7 +3,7 @@
 
 export const ADB = "adb reverse tcp:3000 tcp:3000\nadb reverse tcp:3001 tcp:3001";
 
-export const TITLE = "Hand the judge the night shift.";
+export const TITLE = "Avon.";
 
 // The hand-off is a real sequence (numbering is earned). {top} is the starting tank's name.
 export const STEPS: { text: string; cmd?: string; note?: string }[] = [

@@ -63,20 +63,20 @@ export function Station() {
       <section className={s.hero}>
         <Field tanks={st.tanks} pads={st.pads} states={st.states} top={st.top} />
         {/* The one Avon header, laid over the table. */}
-        <ScreenHeader as="p" current="vr" title="VR station" className={s.bar}
+        <ScreenHeader as="p" current="vr" title="Home" className={s.bar}
           clock={<LiveClock dataUnix={dataAt} />} status={<ConnBadge state={connState(st.status)} ms={rtt} />} />
         <p className={s.hint}>Move the pointer to light the table.</p>
       </section>
 
-      <div className={s.intro}>
-        {/* Rises line by line from behind a mask on load (LineReveal); the words are in the DOM at once. */}
-        <h1 className={s.title}><LineReveal text={TITLE} onMount /></h1>
+      {/* The landing: the name and the one action, centred. Rises from behind a mask on load (LineReveal). */}
+      <div className={s.intro} style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "28px" }}>
+        <h1 className={s.title} style={{ borderBottom: "none", paddingBottom: 0 }}><LineReveal text={TITLE} onMount /></h1>
+        <Link href="/twin" className={s.primary}>Open the model</Link>
       </div>
 
       <div className={s.deck}>
         <div className={s.lead}>
           <p className={s.summary}>{st.summary}</p>
-          <Link href="/twin" className={s.primary}>Open the model</Link>
           <p className={s.goNote}>
             {st.xr === "vr" ? "Enter VR is at the top right of the model." : "It opens flat in this browser. The headset gets VR over the cable or the hosted link."}
           </p>

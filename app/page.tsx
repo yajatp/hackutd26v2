@@ -1,9 +1,11 @@
-import { Home } from "./home/Home";
-import { siteParam } from "./home/screens";
+import type { Metadata } from "next";
+import { AvonProvider } from "@/lib/live";
+import { Station } from "./vr/Station";
 
-// The front door the hosted link lands on: what Avon is, and every screen in demo order. The site
-// is read here on the server, so the index links carry ?site= even before any JavaScript runs.
-export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const site = siteParam((await searchParams).site);
-  return <Home site={site} />;
+export const metadata: Metadata = { title: "Avon · Home" };
+
+// The landing the hosted link opens: Avon and Open the model, over the live table. The screen
+// index moved to /screens.
+export default function Page() {
+  return <AvonProvider><Station /></AvonProvider>;
 }

@@ -5,11 +5,11 @@ import s from "./screen-nav.module.css";
 // (screen-nav.module.css), so it is right from the first paint. A tab inverts on hover.
 // Plain links: each screen opens fresh with its own live connection.
 export const SCREENS = [
+  { key: "vr", href: "/", label: "Home" },
   { key: "console", href: "/console", label: "Console" },
   { key: "attack", href: "/attack", label: "Phone 1" },
   { key: "insight", href: "/insight", label: "Insight" },
   { key: "twin", href: "/twin", label: "The model" },
-  { key: "vr", href: "/vr", label: "VR station" },
   { key: "spacetime", href: "/spacetime", label: "SpacetimeDB" },
 ] as const;
 

@@ -8,7 +8,7 @@ const facts = (over: Partial<LiveFacts> = {}): LiveFacts => ({
 
 test("the index is the demo order, with the map at 5 and the console first", () => {
   assert.deepEqual(SCREENS.map((s) => s.n), [1, 2, 3, 4, 5, 6, 7, 8]);
-  assert.deepEqual(SCREENS.map((s) => s.href), ["/console", "/attack", "/twin", "/insight", "/map", "/box", "/spacetime", "/vr"]);
+  assert.deepEqual(SCREENS.map((s) => s.href), ["/console", "/attack", "/twin", "/insight", "/map", "/box", "/spacetime", "/"]);
 });
 
 test("a known ?site= is carried to every screen; an unknown one is dropped", () => {
