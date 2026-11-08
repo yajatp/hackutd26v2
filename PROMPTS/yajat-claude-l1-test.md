@@ -19,18 +19,27 @@ B. The judge-as-operator flow, three times. The judge plays the night-shift oper
 5. `npm run demo:reset`. Record the seconds to READY.
 Also run `npm run smoke` once and paste the last 20 lines.
 
-C. Quest 3S without a cable or developer mode. This is the important unknown, so test it even if B has problems.
+C. The Quest 3S (the VR view `/twin` and its station page `/vr` are on mohan/live now; pull first). This is the important unknown, so test it even if B has problems.
+Route A, no cable and no developer mode (try first):
 1. Put the Quest on the same hotspot as L1.
 2. In the Quest Browser, open `chrome://flags`, search for "insecure" and set **Insecure origins treated as secure** to Enabled. In its text box enter `http://<LAN IP>:3000`, then relaunch the browser.
-3. Open `http://<LAN IP>:3000/xr`. Record what it says (we want "immersive-ar supported"), then press **Enter AR** and say whether a session starts.
-4. Also open `http://<LAN IP>:3000/console` in the Quest Browser and record whether the status chip says LIVE.
-If developer mode is already on, also test the cable route:
-- run `adb devices`, then `adb reverse tcp:3000 tcp:3000` and `adb reverse tcp:3001 tcp:3001`;
-- open `http://localhost:3000/xr` in the Quest Browser;
-- record the same things as in step 3.
+3. Open `http://<LAN IP>:3000/vr`. Record the "Before you hand it over" lines; we want "Live data" and "This browser can enter VR". If it says "No VR on this address", the flag did not take: go to Route B.
+4. Press **Open the model**, then **Enter VR**.
+Route B, cable and developer mode (if A fails):
+- turn on developer mode in the Meta Horizon app and restart the headset;
+- run `brew install android-platform-tools`;
+- connect USB-C, then in the headset press Allow;
+- run `npm run quest -- --watch` on L1 and paste its output;
+- in the headset, `/vr` should say it can enter VR. Then press Open the model, then Enter VR.
+In VR, record pass or fail and what you saw for each of these:
+- the How to use card ahead, the table below it, and S5 Facility C red with its panel on the right;
+- trigger (or pinch) on a tank opens its panel;
+- the thumbstick turns the table 30 degrees per push, and Reset view puts it back;
+- a teammate taps Fake on S5 Facility C on Phone 1, and within a few seconds the tank reads LYING · SIMULATED in the headset (then Clear all);
+- someone new to VR, told only "Point at a tank and pull the trigger", knows what to do.
 
 Write the results to `docs/test-L1-<HHMM>.md`:
 - one table for B (run, confirm OK, tap to console change in seconds, AV- ref, reset seconds, problems);
 - the smoke tail;
 - C, step by step, with what the headset showed (a photo of the headset view is welcome).
-Commit only that file on `yajat/l1-test-2` with your own git identity. Use no AI-credit lines and keep the word "Claude" out of the message. Push only that branch, never to main or mohan/live, never force push. Tell Mohan the C result the moment you have it: it decides whether anyone needs developer mode.
+Commit only that file on `yajat/l1-test-2` with your own git identity. Use no AI-credit lines and keep the word "Claude" out of the message. Push only that branch, never to main or mohan/live, never force push. Tell Mohan the C result the moment you have it (which route worked): it decides whether anyone needs developer mode.
