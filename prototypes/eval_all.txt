@@ -1,0 +1,112 @@
+===== full_week: parse 0.18s, parse+detect 0.29s, now=1791762900, detected 23
+   EVENT_1   pipeline_leak     S3_PIPELINE_B  onset_err=+1.00h end_err=-0.25h status key=resolved ours=resolved detect_lag=1.33h
+   EVENT_2   pump_degradation  S5_PUMP_A      onset_err=+1.17h end_err=+0.00h status key=resolved ours=resolved detect_lag=3.25h
+   EVENT_3   pump_degradation  S2_PUMP_A      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved detect_lag=3.25h
+   EVENT_4   pipeline_leak     S4_PIPELINE_A  onset_err=-0.08h end_err=+0.00h status key=resolved ours=resolved detect_lag=0.42h
+   EVENT_5   pump_degradation  S1_PUMP_C      onset_err=-0.42h end_err=+0.00h status key=resolved ours=resolved detect_lag=3.75h
+   EVENT_6   pump_failure      S1_PUMP_B      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved key never trips; pred htl@onset=8.22h (repair 6h) level@onset key=35 ours=34.9
+   EVENT_7   pump_degradation  S3_PUMP_A      onset_err=+0.33h end_err=+0.00h status key=resolved ours=resolved detect_lag=2.67h
+   EVENT_8   pump_degradation  S4_PUMP_C      onset_err=+1.75h end_err=+0.00h status key=resolved ours=resolved detect_lag=3.17h
+   EVENT_9   pump_failure      S1_PUMP_C      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err -1min level@onset key=50 ours=49.9
+   EVENT_10  pipeline_leak     S5_PIPELINE_B  onset_err=+0.17h end_err=-1.00h status key=resolved ours=resolved detect_lag=0.58h
+   EVENT_11  pump_failure      S2_PUMP_B      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err +2min level@onset key=50 ours=50.0
+   EVENT_12  pump_failure      S2_PUMP_C      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err -0min level@onset key=45 ours=45.1
+   EVENT_13  pump_failure      S2_PUMP_A      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err +1min level@onset key=50 ours=49.9
+   EVENT_14  pump_failure      S3_PUMP_A      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err -0min level@onset key=45 ours=45.1
+   EVENT_15  pump_failure      S4_PUMP_C      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err +1min level@onset key=55 ours=55.0
+   EVENT_16  pipeline_leak     S1_PIPELINE_B  onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved detect_lag=0.50h
+   EVENT_17  pipeline_leak     S2_PIPELINE_C  onset_err=+0.00h end_err=+1.42h status key=resolved ours=resolved detect_lag=0.42h
+   EVENT_18  pump_failure      S4_PUMP_B      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err -1min level@onset key=41.9 ours=42.0
+   EVENT_19  pump_failure      S4_PUMP_C      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err -2min level@onset key=41 ours=41.0
+   EVENT_20  pump_failure      S4_PUMP_D      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err -2min level@onset key=45 ours=45.0
+   EVENT_21  pump_failure      S4_PUMP_A      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err +0min level@onset key=55 ours=54.9
+   EVENT_22  pump_failure      S5_PUMP_C      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err -2min level@onset key=60 ours=60.0
+   EVENT_23  pump_failure      S5_PUMP_B      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err +1min level@onset key=50.1 ours=50.1
+  pipeline_leak     TP=5 FP=0 FN=0 precision=1.00 recall=1.00 status_match=5/5 |onset err| mean=0.25h max=1.00h |end err| mean=0.53h max=1.42h
+  pump_degradation  TP=5 FP=0 FN=0 precision=1.00 recall=1.00 status_match=5/5 |onset err| mean=0.73h max=1.75h |end err| mean=0.00h max=0.00h
+  pump_failure      TP=13 FP=0 FN=0 precision=1.00 recall=1.00 status_match=13/13 |onset err| mean=0.00h max=0.00h |end err| mean=0.00h max=0.00h
+===== snapshot_2026-10-08T1200: parse 0.09s, parse+detect 0.18s, now=1791460800, detected 13
+   EVENT_1   pipeline_leak     S3_PIPELINE_B  onset_err=+1.00h end_err=-0.25h status key=resolved ours=resolved detect_lag=1.33h
+   EVENT_2   pump_degradation  S5_PUMP_A      onset_err=+1.17h end_err=+0.00h status key=resolved ours=resolved detect_lag=3.25h
+   EVENT_3   pump_degradation  S2_PUMP_A      onset_err=+0.67h end_err=+0.00h status key=resolved ours=resolved detect_lag=3.42h
+   EVENT_4   pipeline_leak     S4_PIPELINE_A  onset_err=-0.08h end_err=+0.00h status key=resolved ours=resolved detect_lag=0.42h
+   EVENT_5   pump_degradation  S1_PUMP_C      onset_err=-0.17h end_err=+0.00h status key=resolved ours=resolved detect_lag=3.92h
+   EVENT_6   pump_failure      S1_PUMP_B      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved key never trips; pred htl@onset=8.22h (repair 6h) level@onset key=35 ours=34.9
+   EVENT_7   pump_degradation  S3_PUMP_A      onset_err=+0.25h end_err=None status key=ongoing ours=ongoing detect_lag=3.42h
+   EVENT_8   pump_degradation  S4_PUMP_C      onset_err=+1.17h end_err=None status key=ongoing ours=ongoing detect_lag=3.33h
+   EVENT_9   pump_failure      S1_PUMP_C      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err -1min level@onset key=50 ours=49.9
+   EVENT_10  pipeline_leak     S5_PIPELINE_B  onset_err=+0.17h end_err=None status key=ongoing ours=ongoing detect_lag=0.58h
+   EVENT_11  pump_failure      S2_PUMP_B      onset_err=+0.00h end_err=None status key=ongoing ours=ongoing trips_at err +2min level@onset key=50 ours=50.0 | NOW htl key=1.42 ours=1.42 level key=78.6 ours=78.53
+   EVENT_12  pump_failure      S2_PUMP_C      onset_err=+0.00h end_err=None status key=ongoing ours=ongoing trips_at err -0min level@onset key=45 ours=45.1 | NOW htl key=2.33 ours=2.33 level key=69.3 ours=69.34
+   EVENT_13  pump_failure      S2_PUMP_A      onset_err=+0.00h end_err=None status key=ongoing ours=ongoing trips_at err +1min level@onset key=50 ours=49.9 | NOW htl key=2.58 ours=2.59 level key=68.3 ours=68.21
+  pipeline_leak     TP=3 FP=0 FN=0 precision=1.00 recall=1.00 status_match=3/3 |onset err| mean=0.42h max=1.00h |end err| mean=0.12h max=0.25h
+  pump_degradation  TP=5 FP=0 FN=0 precision=1.00 recall=1.00 status_match=5/5 |onset err| mean=0.68h max=1.17h |end err| mean=0.00h max=0.00h
+  pump_failure      TP=5 FP=0 FN=0 precision=1.00 recall=1.00 status_match=5/5 |onset err| mean=0.00h max=0.00h |end err| mean=0.00h max=0.00h
+===== snapshot_2026-10-09T0330: parse 0.11s, parse+detect 0.20s, now=1791516600, detected 15
+   EVENT_1   pipeline_leak     S3_PIPELINE_B  onset_err=+1.00h end_err=-0.25h status key=resolved ours=resolved detect_lag=1.33h
+   EVENT_2   pump_degradation  S5_PUMP_A      onset_err=+1.25h end_err=+0.00h status key=resolved ours=resolved detect_lag=3.25h
+   EVENT_3   pump_degradation  S2_PUMP_A      onset_err=+0.67h end_err=+0.00h status key=resolved ours=resolved detect_lag=3.42h
+   EVENT_4   pipeline_leak     S4_PIPELINE_A  onset_err=-0.08h end_err=+0.00h status key=resolved ours=resolved detect_lag=0.42h
+   EVENT_5   pump_degradation  S1_PUMP_C      onset_err=-0.17h end_err=+0.00h status key=resolved ours=resolved detect_lag=3.92h
+   EVENT_6   pump_failure      S1_PUMP_B      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved key never trips; pred htl@onset=8.22h (repair 6h) level@onset key=35 ours=34.9
+   EVENT_7   pump_degradation  S3_PUMP_A      onset_err=+0.25h end_err=+0.00h status key=resolved ours=resolved detect_lag=3.42h
+   EVENT_8   pump_degradation  S4_PUMP_C      onset_err=+1.17h end_err=+0.00h status key=resolved ours=resolved detect_lag=3.33h
+   EVENT_9   pump_failure      S1_PUMP_C      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err -1min level@onset key=50 ours=49.9
+   EVENT_10  pipeline_leak     S5_PIPELINE_B  onset_err=+0.17h end_err=None status key=ongoing ours=ongoing detect_lag=0.58h
+   EVENT_11  pump_failure      S2_PUMP_B      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err +2min level@onset key=50 ours=50.0
+   EVENT_12  pump_failure      S2_PUMP_C      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err -0min level@onset key=45 ours=45.1
+   EVENT_13  pump_failure      S2_PUMP_A      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err +1min level@onset key=50 ours=49.9
+   EVENT_14  pump_failure      S3_PUMP_A      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err -0min level@onset key=45 ours=45.1
+   EVENT_15  pump_failure      S4_PUMP_C      onset_err=+0.00h end_err=None status key=ongoing ours=ongoing trips_at err +1min level@onset key=55 ours=55.0 | NOW htl key=2.3 ours=2.32 level key=69.6 ours=69.46
+  pipeline_leak     TP=3 FP=0 FN=0 precision=1.00 recall=1.00 status_match=3/3 |onset err| mean=0.42h max=1.00h |end err| mean=0.12h max=0.25h
+  pump_degradation  TP=5 FP=0 FN=0 precision=1.00 recall=1.00 status_match=5/5 |onset err| mean=0.70h max=1.25h |end err| mean=0.00h max=0.00h
+  pump_failure      TP=7 FP=0 FN=0 precision=1.00 recall=1.00 status_match=7/7 |onset err| mean=0.00h max=0.00h |end err| mean=0.00h max=0.00h
+===== snapshot_2026-10-10T0900: parse 0.14s, parse+detect 0.24s, now=1791622800, detected 21
+   EVENT_1   pipeline_leak     S3_PIPELINE_B  onset_err=+1.00h end_err=-0.25h status key=resolved ours=resolved detect_lag=1.33h
+   EVENT_2   pump_degradation  S5_PUMP_A      onset_err=+1.17h end_err=+0.00h status key=resolved ours=resolved detect_lag=3.25h
+   EVENT_3   pump_degradation  S2_PUMP_A      onset_err=+0.50h end_err=+0.00h status key=resolved ours=resolved detect_lag=3.33h
+   EVENT_4   pipeline_leak     S4_PIPELINE_A  onset_err=-0.08h end_err=+0.00h status key=resolved ours=resolved detect_lag=0.42h
+   EVENT_5   pump_degradation  S1_PUMP_C      onset_err=-0.33h end_err=+0.00h status key=resolved ours=resolved detect_lag=3.75h
+   EVENT_6   pump_failure      S1_PUMP_B      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved key never trips; pred htl@onset=8.22h (repair 6h) level@onset key=35 ours=34.9
+   EVENT_7   pump_degradation  S3_PUMP_A      onset_err=+0.42h end_err=+0.00h status key=resolved ours=resolved detect_lag=2.67h
+   EVENT_8   pump_degradation  S4_PUMP_C      onset_err=+1.83h end_err=+0.00h status key=resolved ours=resolved detect_lag=3.17h
+   EVENT_9   pump_failure      S1_PUMP_C      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err -1min level@onset key=50 ours=49.9
+   EVENT_10  pipeline_leak     S5_PIPELINE_B  onset_err=+0.17h end_err=-1.00h status key=resolved ours=resolved detect_lag=0.58h
+   EVENT_11  pump_failure      S2_PUMP_B      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err +2min level@onset key=50 ours=50.0
+   EVENT_12  pump_failure      S2_PUMP_C      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err -0min level@onset key=45 ours=45.1
+   EVENT_13  pump_failure      S2_PUMP_A      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err +1min level@onset key=50 ours=49.9
+   EVENT_14  pump_failure      S3_PUMP_A      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err -0min level@onset key=45 ours=45.1
+   EVENT_15  pump_failure      S4_PUMP_C      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err +1min level@onset key=55 ours=55.0
+   EVENT_16  pipeline_leak     S1_PIPELINE_B  onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved detect_lag=0.50h
+   EVENT_17  pipeline_leak     S2_PIPELINE_C  onset_err=+0.00h end_err=None status key=resolved ours=ongoing detect_lag=0.42h
+   EVENT_18  pump_failure      S4_PUMP_B      onset_err=+0.00h end_err=+0.00h status key=resolved ours=resolved trips_at err -1min level@onset key=41.9 ours=42.0
+   EVENT_19  pump_failure      S4_PUMP_C      onset_err=+0.00h end_err=None status key=ongoing ours=ongoing trips_at err -2min level@onset key=41 ours=41.0 | NOW htl key=3.25 ours=3.26 level key=60.4 ours=60.37
+   EVENT_20  pump_failure      S4_PUMP_D      onset_err=+0.00h end_err=None status key=ongoing ours=ongoing trips_at err -2min level@onset key=45 ours=45.0 | NOW htl key=3.48 ours=3.47 level key=59.2 ours=59.2
+   EVENT_21  pump_failure      S4_PUMP_A      onset_err=+0.00h end_err=None status key=ongoing ours=ongoing trips_at err +0min level@onset key=55 ours=54.9 | NOW htl key=2.95 ours=2.95 level key=64.4 ours=64.33
+  pipeline_leak     TP=5 FP=0 FN=0 precision=1.00 recall=1.00 status_match=4/5 |onset err| mean=0.25h max=1.00h |end err| mean=0.31h max=1.00h
+  pump_degradation  TP=5 FP=0 FN=0 precision=1.00 recall=1.00 status_match=5/5 |onset err| mean=0.85h max=1.83h |end err| mean=0.00h max=0.00h
+  pump_failure      TP=11 FP=0 FN=0 precision=1.00 recall=1.00 status_match=11/11 |onset err| mean=0.00h max=0.00h |end err| mean=0.00h max=0.00h
+===== mock_test_2026-10-10T1530: parse 0.15s, parse+detect 0.26s, now=1791646200, detected 23
+   pipeline_leak S3_PIPELINE_B 10-05 07:00 end 10-06 07:45 det 10-05 07:20 level None htl None
+   pump_degradation S5_PUMP_A 10-05 13:10 end 10-06 16:00 det 10-05 15:15 level None htl None
+   pump_degradation S2_PUMP_A 10-05 20:25 end 10-06 20:00 det 10-05 23:20 level None htl None
+   pipeline_leak S4_PIPELINE_A 10-06 01:55 end 10-07 06:00 det 10-06 02:25 level None htl None
+   pump_degradation S1_PUMP_C 10-06 11:40 end 10-08 00:20 det 10-06 15:45 level None htl None
+   pump_failure S1_PUMP_B 10-07 02:10 end 10-07 08:10 det  level None htl None
+   pump_degradation S3_PUMP_A 10-07 08:20 end 10-08 20:00 det 10-07 10:40 level None htl None
+   pump_degradation S4_PUMP_C 10-07 15:50 end 10-09 02:00 det 10-07 17:10 level None htl None
+   pump_failure S1_PUMP_C 10-08 00:20 end 10-08 06:20 det  level None htl None
+   pipeline_leak S5_PIPELINE_B 10-08 06:10 end 10-09 06:00 det 10-08 06:35 level None htl None
+   pump_failure S2_PUMP_B 10-08 09:00 end 10-08 15:00 det  level None htl None
+   pump_failure S2_PUMP_C 10-08 09:30 end 10-08 15:30 det  level None htl None
+   pump_failure S2_PUMP_A 10-08 10:00 end 10-08 16:00 det  level None htl None
+   pump_failure S3_PUMP_A 10-08 20:00 end 10-09 02:00 det  level None htl None
+   pump_failure S4_PUMP_C 10-09 02:00 end 10-09 08:00 det  level None htl None
+   pipeline_leak S1_PIPELINE_B 10-09 04:00 end 10-10 02:00 det 10-09 04:30 level None htl None
+   pipeline_leak S2_PIPELINE_C 10-09 10:00 end 10-10 07:25 det 10-09 10:25 level None htl None
+   pump_failure S4_PUMP_B 10-09 18:00 end 10-10 00:00 det  level None htl None
+   pump_failure S4_PUMP_C 10-10 07:00 end 10-10 13:00 det  level None htl None
+   pump_failure S4_PUMP_D 10-10 07:30 end 10-10 13:30 det  level None htl None
+   pump_failure S4_PUMP_A 10-10 08:00 end 10-10 14:00 det  level None htl None
+   pump_failure S5_PUMP_C 10-10 14:00 end ONGOING det  level 73.47 htl 2.05
+   pump_failure S5_PUMP_B 10-10 14:30 end ONGOING det  level 59.56 htl 3.44

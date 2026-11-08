@@ -1,0 +1,377 @@
+[
+ {
+  "category": "pipeline_leak",
+  "system_id": "S3",
+  "facility_id": "S3_FACILITY_B",
+  "asset_id": "S3_PIPELINE_B",
+  "onset_unix": 1791183600,
+  "onset_bounds": [
+   1791167400,
+   1791183600
+  ],
+  "detected_unix": 1791184800,
+  "end_unix": 1791272700,
+  "status": "resolved",
+  "evidence": [
+   "pipeline pressure below baseline and receive flow below pump flow while running"
+  ],
+  "hours_to_limit": null,
+  "end_bounds": [
+   1791264600,
+   1791280800
+  ]
+ },
+ {
+  "category": "pump_degradation",
+  "system_id": "S5",
+  "facility_id": "S5_FACILITY_A",
+  "asset_id": "S5_PUMP_A",
+  "onset_unix": 1791205800,
+  "onset_bounds": [
+   1791193800,
+   1791209400
+  ],
+  "detected_unix": 1791213300,
+  "end_unix": 1791302400,
+  "status": "resolved",
+  "evidence": [
+   "pump flow below max_flow_bpd and discharge pressure below baseline while running"
+  ],
+  "hours_to_limit": null,
+  "end_bounds": [
+   1791302400,
+   1791302400
+  ]
+ },
+ {
+  "category": "pump_degradation",
+  "system_id": "S2",
+  "facility_id": "S2_FACILITY_A",
+  "asset_id": "S2_PUMP_A",
+  "onset_unix": 1791232200,
+  "onset_bounds": [
+   1791220800,
+   1791236700
+  ],
+  "detected_unix": 1791242400,
+  "end_unix": 1791316800,
+  "status": "resolved",
+  "evidence": [
+   "pump flow below max_flow_bpd and discharge pressure below baseline while running"
+  ],
+  "hours_to_limit": null,
+  "end_bounds": [
+   1791316800,
+   1791316800
+  ]
+ },
+ {
+  "category": "pipeline_leak",
+  "system_id": "S4",
+  "facility_id": "S4_FACILITY_A",
+  "asset_id": "S4_PIPELINE_A",
+  "onset_unix": 1791251700,
+  "onset_bounds": [
+   1791251700,
+   1791251700
+  ],
+  "detected_unix": 1791253500,
+  "end_unix": 1791352800,
+  "status": "resolved",
+  "evidence": [
+   "pipeline pressure below baseline and receive flow below pump flow while running"
+  ],
+  "hours_to_limit": null,
+  "end_bounds": [
+   1791352800,
+   1791352800
+  ]
+ },
+ {
+  "category": "pump_degradation",
+  "system_id": "S1",
+  "facility_id": "S1_FACILITY_C",
+  "asset_id": "S1_PUMP_C",
+  "onset_unix": 1791286800,
+  "onset_bounds": [
+   1791273600,
+   1791289200
+  ],
+  "detected_unix": 1791301500,
+  "end_unix": 1791418800,
+  "status": "resolved",
+  "evidence": [
+   "pump flow below max_flow_bpd and discharge pressure below baseline while running"
+  ],
+  "hours_to_limit": null
+ },
+ {
+  "category": "pump_failure",
+  "system_id": "S1",
+  "facility_id": "S1_FACILITY_B",
+  "asset_id": "S1_PUMP_B",
+  "onset_unix": 1791339000,
+  "end_unix": 1791360600,
+  "status": "resolved",
+  "evidence": [
+   "pump status = 2 (fault)"
+  ],
+  "level_onset_pct": 34.86,
+  "hours_to_limit_at_onset": 8.218298042349181,
+  "trips_at_unix_pred": 1791368585.8729525
+ },
+ {
+  "category": "pump_degradation",
+  "system_id": "S3",
+  "facility_id": "S3_FACILITY_A",
+  "asset_id": "S3_PUMP_A",
+  "onset_unix": 1791361500,
+  "onset_bounds": [
+   1791361500,
+   1791361500
+  ],
+  "detected_unix": 1791369600,
+  "end_unix": 1791489600,
+  "status": "resolved",
+  "evidence": [
+   "pump flow below max_flow_bpd and discharge pressure below baseline while running"
+  ],
+  "hours_to_limit": null
+ },
+ {
+  "category": "pump_degradation",
+  "system_id": "S4",
+  "facility_id": "S4_FACILITY_C",
+  "asset_id": "S4_PUMP_C",
+  "onset_unix": 1791388200,
+  "onset_bounds": [
+   1791375300,
+   1791390300
+  ],
+  "detected_unix": 1791393000,
+  "end_unix": 1791511200,
+  "status": "resolved",
+  "evidence": [
+   "pump flow below max_flow_bpd and discharge pressure below baseline while running"
+  ],
+  "hours_to_limit": null
+ },
+ {
+  "category": "pump_failure",
+  "system_id": "S1",
+  "facility_id": "S1_FACILITY_C",
+  "asset_id": "S1_PUMP_C",
+  "onset_unix": 1791418800,
+  "end_unix": 1791440400,
+  "status": "resolved",
+  "evidence": [
+   "pump status = 2 (fault)"
+  ],
+  "level_onset_pct": 49.93,
+  "hours_to_limit_at_onset": 4.462674033149171,
+  "trips_at_unix_pred": 1791434865.6265194
+ },
+ {
+  "category": "pipeline_leak",
+  "system_id": "S5",
+  "facility_id": "S5_FACILITY_B",
+  "asset_id": "S5_PIPELINE_B",
+  "onset_unix": 1791439800,
+  "onset_bounds": [
+   1791424200,
+   1791439800
+  ],
+  "detected_unix": 1791441300,
+  "end_unix": 1791525600,
+  "status": "resolved",
+  "evidence": [
+   "pipeline pressure below baseline and receive flow below pump flow while running"
+  ],
+  "hours_to_limit": null,
+  "end_bounds": [
+   1791517800,
+   1791533400
+  ]
+ },
+ {
+  "category": "pump_failure",
+  "system_id": "S2",
+  "facility_id": "S2_FACILITY_B",
+  "asset_id": "S2_PUMP_B",
+  "onset_unix": 1791450000,
+  "end_unix": 1791471600,
+  "status": "resolved",
+  "evidence": [
+   "pump status = 2 (fault)"
+  ],
+  "level_onset_pct": 50.01,
+  "hours_to_limit_at_onset": 4.454609749936853,
+  "trips_at_unix_pred": 1791466036.5950997
+ },
+ {
+  "category": "pump_failure",
+  "system_id": "S2",
+  "facility_id": "S2_FACILITY_C",
+  "asset_id": "S2_PUMP_C",
+  "onset_unix": 1791451800,
+  "end_unix": 1791473400,
+  "status": "resolved",
+  "evidence": [
+   "pump status = 2 (fault)"
+  ],
+  "level_onset_pct": 45.09,
+  "hours_to_limit_at_onset": 4.828132370809806,
+  "trips_at_unix_pred": 1791469181.276535
+ },
+ {
+  "category": "pump_failure",
+  "system_id": "S2",
+  "facility_id": "S2_FACILITY_A",
+  "asset_id": "S2_PUMP_A",
+  "onset_unix": 1791453600,
+  "end_unix": 1791475200,
+  "status": "resolved",
+  "evidence": [
+   "pump status = 2 (fault)"
+  ],
+  "level_onset_pct": 49.92,
+  "hours_to_limit_at_onset": 4.594931525547113,
+  "trips_at_unix_pred": 1791470141.7534919
+ },
+ {
+  "category": "pump_failure",
+  "system_id": "S3",
+  "facility_id": "S3_FACILITY_A",
+  "asset_id": "S3_PUMP_A",
+  "onset_unix": 1791489600,
+  "end_unix": 1791511200,
+  "status": "resolved",
+  "evidence": [
+   "pump status = 2 (fault)"
+  ],
+  "level_onset_pct": 45.11,
+  "hours_to_limit_at_onset": 5.058555588852263,
+  "trips_at_unix_pred": 1791507810.8001199
+ },
+ {
+  "category": "pump_failure",
+  "system_id": "S4",
+  "facility_id": "S4_FACILITY_C",
+  "asset_id": "S4_PUMP_C",
+  "onset_unix": 1791511200,
+  "end_unix": 1791532800,
+  "status": "resolved",
+  "evidence": [
+   "pump status = 2 (fault)"
+  ],
+  "level_onset_pct": 54.97,
+  "hours_to_limit_at_onset": 3.8093441920274325,
+  "trips_at_unix_pred": 1791524913.6390913
+ },
+ {
+  "category": "pipeline_leak",
+  "system_id": "S1",
+  "facility_id": "S1_FACILITY_B",
+  "asset_id": "S1_PIPELINE_B",
+  "onset_unix": 1791518400,
+  "onset_bounds": [
+   1791518400,
+   1791518400
+  ],
+  "detected_unix": 1791520200,
+  "end_unix": 1791597600,
+  "status": "resolved",
+  "evidence": [
+   "pipeline pressure below baseline and receive flow below pump flow while running"
+  ],
+  "hours_to_limit": null,
+  "end_bounds": [
+   1791597600,
+   1791597600
+  ]
+ },
+ {
+  "category": "pipeline_leak",
+  "system_id": "S2",
+  "facility_id": "S2_FACILITY_C",
+  "asset_id": "S2_PIPELINE_C",
+  "onset_unix": 1791540000,
+  "onset_bounds": [
+   1791540000,
+   1791540000
+  ],
+  "detected_unix": 1791541500,
+  "end_unix": null,
+  "status": "ongoing",
+  "evidence": [
+   "pipeline pressure below baseline and receive flow below pump flow while running"
+  ],
+  "hours_to_limit": null
+ },
+ {
+  "category": "pump_failure",
+  "system_id": "S4",
+  "facility_id": "S4_FACILITY_B",
+  "asset_id": "S4_PUMP_B",
+  "onset_unix": 1791568800,
+  "end_unix": 1791590400,
+  "status": "resolved",
+  "evidence": [
+   "pump status = 2 (fault)"
+  ],
+  "level_onset_pct": 42.01,
+  "hours_to_limit_at_onset": 5.603736571695469,
+  "trips_at_unix_pred": 1791588973.451658
+ },
+ {
+  "category": "pump_failure",
+  "system_id": "S4",
+  "facility_id": "S4_FACILITY_C",
+  "asset_id": "S4_PUMP_C",
+  "onset_unix": 1791615600,
+  "end_unix": null,
+  "status": "ongoing",
+  "evidence": [
+   "pump status = 2 (fault)"
+  ],
+  "level_onset_pct": 40.99,
+  "hours_to_limit_at_onset": 5.21396933560477,
+  "trips_at_unix_pred": 1791634370.2896082,
+  "level_pct": 60.37,
+  "hours_to_limit": 3.2558887508297727
+ },
+ {
+  "category": "pump_failure",
+  "system_id": "S4",
+  "facility_id": "S4_FACILITY_D",
+  "asset_id": "S4_PUMP_D",
+  "onset_unix": 1791617400,
+  "end_unix": null,
+  "status": "ongoing",
+  "evidence": [
+   "pump status = 2 (fault)"
+  ],
+  "level_onset_pct": 45.01,
+  "hours_to_limit_at_onset": 4.954428303655107,
+  "trips_at_unix_pred": 1791635235.941893,
+  "level_pct": 59.2,
+  "hours_to_limit": 3.472096573165096
+ },
+ {
+  "category": "pump_failure",
+  "system_id": "S4",
+  "facility_id": "S4_FACILITY_A",
+  "asset_id": "S4_PUMP_A",
+  "onset_unix": 1791619200,
+  "end_unix": null,
+  "status": "ongoing",
+  "evidence": [
+   "pump status = 2 (fault)"
+  ],
+  "level_onset_pct": 54.92,
+  "hours_to_limit_at_onset": 3.951029468893945,
+  "trips_at_unix_pred": 1791633423.706088,
+  "level_pct": 64.33,
+  "hours_to_limit": 2.9533652917150848
+ }
+]

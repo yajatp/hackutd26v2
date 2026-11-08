@@ -1,0 +1,110 @@
+== README opening scene (EVENT_9, S1_FACILITY_C, 50%, 75 bbl/h)
+  do nothing : trips 04:48:48  cost $5,016.00   README $5,016 @04:49
+  shut-in    : [('S1_WELL_C2', 125)] start 02:25:00  cost $1,958.33   README S1_WELL_C2 @02:25 $1,958
+  truck      : 1x1 arrives 01:35:00 cost $905.00   README $905 @01:35
+  planner pick: 1 truck, 1 trip (~$905)  -> PASS
+
+######## KEY onset facts as inputs
+== full_week (sequential, planned at each onset)
+  OK   EVENT_6   free=2 planner: none (peaks ~76.7%, never trips)                             | key: none (peaks ~76.7%, never trips)
+  OK   EVENT_9   free=2 planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905)
+       trip dt -0.2 min
+  OK   EVENT_11  free=2 planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905)
+       trip dt -0.4 min
+  OK   EVENT_12  free=1 planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905) (1 of 2 trucks free; the rest are on earlier events)
+       trip dt +0.1 min
+  OK   EVENT_13  free=0 planner: shut in S2_WELL_A1 at +189 min (~$3,384)                     | key: shut in S2_WELL_A1 at +189 min, ~86 min before the trip (~$3,384) (0 of 2 trucks free; the rest are on earlier events)
+       trip dt -0.1 min
+  OK   EVENT_14  free=3 planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905)
+       trip dt +0.6 min
+  OK   EVENT_15  free=2 planner: 1 truck, 2 trips (~$1,810)                                   | key: 1 truck, 2 trips (~$1,810)
+       trip dt +0.3 min
+  OK   EVENT_18  free=2 planner: shut in S4_WELL_B1 at +306 min (~$478)                       | key: shut in S4_WELL_B1 at +306 min, ~31 min before the trip (~$478)
+       trip dt -0.3 min
+  OK   EVENT_19  free=2 planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905)
+       trip dt -0.3 min
+  OK   EVENT_20  free=1 planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905) (1 of 2 trucks free; the rest are on earlier events)
+       trip dt -0.4 min
+  OK   EVENT_21  free=0 planner: shut in S4_WELL_A2 at +51 min (~$2,414)                      | key: shut in S4_WELL_A2 at +51 min, ~186 min before the trip (~$2,414) (0 of 2 trucks free; the rest are on earlier events)
+       trip dt -0.2 min
+  OK   EVENT_22  free=2 planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905)
+       trip dt -0.3 min
+  OK   EVENT_23  free=1 planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905) (1 of 2 trucks free; the rest are on earlier events)
+       trip dt +0.2 min
+== snapshot_2026-10-08T1200 (joint from now)
+  OK   EVENT_11  planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905) (shares S2's 2 trucks with EVENT_12, EVENT_13)
+       h_to_limit 1.41 vs key 1.42; joint over 38 combos
+  OK   EVENT_12  planner: shut in S2_WELL_C1 at +46 min (~$1,298)                      | key: shut in S2_WELL_C1 at +46 min, ~94 min before the trip (~$1,298) (shares S2's 2 trucks with EVENT_11, EVENT_13)
+       h_to_limit 2.33 vs key 2.33; joint over 38 combos
+  OK   EVENT_13  planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905) (shares S2's 2 trucks with EVENT_11, EVENT_12)
+       h_to_limit 2.59 vs key 2.58; joint over 38 combos
+== snapshot_2026-10-09T0330 (joint from now)
+  OK   EVENT_15  planner: 2 trucks, 1 trip each (~$1,810)                              | key: 2 trucks, 1 trip each (~$1,810)
+       h_to_limit 2.30 vs key 2.3; joint over 4 combos
+== snapshot_2026-10-10T0900 (joint from now)
+  OK   EVENT_19  planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905) (shares S4's 2 trucks with EVENT_20, EVENT_21)
+       h_to_limit 3.25 vs key 3.25; joint over 38 combos
+  OK   EVENT_20  planner: shut in S4_WELL_D2 at +108 min (~$1,215)                     | key: shut in S4_WELL_D2 at +108 min, ~100 min before the trip (~$1,215) (shares S4's 2 trucks with EVENT_19, EVENT_21)
+       h_to_limit 3.47 vs key 3.48; joint over 38 combos
+  OK   EVENT_21  planner: 1 truck, 1 trip + shut in S4_WELL_A2 at +291 min (~$975)     | key: 1 truck, 1 trip + shut in S4_WELL_A2 at +291 min (~$975) (shares S4's 2 trucks with EVENT_19, EVENT_20)
+       h_to_limit 2.94 vs key 2.95; joint over 38 combos
+
+MATCH (KEY onset facts as inputs): 20/20  + opening scene PASS
+
+######## TELEMETRY inputs
+== full_week (sequential, planned at each onset)
+  OK   EVENT_6   free=2 planner: none (peaks ~76.6%, never trips)                             | key: none (peaks ~76.7%, never trips)
+  OK   EVENT_9   free=2 planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905)
+       trip dt +0.6 min
+  OK   EVENT_11  free=2 planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905)
+       trip dt -0.1 min
+  OK   EVENT_12  free=1 planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905) (1 of 2 trucks free; the rest are on earlier events)
+       trip dt -0.5 min
+  MISS EVENT_13  free=0 planner: shut in S2_WELL_A1 at +191 min (~$3,345)                     | key: shut in S2_WELL_A1 at +189 min, ~86 min before the trip (~$3,384) (0 of 2 trucks free; the rest are on earlier events)
+       trip dt +0.7 min
+       ! S2_WELL_A1 start +191 vs key +189
+       ! cost $3,345 vs key $3,384
+  OK   EVENT_14  free=3 planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905)
+       trip dt -0.5 min
+  OK   EVENT_15  free=2 planner: 1 truck, 2 trips (~$1,810)                                   | key: 1 truck, 2 trips (~$1,810)
+       trip dt +0.5 min
+  MISS EVENT_18  free=2 planner: shut in S4_WELL_B1 at +304 min (~$496)                       | key: shut in S4_WELL_B1 at +306 min, ~31 min before the trip (~$478)
+       trip dt -1.0 min
+       ! S4_WELL_B1 start +304 vs key +306
+       ! cost $496 vs key $478
+  OK   EVENT_19  free=2 planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905)
+       trip dt -0.8 min
+  OK   EVENT_20  free=1 planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905) (1 of 2 trucks free; the rest are on earlier events)
+       trip dt -0.7 min
+  MISS EVENT_21  free=0 planner: shut in S4_WELL_A2 at +52 min (~$2,406)                      | key: shut in S4_WELL_A2 at +51 min, ~186 min before the trip (~$2,414) (0 of 2 trucks free; the rest are on earlier events)
+       trip dt -0.2 min
+       ! cost $2,406 vs key $2,414
+  OK   EVENT_22  free=2 planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905)
+       trip dt -0.5 min
+  OK   EVENT_23  free=1 planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905) (1 of 2 trucks free; the rest are on earlier events)
+       trip dt +0.4 min
+== snapshot_2026-10-08T1200 (joint from now)
+  OK   EVENT_11  planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905) (shares S2's 2 trucks with EVENT_12, EVENT_13)
+       h_to_limit 1.42 vs key 1.42; joint over 38 combos
+  MISS EVENT_12  planner: shut in S2_WELL_C1 at +44 min (~$1,314)                      | key: shut in S2_WELL_C1 at +46 min, ~94 min before the trip (~$1,298) (shares S2's 2 trucks with EVENT_11, EVENT_13)
+       h_to_limit 2.32 vs key 2.33; joint over 38 combos
+       ! S2_WELL_C1 start +44 vs key +46
+       ! cost $1,314 vs key $1,298
+  OK   EVENT_13  planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905) (shares S2's 2 trucks with EVENT_11, EVENT_12)
+       h_to_limit 2.60 vs key 2.58; joint over 38 combos
+== snapshot_2026-10-09T0330 (joint from now)
+  OK   EVENT_15  planner: 2 trucks, 1 trip each (~$1,810)                              | key: 2 trucks, 1 trip each (~$1,810)
+       h_to_limit 2.31 vs key 2.3; joint over 4 combos
+== snapshot_2026-10-10T0900 (joint from now)
+  OK   EVENT_19  planner: 1 truck, 1 trip (~$905)                                      | key: 1 truck, 1 trip (~$905) (shares S4's 2 trucks with EVENT_20, EVENT_21)
+       h_to_limit 3.26 vs key 3.25; joint over 38 combos
+  MISS EVENT_20  planner: shut in S4_WELL_D2 at +110 min (~$1,200)                     | key: shut in S4_WELL_D2 at +108 min, ~100 min before the trip (~$1,215) (shares S4's 2 trucks with EVENT_19, EVENT_21)
+       h_to_limit 3.48 vs key 3.48; joint over 38 combos
+       ! S4_WELL_D2 start +110 vs key +108
+       ! cost $1,200 vs key $1,215
+  MISS EVENT_21  planner: 1 truck, 1 trip + shut in S4_WELL_A2 at +294 min (~$952)     | key: 1 truck, 1 trip + shut in S4_WELL_A2 at +291 min (~$975) (shares S4's 2 trucks with EVENT_19, EVENT_20)
+       h_to_limit 2.96 vs key 2.95; joint over 38 combos
+       ! S4_WELL_A2 start +294 vs key +291
+       ! cost $952 vs key $975
+
+MATCH (TELEMETRY inputs): 14/20  + opening scene PASS
