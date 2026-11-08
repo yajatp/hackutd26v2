@@ -3,7 +3,7 @@
 
 export function ThreatModelCard() {
   return (
-    <section aria-labelledby="threat-model" className="card text-sm leading-relaxed">
+    <section aria-labelledby="threat-model" className="card text-sm leading-relaxed lg:[&_li]:max-w-[75ch]">
       <h2 id="threat-model" className="section-title">Threat model</h2>
       <p className="mt-1 text-muted">An isolated incident documentation and evidence-integrity room.</p>
 

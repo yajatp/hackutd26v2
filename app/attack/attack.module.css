@@ -58,8 +58,7 @@
   outline-offset: 2px;
 }
 
-/* The page: the one Avon header (app/ui/ScreenHeader.tsx) on the page's margin, closed by a
-   hairline, then the remote in a phone-wide column on the same left margin. */
+/* The header and remote share the page gutter, with a compact column below desktop widths. */
 .main {
   min-height: 100dvh;
   padding: 0 16px;
@@ -75,8 +74,7 @@
   max-width: 28rem;
 }
 
-/* The dock bleeds to the screen's edges on a phone (-mx-4 px-4 in page.tsx); on a wider screen it
-   keeps to the column, so its hairline starts on the page's margin. */
+/* The dock bleeds to the screen's edges on a phone and aligns to the page gutter otherwise. */
 .main > section.dock {
   max-width: calc(28rem + 2rem);
 }
@@ -86,6 +84,13 @@
     max-width: 28rem;
     margin-inline: 0;
     padding-inline: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .main > :not(header),
+  .main > section.dock {
+    max-width: none;
   }
 }
 
@@ -143,6 +148,14 @@
   display: flex;
   flex-direction: column;
   border-top: 1px solid var(--rule);
+}
+
+@media (min-width: 1024px) {
+  .tanks {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1.5rem;
+  }
 }
 
 .tank {

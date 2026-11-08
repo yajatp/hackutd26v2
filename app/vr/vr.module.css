@@ -549,7 +549,7 @@
   color: var(--dust);
 }
 
-/* The landing (/ and /vr): everything in one centred column under the table (Mohan, Sun 06:40). */
+/* The landing (/ and /vr): a centred column under the table on smaller screens. */
 .deck,
 .runsheet,
 .more,
@@ -587,4 +587,36 @@
   margin-left: 0;
   width: 100%;
   text-align: center;
+}
+
+@media (min-width: 1024px) {
+  .deck,
+  .runsheet,
+  .more,
+  .foot {
+    width: calc(100% - 2 * var(--gutter));
+  }
+
+  .deck {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  }
+
+  .lead,
+  .h2,
+  .finish,
+  .goNote {
+    text-align: left;
+  }
+
+  .summary,
+  .goNote {
+    margin-inline: 0;
+  }
+
+  .goNote,
+  .checkText,
+  .steps > li > div,
+  .pairs dd {
+    max-width: 70ch;
+  }
 }

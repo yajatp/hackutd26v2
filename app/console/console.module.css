@@ -41,8 +41,7 @@
   outline-offset: 3px;
 }
 
-/* The page: the one header (app/ui/ScreenHeader.tsx) on the 40 px margin every Avon screen uses
-   (16 px on a phone), and the board in a 920 px column on the same left margin, not centred. */
+/* The header and board share the same page gutters. */
 .main {
   padding: 0 16px 64px;
 }
@@ -55,6 +54,12 @@
 
 .column {
   max-width: 920px;
+}
+
+@media (min-width: 1024px) {
+  .column {
+    max-width: none;
+  }
 }
 
 .sub {

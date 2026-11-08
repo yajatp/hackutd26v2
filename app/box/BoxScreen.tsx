@@ -109,7 +109,7 @@ export default function BoxScreen() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl space-y-5 p-4 sm:p-6">
+    <main className="mx-auto min-h-screen space-y-5 p-4 sm:p-6 lg:px-10">
       <AppHeader product="Darkroom" title="incident room" sub="Every change below is an entry in a tamper-evident log on this box.">
         <span>{s.me ? `You: ${s.me.name} (${s.me.role})` : s.identity ? "You: not on the team (read only)" : ""}</span>
         <ConnectionChip s={s} />

@@ -801,6 +801,14 @@ body:has(.report-root) {
   text-decoration: underline;
 }
 
+@media screen and (min-width: 1024px) {
+  .report-root,
+  .report-sample {
+    max-width: none;
+    padding-inline: 2.5rem;
+  }
+}
+
 @media print {
   .report-sample {
     max-width: none;
