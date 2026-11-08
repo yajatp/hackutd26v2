@@ -4,7 +4,7 @@ import "@/app/ui/motion.css";
 import "./insight.css";
 
 export const metadata: Metadata = {
-  title: "Avon insight",
+  title: "Brine insight",
   description: "Tonight's money and trucks, rate in vs rate out, potential breaches and what-if ripples, computed inside the avon SpacetimeDB module",
 };
 

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { LiveClock } from "./LiveClock";
-import { Scramble } from "./Scramble";
 import { ScreenNav, type ScreenKey } from "./ScreenNav";
 import s from "./screen-header.module.css";
+import { BrineLogo } from "./BrineLogo";
 
 // One header on every Avon screen (after signal-a.studio, which keeps one fixed nav row):
 //   row 1  the screen tabs (ScreenNav), on the page's margin, 20 px from the top
@@ -29,7 +29,7 @@ export function ScreenHeader({ current, title, search = "", clock, status, as = 
       <ScreenNav current={current} search={search} />
       <div className={s.row}>
         <Name className={s.name}>
-          <Link href="/" className={s.mark}><Scramble text="Avon" /></Link>
+          <Link href="/" className={s.mark}><BrineLogo height={22} /></Link>
           <span className={s.title}>{title}</span>
         </Name>
         <span className={s.clock}>{clock ?? <LiveClock />}</span>

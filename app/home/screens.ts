@@ -13,7 +13,7 @@ export const SCREENS: Screen[] = [
   { n: 5, key: "map", href: "/map", name: "Map", what: "Sites across America." },
   { n: 6, key: "box", href: "/box", name: "Darkroom", what: "The isolated incident room." },
   { n: 7, key: "spacetime", href: "/spacetime", name: "SpacetimeDB", what: "The database, live." },
-  { n: 8, key: "vr", href: "/", name: "Home", what: "Avon, and Open the model. Hand the judge the headset." },
+  { n: 8, key: "vr", href: "/", name: "Home", what: "Brine, and Open the model. Hand the judge the headset." },
 ];
 
 // A known site key from ?site=, or null. Unknown values are dropped, never passed on.

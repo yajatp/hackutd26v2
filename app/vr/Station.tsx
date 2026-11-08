@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { useAvonConsole, useAvonRtt } from "@/lib/live";
 import { ConnBadge, connState } from "@/app/ui/Badge";
 import { Grain } from "@/app/ui/Grain";
-import { LineReveal } from "@/app/ui/LineReveal";
 import { LiveClock } from "@/app/ui/LiveClock";
 import { LockdownBanner } from "@/app/ui/LockdownBanner";
 import { ScreenHeader } from "@/app/ui/ScreenHeader";
@@ -14,6 +13,7 @@ import { Field } from "./Field";
 import { useStation, type Mark } from "./useStation";
 import { CONTROLS, FAKED_NOTE, HTTPS_NOTE, LEGEND, NO_CABLE, SAY, STEPS, TITLE, TROUBLE, fill } from "./content";
 import s from "./vr.module.css";
+import { BrineLogo } from "@/app/ui/BrineLogo";
 
 function Copy({ text }: { text: string }) {
   const [done, setDone] = useState(false);
@@ -68,9 +68,9 @@ export function Station() {
         <p className={s.hint}>Move the pointer to light the table.</p>
       </section>
 
-      {/* The landing: the name and the one action, centred. Rises from behind a mask on load (LineReveal). */}
+      {/* The landing: the name and the one action, centred. The Brine wordmark (app/ui/BrineLogo). */}
       <div className={s.intro} style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "28px" }}>
-        <h1 className={s.title} style={{ borderBottom: "none", paddingBottom: 0 }}><LineReveal text={TITLE} onMount /></h1>
+        <h1 className={s.title} style={{ borderBottom: "none", paddingBottom: 0, lineHeight: 0 }}><BrineLogo height="clamp(72px, 11vw, 168px)" /><span className="sr-only">{TITLE}</span></h1>
         <Link href="/twin" className={s.primary}>Open the model</Link>
       </div>
 

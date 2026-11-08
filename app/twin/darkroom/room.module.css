@@ -75,3 +75,11 @@
 .list { list-style: disc; margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; color: #a1a7b2; }
 .list li { margin-bottom: 4px; }
 .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+
+/* Phones: the alert is a bottom sheet, so the view buttons and the header stay usable. */
+@media (max-width: 640px) {
+  .alert {
+    top: auto;
+    bottom: 12px;
+  }
+}

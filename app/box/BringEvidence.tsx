@@ -55,7 +55,7 @@ export function BringEvidence({ s, shownId, writable }: { s: DarkroomSnapshot; s
     <section aria-labelledby="bring-evidence" className="card">
       <h2 id="bring-evidence" className="section-title">Bring evidence from the console</h2>
       <p className="mt-1 text-sm text-muted">
-        Type the AV- reference the Avon console shows. One press logs it with your name and the time. Nothing reaches this box over the network.
+        Type the AV- reference the Brine console shows. One press logs it with your name and the time. Nothing reaches this box over the network.
       </p>
       <form onSubmit={submit} className="mt-3 flex flex-wrap items-end gap-3">
         <label className="text-sm">

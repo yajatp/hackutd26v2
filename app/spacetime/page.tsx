@@ -3,7 +3,7 @@ import SpacetimeScreen from "./SpacetimeScreen";
 import "./spacetime.css";
 
 export const metadata: Metadata = {
-  title: "Avon on SpacetimeDB",
+  title: "Brine on SpacetimeDB",
   description: "Every row change on the avon database as it lands, and which reducer writes which table",
 };
 

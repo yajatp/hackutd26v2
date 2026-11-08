@@ -90,7 +90,7 @@ export function useStation(): Station {
   const problems = view?.alerts.length ?? 0;
 
   let summary: string;
-  if (status === "disconnected") summary = "The live data isn't reachable. Start Avon on the laptop with npm run demo, then reload.";
+  if (status === "disconnected") summary = "The live data isn't reachable. Start Brine on the laptop with npm run demo, then reload.";
   else if (!loaded) summary = "No site is loaded yet. Load one on the console and its tanks appear on this table.";
   else summary = `${facilities.length} tanks, live from ${datasetId ?? "the loaded site"}.` +
     (topState ? ` The light starts on ${topState.name}${topLine ? `: ${topLine}` : ""}.` : "");

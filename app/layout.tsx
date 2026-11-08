@@ -5,7 +5,7 @@ import "./fonts.css";
 // No web fonts from a CDN: Darkroom must run on a box with no internet. Hanken Grotesk and IBM Plex
 // Mono (the Sui-style text and label faces) ship in public/fonts, declared in app/fonts.css.
 export const metadata: Metadata = {
-  title: "Avon",
+  title: "Brine",
   description: "What broke, the cheapest fix, and which sensors to trust",
 };
 

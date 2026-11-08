@@ -20,7 +20,7 @@ export function ScreenNav({ current, search = "", className = "" }: { current: S
   const at = SCREENS.findIndex((x) => x.key === current);
   const pos = { "--at": at, "--c3": at % 3, "--r3": Math.floor(at / 3) } as React.CSSProperties;
   return (
-    <nav aria-label="Avon screens" className={`${s.nav} ${className}`} style={pos}>
+    <nav aria-label="Brine screens" className={`${s.nav} ${className}`} style={pos}>
       <ul className={s.list}>
         {SCREENS.map((x) => (
           <li key={x.key}>

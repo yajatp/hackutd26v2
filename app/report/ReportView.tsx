@@ -202,7 +202,7 @@ function ChainSection({ s, incidentId }: { s: ReportInput; incidentId: string | 
 
 function EvidenceSection({ evidence }: { evidence: ReturnType<typeof replayEvidence> }) {
   return (
-    <Section id="evidence" title="Evidence" lead="References a person carried from the Avon console and typed in. The log records who brought each one and when.">
+    <Section id="evidence" title="Evidence" lead="References a person carried from the Brine console and typed in. The log records who brought each one and when.">
       {evidence.length === 0 ? (
         <p className="r-muted">No evidence logged.</p>
       ) : (

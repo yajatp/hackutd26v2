@@ -12,6 +12,7 @@ import { money, totalsOf } from "./model";
 import { SitePanel } from "./SitePanel";
 import { UsMap } from "./UsMap";
 import s from "./map.module.css";
+import { BrineLogo } from "@/app/ui/BrineLogo";
 
 const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -58,7 +59,7 @@ export function MapScreen() {
     <div className={s.page}>
       <Grain />
       <header className={s.bar}>
-        <Link href="/" className={s.wordmark}>Avon</Link>
+        <Link href="/" className={s.wordmark} style={{ background: "none", padding: 0 }}><BrineLogo height={22} /></Link>
         <span className={s.barTitle}>Sites across America</span>
         <span className={s.barStatus} role="status">
           {allLive ? <Badge icon="■">{t.live} OF {t.sites} LIVE</Badge>

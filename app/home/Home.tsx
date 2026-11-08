@@ -8,6 +8,7 @@ import { ConnBadge, connState } from "@/app/ui/Badge";
 import { Grain } from "@/app/ui/Grain";
 import { hintFor, hrefFor, SCREENS, subtitleFor, type LiveFacts } from "./screens";
 import s from "./home.module.css";
+import { BrineLogo } from "@/app/ui/BrineLogo";
 
 export function Home({ site }: { site: string | null }) {
   return (
@@ -35,7 +36,7 @@ function Front({ site }: { site: string | null }) {
     <div className={s.page}>
       <Grain />
       <header className={s.bar}>
-        <span className={s.wordmark}>Avon</span>
+        <span className={s.wordmark} style={{ background: "none", padding: 0 }}><BrineLogo height={24} /></span>
         <span className={s.barStatus}><ConnBadge state={connState(status)} ms={rtt} /></span>
       </header>
 
@@ -45,7 +46,7 @@ function Front({ site }: { site: string | null }) {
         <p className={s.sub}>{subtitleFor(site)}</p>
       </section>
 
-      <nav className={s.index} aria-label="Avon screens, in demo order">
+      <nav className={s.index} aria-label="Brine screens, in demo order">
         <ol className={s.list}>
           {SCREENS.map((x, i) => {
             const h = hintFor(x.key, facts);

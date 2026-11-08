@@ -203,7 +203,7 @@ export default function BoxScreen() {
         <section aria-labelledby="evidence" className="card">
           <h2 id="evidence" className="section-title">Evidence</h2>
           <p className="mt-1 text-sm text-muted">
-            Nothing reaches this box over the network. A person carries the reference from the Avon console and types it in
+            Nothing reaches this box over the network. A person carries the reference from the Brine console and types it in
             Bring evidence from the console, above; the log records who brought it and when. This proves the record was not changed later
             (integrity), not that the reading was true.
           </p>

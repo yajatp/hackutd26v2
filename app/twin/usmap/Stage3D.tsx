@@ -22,7 +22,7 @@ function MapCard() {
   const tex = useMemo(() => canvasTexture(CPX, CPY, (ctx) => {
     panel(ctx, CPX, CPY, SUI.line, 3, 28);
     if (!fonts) return;
-    write(ctx, "AVON · SITE SELECTION", 52, 62, { size: 26, weight: 500, color: SUI.grey2, mono: true, spacing: 4 });
+    write(ctx, "BRINE · SITE SELECTION", 52, 62, { size: 26, weight: 500, color: SUI.grey2, mono: true, spacing: 4 });
     write(ctx, "Choose a site", 52, 132, { size: 64, weight: 700, color: SUI.white });
     write(ctx, "Point at a site on the map and pull the trigger.", 52, 200, { size: 34, weight: 500, color: SUI.grey3 });
     let x = 60;

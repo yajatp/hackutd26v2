@@ -28,6 +28,7 @@ import { alertVisible, attackSignal, dismissAlert, NO_ALERT, settleAlert, type A
 import { incidentEvidence } from "./darkroom/evidence";
 import { DarkroomPanel, SecurityAlert } from "./darkroom/Page";
 import css from "./twin.module.css";
+import { BrineLogo } from "@/app/ui/BrineLogo";
 
 const NO_FACILITIES: SiteFacility[] = [];
 
@@ -297,7 +298,7 @@ function TwinPage({ given, entry, deepLinked, onPick, onBack, onEnterRoom, onLea
       </div>
 
       <header className={css.bar} data-twin-bar>
-        <Link href="/" className={css.wordmark}>Avon</Link>
+        <Link href="/" className={css.wordmark}><BrineLogo height={20} /></Link>
         <h1 className={css.title}>{atRoom ? "Darkroom" : atMap ? "Choose a site" : siteName ?? "Night shift"}</h1>
         {!atMap && <BackToMap onBack={onBack} />}
         {!atMap && !atRoom && <ViewButtons className={css.views} />}
