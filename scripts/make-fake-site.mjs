@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, open, readFile, rename, rm, writeFile } from "node:fs/p
 import { dirname, join, resolve } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
+import { parseArgs } from "node:util";
 
 const HEADER = "timestamp,ts_unix,asset_id,metric,value";
 const FLOW_METRICS = new Set(["inflow_bpd", "water_bpd", "flow_bpd", "receive_flow_bpd"]);
@@ -90,6 +91,24 @@ function transformSite(network, ops, seed) {
   return { assets, seconds };
 }
 
+// Translate the retained facilities and their landmarks together in latitude/longitude.
+function centerSite(systems, center) {
+  const facilities = systems.flatMap((system) => system.facilities);
+  if (!facilities.length) throw new Error("network.json needs facilities to center the site");
+  const lat = facilities.reduce((sum, f) => sum + f.lat, 0) / facilities.length;
+  const lon = facilities.reduce((sum, f) => sum + f.lon, 0) / facilities.length;
+  const dLat = center[0] - lat;
+  const dLon = center[1] - lon;
+  const translate = ([y, x]) => [y + dLat, x + dLon];
+  for (const system of systems) {
+    system.center = translate(system.center);
+    system.truck_yard = translate(system.truck_yard);
+    for (const point of [system.disposal_site, ...system.facilities]) {
+      [point.lat, point.lon] = translate([point.lat, point.lon]);
+    }
+  }
+}
+
 const isoTime = (unix) => new Date(unix * 1000).toISOString().replace(/\.000Z$/, "Z");
 
 async function* transformTelemetry(path, assets, seconds) {
@@ -157,9 +176,29 @@ const readJson = async (path) => JSON.parse(await readFile(path, "utf8"));
 const writeJson = (path, value) => writeFile(path, JSON.stringify(value, null, 2) + "\n");
 
 async function main(args) {
-  const [source, output, flag, seed = "0"] = args;
-  if (!source || !output || (args.length !== 2 && (args.length !== 4 || flag !== "--seed" || !/^-?\d+$/.test(seed)))) {
-    throw new Error("Usage: node scripts/make-fake-site.mjs <source folder> <out folder> [--seed N]");
+  // parseArgs treats a separate negative number as an option. Keep --seed -N
+  // working, and accept the same form for coordinates south of the equator.
+  const argv = [...args];
+  for (let i = 0; i < argv.length - 1; i++) {
+    if (["--seed", "--center"].includes(argv[i]) && /^-(?:\d|\.\d)/.test(argv[i + 1])) {
+      argv.splice(i, 2, `${argv[i]}=${argv[i + 1]}`);
+    }
+  }
+  const { values: { seed, center, name }, positionals } = parseArgs({
+    args: argv,
+    allowPositionals: true, options: {
+      seed: { type: "string", default: "0" },
+      center: { type: "string" },
+      name: { type: "string" },
+    },
+  });
+  if (positionals.length !== 2 || !/^-?\d+$/.test(seed) || (name !== undefined && !name.trim())) {
+    throw new Error("Usage: node scripts/make-fake-site.mjs <source folder> <out folder> [--seed N] [--center lat,lon] [--name NAME]");
+  }
+  const [source, output] = positionals;
+  const coordinates = center?.split(",");
+  if (coordinates && (coordinates.length !== 2 || coordinates.some((v, i) => !v.trim() || !(Math.abs(Number(v)) <= [90, 180][i])))) {
+    throw new Error("--center needs a latitude and longitude in degrees, separated by a comma");
   }
 
   const [network, ops, events] = await Promise.all([
@@ -170,6 +209,8 @@ async function main(args) {
     }),
   ]);
   const { assets, seconds } = transformSite(network, ops, BigInt(seed).toString());
+  if (coordinates) centerSite(network.systems, coordinates.map(Number));
+  if (name !== undefined) network.name = name;
   const destination = resolve(output);
   const parent = dirname(destination);
   await mkdir(parent, { recursive: true });

@@ -22,7 +22,10 @@
     "demo:reset": "node scripts/reset-avon.mjs",
     "e2e": "node scripts/e2e.mjs",
     "quest": "node scripts/quest.mjs",
-    "perf": "node scripts/quest-perf.mjs"
+    "perf": "node scripts/quest-perf.mjs",
+    "sites": "node scripts/sites.mjs",
+    "demo:reset:cloud": "node scripts/reset-cloud.mjs",
+    "cloud:check": "node scripts/cloud-check.mjs"
   },
   "dependencies": {
     "@noble/hashes": "^2.4.0",

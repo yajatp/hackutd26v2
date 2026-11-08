@@ -10,6 +10,7 @@
 import { tsImport } from "tsx/esm/api";
 import { readFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 function args(argv) {
   const out = { folder: "", id: "", uri: "ws://127.0.0.1:3001", db: "avon", batch: 1000, inflight: 4 };
@@ -38,15 +39,20 @@ function args(argv) {
 
 const ms = (x) => `${x.toFixed(0).padStart(6)} ms`;
 
+export async function readDatasetFiles(folder) {
+  const read = (f) => readFile(join(folder, f), "utf8");
+  const [network, ops, telemetry] = await Promise.all([read("network.json"), read("ops.json"), read("telemetry.csv")]);
+  return { network, ops, telemetry };
+}
+
 async function main() {
   const o = args(process.argv.slice(2));
-  const read = (f) => readFile(join(o.folder, f), "utf8");
-  const [network, ops, telemetry] = await Promise.all([read("network.json"), read("ops.json"), read("telemetry.csv")]);
+  const files = await readDatasetFiles(o.folder);
   // tsImport lets this plain-node script load the TypeScript in lib/ (same code as the browser).
   const { openAvon, sendDataset } = await tsImport("../lib/live.ts", import.meta.url);
   const conn = await openAvon(o.uri, o.db);
   try {
-    const t = await sendDataset(conn, { network, ops, telemetry }, o.id, { batch: o.batch, inflight: o.inflight });
+    const t = await sendDataset(conn, files, o.id, { batch: o.batch, inflight: o.inflight });
     console.log(`dataset       ${o.id} -> database ${o.db} at ${o.uri}`);
     console.log(`parse         ${ms(t.parseMs)}  (${t.rows} reading rows = ${t.facilities} facilities x ${t.timestamps} timestamps)`);
     console.log(`load_dataset  ${ms(t.loadMs)}`);
@@ -58,7 +64,9 @@ async function main() {
   }
 }
 
-main().then(() => process.exit(0), (e) => {
-  console.error(`ingest failed: ${e?.message ?? e}`);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().then(() => process.exit(0), (e) => {
+    console.error(`ingest failed: ${e?.message ?? e}`);
+    process.exit(1);
+  });
+}
