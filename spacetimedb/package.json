@@ -1,0 +1,12 @@
+{
+  "name": "avon-module",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "spacetimedb": "2.14.1"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}
