@@ -446,7 +446,7 @@ function pumpFail(site: Site, asset: string, f: FacilityJson): Ripple {
   const free = r.fleet - j.trucks_before;
   r.summary = r.trip_unix === null
     ? `The tank peaks before the repair: nothing to do (${money(r.cost_delta)}).`
-    : `Trips at ${hhmm(r.trip_unix)} if nobody acts (${money(r.do_nothing_cost)}). The plan: ${lower(r.plan!.headline)}, ${money(j.plan.cost)}.`
+    : `Trips at ${hhmm(r.trip_unix)} if unaddressed (${money(r.do_nothing_cost)}). The plan: ${lower(r.plan!.headline)}, ${money(j.plan.cost)}.`
       + (j.changes.length ? ` ${j.changes.length} other plan${j.changes.length > 1 ? "s" : ""} change for the trucks.` : ` ${free} of ${r.fleet} ${r.system_id} trucks were free; no other plan changes.`)
       + ` Night: ${money(r.night_before)} to ${money(r.night_after)}.`;
   return finish(r);

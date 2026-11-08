@@ -215,7 +215,7 @@ export function buildConsole(ds: Dataset): ConsoleView {
         trip_at_unix: tripUnix,
         repair_done_unix: doneUnix,
         alternatives: alternatives(opts, p).map((a) => ({
-          label: a.kind === "do_nothing" ? "Do nothing" : describe(a, now, ops.response_min, ops.cycle_min).headline,
+          label: a.kind === "do_nothing" ? "No action" : describe(a, now, ops.response_min, ops.cycle_min).headline,
           cost: a.cost,
           why: why(a, p, fleet - otherTrucks, others, tripUnix, doneUnix),
         })),

@@ -139,16 +139,16 @@ function Budget({ budget, view }: { budget: SystemBudget[]; view: ConsoleView | 
       <h2 id="in-budget-h">The night&apos;s budget</h2>
       {/* The saving rises from behind a mask, the number's line then the words' (LineReveal), when it changes. */}
       <p className="in-hero">
-        <span className="in-num"><LineReveal text={money(saved)} /></span> <LineReveal text="saved by the plans" cue={money(saved)} delay={60} />
+        <span className="in-num"><LineReveal text={money(saved)} /></span> <LineReveal text="Savings" cue={money(saved)} delay={60} />
       </p>
       {nothing > 0 ? (
-        <figure className="in-saving" role="img" aria-label={`The plans cost ${money(plans)}. If nobody acts the night costs ${money(nothing)}. Saved ${money(saved)}.`}>
+        <figure className="in-saving" role="img" aria-label={`Response cost ${money(plans)}. Cost if unaddressed ${money(nothing)}. Savings ${money(saved)}.`}>
           <div className="in-saving-labels" aria-hidden="true">
             <span className="in-saving-l" style={planPct >= 30 ? { right: `${100 - planPct}%`, textAlign: "right" } : { left: 0 }}>
-              <span className="in-saving-k">Plans</span> <span className="in-saving-v">{money(plans)}</span>
+              <span className="in-saving-k">Response cost</span> <span className="in-saving-v">{money(plans)}</span>
             </span>
             <span className="in-saving-r">
-              <span className="in-saving-k">Saved</span> <span className="in-saving-v">{money(saved)}</span>
+              <span className="in-saving-k">Savings</span> <span className="in-saving-v">{money(saved)}</span>
             </span>
           </div>
           <div className="in-saving-track" aria-hidden="true">
@@ -157,7 +157,7 @@ function Budget({ budget, view }: { budget: SystemBudget[]; view: ConsoleView | 
           </div>
           <div className="in-saving-span" aria-hidden="true" />
           <figcaption className="in-saving-cap">
-            <span className="in-saving-v">{money(nothing)}</span> if nobody acts: {who} and the wells stay shut in until the repair.
+            Cost if unaddressed <span className="in-saving-v">{money(nothing)}</span>: {who} and the wells stay shut in until the repair.
           </figcaption>
         </figure>
       ) : (
@@ -180,7 +180,7 @@ function Budget({ budget, view }: { budget: SystemBudget[]; view: ConsoleView | 
         <table className="in-table in-budget-table">
           <caption className="sr-only">Budget by system</caption>
           <thead>
-            <tr><th scope="col">System</th><th scope="col">Trucks called</th><th scope="col" className="in-r">Plans</th><th scope="col" className="in-r in-wide">If nobody acts</th><th scope="col" className="in-r">At risk</th></tr>
+            <tr><th scope="col">System</th><th scope="col">Trucks called</th><th scope="col" className="in-r">Response cost</th><th scope="col" className="in-r in-wide">Cost if unaddressed</th><th scope="col" className="in-r">At risk</th></tr>
           </thead>
           <tbody>
             {busy.map((b) => (
@@ -459,7 +459,7 @@ function RippleView({ run }: { run: ScenarioRun }) {
           </>
         ) : (
           <>
-            <div><dt>Trips if nobody acts</dt><dd><span className="in-num-s">{r.trip_unix !== null ? clock(r.trip_unix) : "never"}</span>{r.trip_unix !== null ? ` ${tplus((r.trip_unix - r.now) / 60)}` : ""}</dd></div>
+            <div><dt>Trips if unaddressed</dt><dd><span className="in-num-s">{r.trip_unix !== null ? clock(r.trip_unix) : "never"}</span>{r.trip_unix !== null ? ` ${tplus((r.trip_unix - r.now) / 60)}` : ""}</dd></div>
             <div><dt>The plan</dt><dd>{r.plan ? money(r.plan.cost) : "none"}</dd></div>
             <div><dt>Night</dt><dd>{money(r.night_before)} to {money(r.night_after)} <span className="in-dim">({signedMoney(r.cost_delta)})</span></dd></div>
           </>

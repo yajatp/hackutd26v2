@@ -32,11 +32,16 @@ function countdown(h: number | null): string {
 }
 
 // Asset IDs inside planner sentences, as a person reads them: "S5_WELL_C2" -> "S5 well C2" (QA bug 12).
+// Generated sites name pads after a county ("Webb_County_27_Well_1" -> "Webb County 27 well 1",
+// "La_Salle_County_4_Line" -> "La Salle County 4 line", a bare pad "Webb_County_27" -> "Webb County 27").
 export function readableIds(text: string): string {
-  return text.replace(/\b(S\d+)_WELL_([A-Z0-9]+)\b/g, "$1 well $2").replace(/\b(S\d+)_(TANK|PUMP|FACILITY)_([A-Z0-9]+)\b/g, (_m, sys: string, kind: string, id: string) => `${sys} ${kind.toLowerCase()} ${id}`);
+  return text.replace(/\b(S\d+)_WELL_([A-Z0-9]+)\b/g, "$1 well $2").replace(/\b(S\d+)_(TANK|PUMP|FACILITY)_([A-Z0-9]+)\b/g, (_m, sys: string, kind: string, id: string) => `${sys} ${kind.toLowerCase()} ${id}`)
+    .replace(/\b([A-Z][A-Za-z]*(?:_[A-Z][A-Za-z]*)*_County_\d+)_(Well|Tank|Pump|Line)(?:_(\d+))?\b/g, (_m, pad: string, kind: string, n?: string) => `${pad.replace(/_/g, " ")} ${kind.toLowerCase()}${n ? ` ${n}` : ""}`)
+    .replace(/\b([A-Z][A-Za-z]*(?:_[A-Z][A-Za-z]*)*_County_\d+)\b/g, (pad: string) => pad.replace(/_/g, " "));
 }
 
 function pretty(id: string): string {
+  if (!/^S\d+_/.test(id)) return readableIds(id).replace(/_/g, " ");
   return id.replace(/^(S\d+)_/, "$1 · ").replace(/_/g, " ");
 }
 
@@ -179,9 +184,9 @@ function ConfirmRow({ a, top }: { a: Alert; top: boolean }) {
         <Badge tone="warn" icon="●">CONFIRMED, THEN CHANGED</Badge>
       </p>
       <p className="mt-1">
-        You confirmed <b>{done.headline}</b> ({money(done.cost)}) at {clock(done.atMs)}.
+        You confirmed <b>{readableIds(done.headline)}</b> ({money(done.cost)}) at {clock(done.atMs)}.
         {bad && <> It rests on a tank sensor that is now <b>{bad.state.toUpperCase()}</b>{bad.simulated ? " (simulated)" : ""}. Check the sensor before the truck rolls.</>}
-        {changed && <> The plan now reads <b>{fix.headline}</b> ({money(fix.plan.cost)}).</>}
+        {changed && <> The plan now reads <b>{readableIds(fix.headline)}</b> ({money(fix.plan.cost)}).</>}
       </p>
       {bad && <LockdownButton alert={a} />}
       {changed && (
@@ -238,26 +243,26 @@ function FixCardView({ a, top, dataset, now }: { a: Alert; top: boolean; dataset
               CHECK THE TANK SENSOR FIRST: <SensorBadge state={a.tank_sensor.state} />
               {a.tank_sensor.simulated && <SimulatedBadge />}
             </p>
-            <p className="mt-1">{a.tank_sensor.evidence} This plan uses its reading.</p>
+            <p className="mt-1">{readableIds(a.tank_sensor.evidence)} This plan uses its reading.</p>
             <SendToDarkroom ev={evidenceFor(a, dataset, now)} dataset={dataset} now={now} />
           </Reveal>
         )}
       </Collapse>
       <div className="mt-4 flex items-end justify-between gap-4 sm:gap-6">
         {/* A changed plan, or a card that is news, rises line by line from behind a mask (LineReveal); the words are in the DOM at once. */}
-        <p className={`${big} ${DECIDE} min-w-0`}><span className="decide-label mb-2 block text-sm text-muted">Do this:</span> <LineReveal text={fix.headline} onMount={live} /></p>
+        <p className={`${big} ${DECIDE} min-w-0`}><span className="decide-label mb-2 block text-sm text-muted">Do this:</span> <LineReveal text={readableIds(fix.headline)} onMount={live} /></p>
         <p className={`${big} ${DECIDE} shrink-0 text-right tabular-nums`}><Tick value={fix.plan.cost} format={money} align="right" /></p>
       </div>
       {fix.alternatives.length > 0 && <ConfirmCollapse a={a} top={top} />}
       <dl className="mt-5 flex flex-wrap gap-x-8 gap-y-3 tabular-nums">
         {facts.pairs.map((p, i) => (
           <div key={`${i}-${p.k}`}>
-            <dt className="text-xs text-muted">{p.k}</dt>
-            <dd className="text-[0.9375rem]">{p.v}</dd>
+            <dt className="text-xs text-muted">{readableIds(p.k)}</dt>
+            <dd className="text-[0.9375rem]">{readableIds(p.v)}</dd>
           </div>
         ))}
       </dl>
-      {facts.notes.map((n) => <p key={n} className="mt-2 text-sm text-muted">{n}.</p>)}
+      {facts.notes.map((n) => <p key={n} className="mt-2 text-sm text-muted">{readableIds(n)}.</p>)}
       {fix.shares_fleet_with.length > 0 && (
         <p className="mt-2 text-sm text-muted">
           Shares {a.event.system_id}&apos;s {fix.fleet} trucks with {fix.shares_fleet_with.map((id) => sameSystem(id, a.event.system_id)).join(", ")}.
@@ -273,7 +278,7 @@ function FixCardView({ a, top, dataset, now }: { a: Alert; top: boolean; dataset
             <tbody>
               {fix.alternatives.map((alt) => (
                 <tr key={alt.label} className="border-t border-line-soft">
-                  <td className="py-1.5 pr-3">{readableIds(alt.label)}</td>
+                  <td className="py-1.5 pr-3">{readableIds(alt.label === "Do nothing" ? "No action" : alt.label)}</td>
                   <td className="py-1.5 pr-4 text-right">{money(alt.cost)}</td>
                   <td className="py-1.5 text-muted">{readableIds(alt.why)}</td>
                 </tr>
@@ -321,7 +326,7 @@ function SensorLine({ x, dataset, now }: { x: SensorIssue; dataset: string; now:
         <span>{pretty(x.asset_id)} {METRIC_WORD[x.metric] ?? x.metric.replace(/_/g, " ")}</span>
         {x.simulated && <SimulatedBadge />}
       </p>
-      <p className="mt-1">{x.evidence}</p>
+      <p className="mt-1">{readableIds(x.evidence)}</p>
       {x.state === "dead" && <p className="text-sm">Send someone with a replacement sensor; until then, plans use its last reading.</p>}
       {x.state === "lying" && <p className="text-sm">Check the sensor on site first. A reading that disagrees with physics can also mean someone changed it.</p>}
       <SendToDarkroom ev={evidenceForIssue(x, dataset, now)} dataset={dataset} now={now} />
@@ -338,13 +343,13 @@ function InspectionRow({ a }: { a: Alert }) {
         <span className="font-semibold"><span aria-hidden="true" className="text-warn-line">● </span>{what} · {pretty(a.event.asset_id)}</span>
         <span className="text-sm tabular-nums text-muted">first seen about {hhmm(a.event.onset_unix)}</span>
       </div>
-      <p className="text-sm">{a.action}</p>
+      <p className="text-sm">{readableIds(a.action)}</p>
       {a.pump_off_since !== undefined && (
         <p className="text-sm">
           Can&apos;t confirm it&apos;s fixed: the pump has been off since {hhmm(a.pump_off_since)}, and this only shows while it runs.
         </p>
       )}
-      <p className="text-sm text-muted">{a.event.evidence.join("; ")}</p>
+      <p className="text-sm text-muted">{readableIds(a.event.evidence.join("; "))}</p>
     </li>
   );
 }
@@ -398,7 +403,7 @@ export function Board({ view, dataset }: { view: ConsoleView; dataset: string })
             {view.events.map((e) => (
               <tr key={e.asset_id + e.onset_unix + e.category} className="border-t border-line-soft">
                 <td className="py-1.5 pr-3">{e.category.replace(/_/g, " ")}</td>
-                <td className="pr-3">{e.asset_id}</td>
+                <td className="pr-3">{/_County_\d+/.test(e.asset_id) ? readableIds(e.asset_id) : e.asset_id}</td>
                 <td className="pr-3">{stamp(e.onset_unix)}</td>
                 <td className="pr-3">{e.end_unix ? stamp(e.end_unix) : "—"}</td>
                 <td>{e.status}</td>

@@ -24,7 +24,8 @@ export interface SystemBudget {
 export function doNothingOf(a: Alert): number {
   if (!a.fix) return 0;
   if (a.fix.plan.kind === "do_nothing") return a.fix.plan.cost;
-  return a.fix.alternatives.find((x) => x.label === "Do nothing")?.cost ?? 0;
+  // "Do nothing" is the label a module published before the rename still sends.
+  return a.fix.alternatives.find((x) => x.label === "No action" || x.label === "Do nothing")?.cost ?? 0;
 }
 
 export function budgetOf(ds: Dataset, view: ConsoleView): SystemBudget[] {

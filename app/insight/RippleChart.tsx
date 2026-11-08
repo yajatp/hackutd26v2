@@ -11,7 +11,7 @@ import { clock } from "./format";
 const LABEL: Record<ProjKey, string> = {
   past: "Level so far",
   plan: "With the plan",
-  ignored: "If nobody acts",
+  ignored: "If unaddressed",
   lie: "Trusting the sensor",
   flag: "Acting on the flag",
   shown: "What the sensor reports",
@@ -58,7 +58,7 @@ export default function RippleChart({ p, now }: { p: Projection; now: number }) 
   const trip = marks.find((m) => m.key === "trip");
   const desc = `Tank level, ${clock(now + p.from_min * 60)} to ${clock(now + p.to_min * 60)}. `
     + lines.map((l) => `${LABEL[l.key]}: ends at ${l.pts[l.pts.length - 1][1].toFixed(0)}%`).join("; ")
-    + (trip ? `. ${trip.label} if nobody acts.` : ".");
+    + (trip ? `. ${trip.label} if unaddressed.` : ".");
 
   return (
     <figure className="in-proj">

@@ -17,6 +17,7 @@ import { PHASE_START, typedChars } from "@/lib/rules/lockdown";
 import { findEvidence, heldPlan } from "./evidence";
 import { useLockdownSequence } from "./useSequence";
 import { EventLog } from "./EventLog";
+import { readableIds } from "../Board";
 import s from "./lockdown.module.css";
 
 const STEPS = [
@@ -147,7 +148,7 @@ function HeldPlan({ a, tag }: { a: Alert; tag: string | null }) {
       <div className={s.plan}>
         <p className={s.planHead}>{pretty(a.facility.id)} · pump failed</p>
         <div className={s.planRow}>
-          <p className={s.planDecide}><span className={s.planLabel}>Was:</span> <s className={s.struck}>{fix.headline}</s></p>
+          <p className={s.planDecide}><span className={s.planLabel}>Was:</span> <s className={s.struck}>{readableIds(fix.headline)}</s></p>
           <p className={s.planDecide}><s className={s.struck}>{money(fix.plan.cost)}</s></p>
         </div>
         <span className={s.stripe} aria-hidden="true" />
