@@ -2,16 +2,16 @@
    One bold moment: the reducer-by-table matrix lighting up when a transaction lands. */
 
 body:has(.st-root) {
-  background: #102231;
-  color: #d7dee0;
+  background: #000000;
+  color: #ffffff;
 }
 
 .st-root {
-  --night: #102231;
-  --moon: #d7dee0;
-  --dust: #8fa1aa;
-  --rule: rgb(215 222 224 / 0.16);
-  --settled: rgb(215 222 224 / 0.14);
+  --night: #000000;
+  --moon: #ffffff;
+  --dust: #89919f;
+  --rule: rgb(255 255 255 / 0.1);
+  --settled: rgb(41 141 255 / 0.14);
 
   /* ConnBadge (app/ui/Badge.tsx) reads these from globals.css; restated for the night page. */
   --surface: transparent;
@@ -26,7 +26,7 @@ body:has(.st-root) {
   min-height: 100vh;
   background: var(--night);
   color: var(--moon);
-  font-family: "Barlow", "Bahnschrift", "Roboto", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 17px;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
@@ -45,18 +45,18 @@ body:has(.st-root) {
 }
 
 .st-root code {
-  font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-label);
   font-size: 0.875em;
 }
 
 .st-root :focus-visible {
-  outline: 2px solid var(--moon);
+  outline: 2px solid #298dff;
   outline-offset: 2px;
 }
 
 .st-root h1,
 .st-root h2 {
-  font-family: "Barlow Condensed", "Bahnschrift", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-weight: 700;
   line-height: 1.1;
   margin: 0;
@@ -118,7 +118,7 @@ body:has(.st-root) {
 }
 
 .st-colname {
-  font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-label);
   font-size: 0.8rem;
   overflow-wrap: anywhere;
 }
@@ -147,7 +147,8 @@ body:has(.st-root) {
 }
 
 .st-n {
-  font-weight: 700;
+  color: #298dff;
+  font-weight: 600;
   font-size: 1.125rem;
 }
 
@@ -160,7 +161,7 @@ body:has(.st-root) {
 .st-grid td[data-lit] .st-ring { border-color: currentColor; }
 
 @keyframes st-land {
-  0%, 15% { background: var(--moon); color: var(--night); }
+  0%, 15% { background: #298dff; color: #ffffff; }
   100% { background: var(--settled); color: var(--moon); }
 }
 

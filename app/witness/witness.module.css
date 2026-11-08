@@ -14,10 +14,10 @@
   align-items: center;
   gap: 0.3rem;
   padding: 0.1rem 0.5rem;
-  border: 1px solid rgb(61 255 154 / 0.55);
-  border-radius: 2px;
-  color: #3dff9a;
-  font-family: "Pixelify Sans", "Barlow", system-ui, sans-serif;
+  border: 1px solid rgb(41 141 255 / 0.55);
+  border-radius: 6px;
+  color: #298dff;
+  font-family: var(--font-text);
   font-size: 0.9rem;
   font-weight: 500;
   white-space: nowrap;
@@ -30,16 +30,16 @@
 .chime {
   min-width: 2rem;
   height: 1.75rem;
-  border: 1px solid rgb(230 242 238 / 0.28);
-  border-radius: 2px;
-  color: #8fb3aa;
+  border: 1px solid rgb(255 255 255 / 0.28);
+  border-radius: 6px;
+  color: #89919f;
   font-size: 0.95rem;
   line-height: 1;
 }
 
 .chime[aria-pressed="true"] {
-  border-color: #3dff9a;
-  color: #3dff9a;
+  border-color: #298dff;
+  color: #298dff;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -63,7 +63,7 @@
 }
 
 .flashText {
-  font-family: "Pixelify Sans", "Barlow", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 2.25rem;
   font-weight: 700;
   line-height: 1.15;

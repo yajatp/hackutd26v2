@@ -64,7 +64,7 @@ export function hintFor(key: string, f: LiveFacts): Hint | null {
     case "twin":
       return f.facilities ? { text: plural(f.facilities, "facility", "facilities"), tone: "quiet" } : null;
     case "insight":
-      return f.failures ? { text: `Plans save ${money(Math.max(0, f.doNothing - f.plans))}`, tone: "quiet" } : null;
+      return f.failures ? { text: `Savings ${money(Math.max(0, f.doNothing - f.plans))}`, tone: "quiet" } : null;
     case "map":
       return { text: plural(SITES.length, "site", "sites"), tone: "quiet" };
     case "box":

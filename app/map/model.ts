@@ -51,9 +51,9 @@ export const COLUMNS: { key: SortKey; label: string; short: string; money: boole
   { key: "name", label: "Site", short: "Site", money: false },
   { key: "pumpFailures", label: "Pump failures", short: "Failures", money: false },
   { key: "sensorIssues", label: "Sensors to check", short: "Sensors", money: false, wide: true },
-  { key: "plans", label: "These plans cost", short: "Plans", money: true, wide: true },
-  { key: "doNothing", label: "Doing nothing costs", short: "Nothing", money: true, wide: true },
-  { key: "saving", label: "Saving", short: "Saving", money: true },
+  { key: "plans", label: "Response cost", short: "Response", money: true, wide: true },
+  { key: "doNothing", label: "Cost if unaddressed", short: "Unaddressed", money: true, wide: true },
+  { key: "saving", label: "Savings", short: "Savings", money: true },
 ];
 
 const valueOf = (s: SiteSummary, key: SortKey): number | string => (key === "saving" ? saving(s) : key === "name" ? s.name : s[key]);

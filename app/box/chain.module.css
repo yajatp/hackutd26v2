@@ -6,17 +6,17 @@
 
 .chain {
   --gap: 14px;
-  --chain-line: rgb(230 242 238 / 0.3);
-  --chain-ink: #e6f2ee;
-  --chain-hash: #9fc4b9;
-  --mint: #3dff9a;
+  --chain-line: rgb(255 255 255 / 0.3);
+  --chain-ink: #ffffff;
+  --chain-hash: #a1a7b2;
+  --mint: #298dff;
   --red: #ef4444;
   --red-ink: #fca5a5;
 }
 
 .chain[data-chain="sealed"] {
-  --chain-line: rgb(61 255 154 / 0.5);
-  --chain-hash: #3dff9a;
+  --chain-line: rgb(41 141 255 / 0.5);
+  --chain-hash: #298dff;
 }
 
 .links {
@@ -35,15 +35,15 @@
   gap: 0.55rem;
   padding: 0.4rem 0.6rem;
   border: 1px solid var(--chain-line);
-  border-radius: 2px;
-  background: rgb(230 242 238 / 0.025);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.025);
   overflow-wrap: anywhere;
 }
 
 .seq {
   flex: none;
   min-width: 2.2rem;
-  font-family: "Chakra Petch", ui-monospace, monospace;
+  font-family: var(--font-label);
   font-size: 1rem;
   font-weight: 700;
   color: var(--chain-ink);
@@ -79,7 +79,7 @@
 .sealed {
   padding-right: 2.4rem;
   border-color: var(--mint);
-  box-shadow: 0 0 0 3px rgb(61 255 154 / 0.14);
+  box-shadow: none;
 }
 
 .seal {
@@ -126,7 +126,7 @@
 .cracked .what {
   position: relative;
   z-index: 1;
-  text-shadow: 0 0 3px #0b191b, 0 0 6px #0b191b, 0 0 1px #0b191b;
+  text-shadow: none;
 }
 
 .fracture {
@@ -137,7 +137,7 @@
   height: calc(100% + 4px);
   overflow: visible;
   pointer-events: none;
-  filter: drop-shadow(0 0 3px rgb(239 68 68 / 0.75));
+  filter: none;
 }
 
 .fracture polyline {
@@ -230,9 +230,9 @@
   margin: 0.5rem 0 0.35rem;
   padding: 0.05rem 0.55rem 0.15rem;
   border: 2px solid var(--red, #ef4444);
-  box-shadow: inset 0 0 0 2px #0b191b, inset 0 0 0 3px rgb(239 68 68 / 0.5);
+  box-shadow: inset 0 0 0 2px #000000, inset 0 0 0 3px rgb(239 68 68 / 0.5);
   color: #fca5a5;
-  font-family: "Pixelify Sans", "Barlow", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 1.5rem;
   font-weight: 700;
   line-height: 1.25;
@@ -242,9 +242,9 @@
 }
 
 .stampClosed {
-  border-color: #3dff9a;
-  box-shadow: inset 0 0 0 2px #0b191b, inset 0 0 0 3px rgb(61 255 154 / 0.45);
-  color: #3dff9a;
+  border-color: #298dff;
+  box-shadow: inset 0 0 0 2px #000000, inset 0 0 0 3px rgb(41 141 255 / 0.45);
+  color: #298dff;
 }
 
 .stampBroken {

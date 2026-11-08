@@ -2,7 +2,7 @@
 // The sites side by side: one hairline row per site, sortable by any column, the selected site
 // marked. Money columns carry a thin bar against the column's largest value (small multiples).
 // On a phone the table fits the screen with no sideways scroll: Site, Failures and Saving, with the
-// plans, the doing-nothing cost and any sensors to check folded under each site's name.
+// plans, the cost if unaddressed and any sensors to check folded under each site's name.
 import { useMemo, useState } from "react";
 import type { SiteSummary } from "@/lib/fleet";
 import { COLUMNS, money, nextSort, saving, sortSites, toneOf, type Sort, type SortKey } from "./model";
@@ -49,8 +49,8 @@ export function Compare({ sites, selected, onSelect }: { sites: SiteSummary[]; s
                     <span className={s.rowName}>{x.name}</span>
                     <span className={s.rowBasin}>{x.basin}</span>
                     <span className={s.rowCost}>
-                      <span>Plans {money(x.plans)}</span>
-                      <span>Doing nothing {money(x.doNothing)}</span>
+                      <span>Response cost {money(x.plans)}</span>
+                      <span>Cost if unaddressed {money(x.doNothing)}</span>
                       {x.sensorIssues > 0 && <span data-tone="warn">● {x.sensorIssues} sensor{x.sensorIssues === 1 ? "" : "s"} to check</span>}
                     </span>
                   </button>

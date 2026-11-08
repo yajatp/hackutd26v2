@@ -10,7 +10,7 @@ import { HOLD_MS, lockdownReason } from "@/lib/rules/lockdown";
 import { unlockSound } from "./sound";
 
 // Tailwind only, no CSS module: Board.tsx imports this, and board.test.tsx renders Board in Node.
-const HOLD = "relative inline-flex min-h-11 select-none touch-none items-center overflow-hidden rounded-[2px] border border-[#ef4444] bg-transparent px-4 py-2 font-semibold text-[#fca5a5] hover:enabled:border-[#fca5a5] disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#d7dee0]";
+const HOLD = "relative inline-flex min-h-11 select-none touch-none items-center overflow-hidden rounded-[10px] border border-[#ef4444] bg-transparent px-4 py-2 font-semibold text-[#fca5a5] hover:enabled:border-[#fca5a5] disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#298dff]";
 
 export function LockdownButton({ alert, issue }: { alert?: Alert; issue?: SensorIssue }) {
   const { view, source, status, lockdown, enterLockdown } = useAvonConsole();

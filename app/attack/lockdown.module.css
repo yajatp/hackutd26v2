@@ -22,7 +22,7 @@
 
 .text { margin-top: 0.25rem; font-weight: 700; }
 .sub { margin-top: 0.25rem; font-size: 0.875rem; }
-.ref { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-weight: 700; white-space: nowrap; }
+.ref { font-family: var(--font-label); font-weight: 700; white-space: nowrap; }
 
 /* One red flash over the whole phone. */
 .flash {

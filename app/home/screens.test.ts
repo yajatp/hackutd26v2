@@ -30,7 +30,7 @@ test("live hints read like the console", () => {
   assert.deepEqual(hintFor("console", facts({ failures: 0 })), { text: "No pump failures", tone: "ok" });
   assert.equal(hintFor("console", facts({ failures: null })), null);
   assert.deepEqual(hintFor("attack", facts({ faults: 1 })), { text: "● 1 simulated fault live", tone: "warn" });
-  assert.deepEqual(hintFor("insight", facts()), { text: "Plans save $8,147", tone: "quiet" });
+  assert.deepEqual(hintFor("insight", facts()), { text: "Savings $8,147", tone: "quiet" });
   assert.deepEqual(hintFor("spacetime", facts()), { text: "1.4 ms round trip", tone: "quiet" });
   assert.deepEqual(hintFor("box", facts({ lockdown: true })), { text: "▲ LOCKDOWN", tone: "alert" });
   assert.deepEqual(hintFor("map", facts()), { text: "6 sites", tone: "quiet" });

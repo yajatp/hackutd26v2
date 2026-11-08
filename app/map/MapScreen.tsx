@@ -75,7 +75,7 @@ export function MapScreen() {
           </p>
           <p className={s.totals}>
             {t.failures > 0
-              ? <><span className={s.alertWord}>▲ {t.failures} pump failure{t.failures === 1 ? "" : "s"}</span> at {t.failingSites} site{t.failingSites === 1 ? "" : "s"} · doing nothing costs {money(t.doNothing)} · these plans cost <b>{money(t.plans)}</b></>
+              ? <><span className={s.alertWord}>▲ {t.failures} pump failure{t.failures === 1 ? "" : "s"}</span> at {t.failingSites} site{t.failingSites === 1 ? "" : "s"} · cost if unaddressed {money(t.doNothing)} · response cost <b>{money(t.plans)}</b></>
               : ready ? "No pump failures at any site right now." : "Reading every site..."}
           </p>
         </div>

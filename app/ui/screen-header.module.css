@@ -6,16 +6,16 @@
    starts. */
 
 .head {
-  --sh-ink: #d7dee0;
-  --sh-dust: #8fa1aa;
+  --sh-ink: #ffffff;
+  --sh-dust: #89919f;
   --sn-gap: clamp(8px, 1.6vw, 20px);
   /* The shared badge (app/ui/Badge.tsx, .badge in globals.css) reads the product tokens: give it
      the night values here, so LIVE looks the same on every screen whatever the page sets. */
-  --background: #102231;
-  --foreground: #d7dee0;
+  --background: #000000;
+  --foreground: #ffffff;
   --surface: transparent;
-  --line: rgb(215 222 224 / 0.3);
-  --muted: #8fa1aa;
+  --line: rgb(255 255 255 / 0.3);
+  --muted: #89919f;
   --warn: #fde68a;
   --warn-bg: rgb(245 158 11 / 0.08);
   --warn-line: #f59e0b;
@@ -24,7 +24,7 @@
   container-type: inline-size;
   padding-top: 20px;
   color: var(--sh-ink);
-  font-family: "Barlow", "Bahnschrift", "Roboto", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 1rem;
   line-height: 1.5;
 }
@@ -60,7 +60,7 @@
 }
 
 .mark:focus-visible {
-  outline: 2px solid var(--sh-ink);
+  outline: 2px solid #298dff;
   outline-offset: 3px;
 }
 

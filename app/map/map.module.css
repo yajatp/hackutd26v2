@@ -3,19 +3,19 @@
    crosshairs; on it, ethiack's square finding tags; MECHA's inverted hover on every link. */
 
 .page {
-  --night: #102231;
-  --moon: #d7dee0;
-  --dust: #8fa1aa;
-  --rule: rgb(215 222 224 / 0.16);
+  --night: #000000;
+  --moon: #ffffff;
+  --dust: #89919f;
+  --rule: rgb(255 255 255 / 0.16);
   --red: #ef4444;
   --amber: #f59e0b;
-  --green: #3ddc97;
+  --green: #298dff;
   --gutter: clamp(16px, 4vw, 48px);
   /* The shared badges (app/ui/Badge.tsx) read these product tokens. */
   --background: var(--night);
   --foreground: var(--moon);
-  --surface: #17304a;
-  --line: rgb(215 222 224 / 0.3);
+  --surface: #131518;
+  --line: rgb(255 255 255 / 0.3);
   --alert: #fca5a5;
   --alert-bg: #3b0d0d;
   --alert-line: var(--red);
@@ -28,14 +28,14 @@
   overflow-x: clip;
   background: var(--night);
   color: var(--moon);
-  font-family: "Barlow", "Bahnschrift", "Roboto", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 1.0625rem;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
 }
 
 .page :focus-visible {
-  outline: 2px solid var(--moon);
+  outline: 2px solid #298dff;
   outline-offset: 3px;
 }
 
@@ -74,8 +74,8 @@
 .title {
   margin: 0;
   padding-bottom: clamp(12px, 1.4vw, 20px);
-  border-bottom: 2px solid var(--moon);
-  font-family: "Barlow Condensed", "Bahnschrift", sans-serif;
+  border-bottom: 1px solid #222529;
+  font-family: var(--font-text);
   font-size: clamp(2.5rem, 5.2vw, 5.5rem);
   line-height: 0.92;
   font-weight: 700;
@@ -138,7 +138,7 @@
 }
 
 .stage:focus-visible {
-  outline: 2px solid var(--moon);
+  outline: 2px solid #298dff;
   outline-offset: -2px;
 }
 
@@ -160,8 +160,8 @@
   transform: perspective(720px) rotateX(66deg);
   transform-origin: 50% 100%;
   background-image:
-    linear-gradient(to right, rgb(215 222 224 / 0.075) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(215 222 224 / 0.075) 1px, transparent 1px);
+    linear-gradient(to right, rgb(255 255 255 / 0.075) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.075) 1px, transparent 1px);
   background-size: 72px 72px;
   background-position: var(--px, 0) var(--py, 0);
   -webkit-mask-image: linear-gradient(to top, #000 20%, transparent 92%);
@@ -173,7 +173,7 @@
 .crosses {
   position: absolute;
   inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cpath d='M48 42.5v11M42.5 48h11' stroke='%23d7dee0' stroke-opacity='.3' stroke-width='1'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cpath d='M48 42.5v11M42.5 48h11' stroke='%23ffffff' stroke-opacity='.1' stroke-width='1'/%3E%3C/svg%3E");
   background-size: 96px 96px;
   background-position: calc(var(--px, 0) * 2) calc(var(--py, 0) * 2);
   pointer-events: none;
@@ -189,8 +189,8 @@
 }
 
 .land path {
-  fill: #142a3c;
-  stroke: rgb(215 222 224 / 0.42);
+  fill: #131518;
+  stroke: rgb(255 255 255 / 0.16);
   stroke-width: 0.75;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
@@ -198,16 +198,16 @@
 }
 
 .land path[data-site] {
-  fill: #18324a;
+  fill: #1a1d21;
 }
 
 .land path[data-on] {
-  fill: #1e3d58;
+  fill: rgb(41 141 255 / 0.1);
 }
 
 .basins path {
-  fill: rgb(215 222 224 / 0.05);
-  stroke: rgb(215 222 224 / 0.34);
+  fill: rgb(255 255 255 / 0.03);
+  stroke: rgb(255 255 255 / 0.2);
   stroke-width: 1;
   stroke-dasharray: 3 4;
   vector-effect: non-scaling-stroke;
@@ -215,8 +215,8 @@
 }
 
 .basins path[data-on] {
-  fill: rgb(215 222 224 / 0.1);
-  stroke: rgb(215 222 224 / 0.6);
+  fill: rgb(255 255 255 / 0.1);
+  stroke: rgb(255 255 255 / 0.6);
 }
 
 .overlay {
@@ -231,7 +231,7 @@
   top: 0;
   left: 0;
   color: var(--dust);
-  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-family: var(--font-text);
   font-size: 0.6875rem;
   font-weight: 500;
   letter-spacing: 0.16em;
@@ -303,7 +303,7 @@
 }
 
 .marker:focus-visible .name {
-  outline: 2px solid var(--moon);
+  outline: 2px solid #298dff;
   outline-offset: 2px;
 }
 
@@ -364,9 +364,9 @@
 
 .name {
   padding: 1px 6px;
-  background: rgb(16 34 49 / 0.82);
+  background: rgb(19 21 24 / 0.82);
   color: var(--moon);
-  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-family: var(--font-text);
   font-size: 0.8125rem;
   font-weight: 600;
   line-height: 1.3;
@@ -377,8 +377,8 @@
 
 .marker:hover .name,
 .marker[aria-pressed="true"] .name {
-  background: var(--moon);
-  color: var(--night);
+  background: #298dff;
+  color: #ffffff;
 }
 
 /* ethiack's finding tag: a flat block in the state's color, square icon, caps. */
@@ -389,7 +389,7 @@
   padding: 2px 7px 2px 6px;
   background: var(--tone, var(--dust));
   color: var(--night);
-  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-family: var(--font-text);
   font-size: 0.6875rem;
   font-weight: 700;
   line-height: 1.35;
@@ -402,13 +402,13 @@
 
 .tag[data-tone="ok"] {
   background: transparent;
-  box-shadow: inset 0 0 0 1px rgb(61 220 151 / 0.65);
+  box-shadow: inset 0 0 0 1px rgb(41 141 255 / 0.65);
   color: var(--green);
 }
 
 .tag[data-tone="off"] {
   background: transparent;
-  box-shadow: inset 0 0 0 1px rgb(143 161 170 / 0.6);
+  box-shadow: inset 0 0 0 1px rgb(137 145 159 / 0.6);
   color: var(--dust);
 }
 
@@ -432,10 +432,10 @@
   min-width: 40px;
   height: 40px;
   padding: 0 12px;
-  border: 1px solid rgb(215 222 224 / 0.4);
-  background: rgb(16 34 49 / 0.85);
+  border: 1px solid rgb(255 255 255 / 0.4);
+  background: rgb(19 21 24 / 0.85);
   color: var(--moon);
-  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-family: var(--font-text);
   font-size: 1.125rem;
   font-weight: 600;
   line-height: 1;
@@ -449,8 +449,8 @@
 }
 
 .ctl:hover:not(:disabled) {
-  background: var(--moon);
-  color: var(--night);
+  background: #222529;
+  color: #ffffff;
 }
 
 .ctl:disabled {
@@ -465,7 +465,7 @@
   z-index: 2;
   margin: 0;
   padding: 2px 6px;
-  background: rgb(16 34 49 / 0.75);
+  background: rgb(19 21 24 / 0.75);
   color: var(--dust);
   font-size: 0.8125rem;
   pointer-events: none;
@@ -491,7 +491,7 @@
   margin: 0;
   padding: 2px 6px;
   list-style: none;
-  background: rgb(16 34 49 / 0.75);
+  background: rgb(19 21 24 / 0.75);
   color: var(--dust);
   font-size: 0.8125rem;
   pointer-events: none;
@@ -528,8 +528,8 @@
   width: 400px;
   display: flex;
   flex-direction: column;
-  background: rgb(16 34 49 / 0.97);
-  border-left: 1px solid rgb(215 222 224 / 0.34);
+  background: rgb(19 21 24 / 0.97);
+  border-left: 1px solid rgb(255 255 255 / 0.34);
   transform: translateX(100%);
   visibility: hidden;
   transition: transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1), visibility 0s linear 320ms;
@@ -572,7 +572,7 @@
 .panelBasin {
   margin: 0;
   color: var(--dust);
-  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-family: var(--font-text);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.16em;
@@ -582,10 +582,10 @@
 .close {
   height: 28px;
   padding: 0 12px;
-  border: 1px solid rgb(215 222 224 / 0.4);
+  border: 1px solid rgb(255 255 255 / 0.4);
   background: none;
   color: var(--moon);
-  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-family: var(--font-text);
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
@@ -593,13 +593,13 @@
 }
 
 .close:hover {
-  background: var(--moon);
-  color: var(--night);
+  background: #222529;
+  color: #ffffff;
 }
 
 .panelName {
   margin: 4px 0 0;
-  font-family: "Barlow Condensed", "Bahnschrift", sans-serif;
+  font-family: var(--font-text);
   font-size: 2.375rem;
   line-height: 0.95;
   font-weight: 700;
@@ -655,7 +655,7 @@
 
 .stat dd {
   margin: 0;
-  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-family: var(--font-text);
   font-size: 1.25rem;
   font-weight: 600;
   line-height: 1.1;
@@ -676,7 +676,7 @@
 .sectionLabel {
   margin: 0 0 6px;
   color: var(--dust);
-  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-family: var(--font-text);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.14em;
@@ -693,7 +693,7 @@
 }
 
 .costRow b {
-  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-family: var(--font-text);
   font-weight: 600;
 }
 
@@ -702,12 +702,13 @@
   display: block;
   height: 6px;
   width: calc(var(--w, 0) * 100%);
-  background: var(--moon);
+  border-radius: 3px;
+  background: #298dff;
   transition: width 500ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 .costBar[data-ink="dust"] {
-  background: rgb(143 161 170 / 0.55);
+  background: rgb(137 145 159 / 0.55);
 }
 
 .saving {
@@ -715,7 +716,7 @@
 }
 
 .saving b {
-  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-family: var(--font-text);
   font-size: 1.25rem;
   font-weight: 700;
 }
@@ -731,7 +732,7 @@
 }
 
 .topLine b {
-  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-family: var(--font-text);
   font-weight: 600;
   margin-right: 6px;
 }
@@ -747,7 +748,7 @@
 .actions {
   flex: none;
   padding: 0 24px 6px;
-  border-top: 1px solid var(--moon);
+  border-top: 1px solid #222529;
 }
 
 /* MECHA's inverted row: a moonlight fill with night text, 120 ms. */
@@ -760,7 +761,7 @@
   padding: 8px 6px;
   border-bottom: 1px solid var(--rule);
   color: var(--moon);
-  font-family: "Barlow Condensed", "Bahnschrift", sans-serif;
+  font-family: var(--font-text);
   font-size: 1.3125rem;
   font-weight: 600;
   line-height: 1.2;
@@ -774,8 +775,8 @@
 
 .action:hover,
 .action:focus-visible {
-  background: var(--moon);
-  color: var(--night);
+  background: #298dff;
+  color: #ffffff;
 }
 
 .action:hover > span:first-child,
@@ -785,14 +786,14 @@
 
 .actionHint {
   color: var(--dust);
-  font-family: "Barlow", sans-serif;
+  font-family: var(--font-text);
   font-size: 0.875rem;
   font-weight: 400;
 }
 
 .action:hover .actionHint,
 .action:focus-visible .actionHint {
-  color: rgb(16 34 49 / 0.72);
+  color: rgb(255 255 255 / 0.8);
 }
 
 /* A short laptop window: the three ways on side by side, so the body keeps the cost in view. */
@@ -829,8 +830,8 @@
 .h2 {
   margin: 0;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--moon);
-  font-family: "Barlow Condensed", "Bahnschrift", sans-serif;
+  border-bottom: 1px solid #222529;
+  font-family: var(--font-text);
   font-size: clamp(1.75rem, 3vw, 2.5rem);
   font-weight: 600;
   line-height: 1;
@@ -870,9 +871,9 @@
 
 .table thead th {
   padding: 0;
-  border-bottom: 1px solid rgb(215 222 224 / 0.5);
+  border-bottom: 1px solid rgb(255 255 255 / 0.5);
   color: var(--dust);
-  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-family: var(--font-text);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -915,12 +916,12 @@ th[aria-sort="descending"] .sortBtn {
 }
 
 .table tbody tr:hover {
-  background: rgb(215 222 224 / 0.05);
+  background: rgb(255 255 255 / 0.05);
 }
 
 .table tbody tr[data-on] {
-  background: rgb(215 222 224 / 0.1);
-  box-shadow: inset 3px 0 0 var(--moon);
+  background: rgb(255 255 255 / 0.1);
+  box-shadow: inset 3px 0 0 #298dff;
 }
 
 .table tbody th {
@@ -943,7 +944,7 @@ th[aria-sort="descending"] .sortBtn {
 }
 
 .rowName {
-  font-family: "Barlow Condensed", "Bahnschrift", sans-serif;
+  font-family: var(--font-text);
   font-size: 1.3rem;
   font-weight: 600;
   line-height: 1.1;
@@ -1022,7 +1023,7 @@ th[aria-sort="descending"] .sortBtn {
 }
 
 .table td {
-  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-family: var(--font-text);
   font-weight: 600;
 }
 
@@ -1038,12 +1039,13 @@ th[aria-sort="descending"] .sortBtn {
   height: 3px;
   width: calc(var(--w, 0) * 100%);
   margin: 6px 0 0 auto;
-  background: rgb(215 222 224 / 0.75);
+  border-radius: 2px;
+  background: #298dff;
   transition: width 500ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 .cellBar[data-ink="dust"] {
-  background: rgb(143 161 170 / 0.5);
+  background: rgb(137 145 159 / 0.5);
 }
 
 .foot {
@@ -1077,7 +1079,7 @@ th[aria-sort="descending"] .sortBtn {
     max-height: var(--sheet);
     background: var(--night);
     border-left: 0;
-    border-top: 1px solid var(--moon);
+    border-top: 1px solid #222529;
     transform: translateY(100%);
   }
 

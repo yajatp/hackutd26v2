@@ -9,14 +9,14 @@
   position: fixed;
   inset: 0;
   z-index: 60;
-  color: #d7dee0;
+  color: #ffffff;
 }
 
 /* The shutter is the dim: night at 65%, so the page reads at 35% under it. */
 .shutter {
   position: absolute;
   inset: 0;
-  background: rgb(16 34 49 / 0.65);
+  background: rgb(19 21 24 / 0.65);
   /* Blurred as well as dimmed, so the board's text never runs through the overlay's. */
   backdrop-filter: blur(6px) saturate(0.5);
   -webkit-backdrop-filter: blur(6px) saturate(0.5);
@@ -29,7 +29,7 @@
   left: 0;
   height: 2px;
   background: #ef4444;
-  box-shadow: 0 0 10px 1px rgb(239 68 68 / 0.8);
+  box-shadow: none;
   opacity: 0;
 }
 
@@ -37,7 +37,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  border-radius: 2px;
+  border-radius: 6px;
   background: #b91c1c;
   padding: 0.2rem 0.6rem;
   color: #ffffff;
@@ -61,26 +61,28 @@
   height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-color: rgb(215 222 224 / 0.25) transparent;
+  scrollbar-color: rgb(255 255 255 / 0.25) transparent;
   margin: 0 auto;
   max-width: 44rem;
   /* A sheet of night under the text: the board shows at 35% either side, never through the words. */
-  background: rgb(16 34 49 / 0.94);
+  background: rgb(19 21 24 / 0.94);
   padding: 4.5rem clamp(16px, 4vw, 2.5rem) 2.5rem;
 }
 
-/* The title card: pixel type in thin crop-mark corners, one light streak behind the text. */
+/* The title card: plain type, no crop marks (Sui style). */
 .card {
   position: relative;
   overflow: hidden;
   padding: 1.1rem 1.25rem 1rem;
 }
 
+/* Sui style: no crop marks. The spans stay in the DOM, hidden. */
 .crops i {
+  display: none;
   position: absolute;
   width: 14px;
   height: 14px;
-  border-color: #d7dee0;
+  border-color: #ffffff;
   border-style: solid;
   border-width: 0;
 }
@@ -97,14 +99,15 @@
   width: 40%;
   height: 2.5rem;
   margin-top: -1.25rem;
-  background: linear-gradient(90deg, transparent, rgb(215 222 224 / 0.16), transparent);
+  display: none; /* Sui style: no light streak. */
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.16), transparent);
   opacity: 0;
   pointer-events: none;
 }
 
 .cardTitle {
   position: relative;
-  font-family: "Pixelify Sans", "Barlow Condensed", "Bahnschrift", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: clamp(2.75rem, 10vw, 4.5rem);
   font-weight: 700;
   line-height: 0.95;
@@ -115,7 +118,7 @@
 .cardSub {
   position: relative;
   margin-top: 0.4rem;
-  font-family: "Pixelify Sans", "Barlow Condensed", "Bahnschrift", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: clamp(1.1rem, 3.5vw, 1.5rem);
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -124,7 +127,7 @@
 
 .meta {
   margin-top: 0.75rem;
-  color: #8fa1aa;
+  color: #89919f;
 }
 
 /* The finding tag: solid red, a square marker, pops in over the frozen plan. */
@@ -135,7 +138,7 @@
   align-items: center;
   gap: 0.35rem;
   margin-bottom: 0.4rem;
-  border-radius: 2px;
+  border-radius: 8px;
   background: #b91c1c;
   padding: 0.1rem 0.5rem;
   color: #ffffff;
@@ -148,13 +151,13 @@
 .plan {
   position: relative;
   overflow: hidden;
-  border-left: 3px solid #8fa1aa;
+  border-left: 3px solid #89919f;
   padding: 0.75rem 1rem 0.9rem 1.1rem;
   filter: grayscale(1);
   opacity: 0.8;
 }
 
-.planHead { font-weight: 600; color: #8fa1aa; }
+.planHead { font-weight: 600; color: #89919f; }
 
 .planRow {
   margin-top: 0.4rem;
@@ -165,7 +168,7 @@
 }
 
 .planDecide {
-  font-family: "Barlow Condensed", "Barlow", "Bahnschrift", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: clamp(1.5rem, 4.5vw, 2rem);
   font-weight: 700;
   line-height: 1;
@@ -174,16 +177,16 @@
 .struck {
   text-decoration: line-through;
   text-decoration-thickness: 2px;
-  text-decoration-color: rgb(215 222 224 / 0.45);
+  text-decoration-color: rgb(255 255 255 / 0.45);
 }
 
 .planLabel {
   display: block;
   margin-bottom: 0.35rem;
-  font-family: "Barlow", "Bahnschrift", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 0.875rem;
   font-weight: 400;
-  color: #8fa1aa;
+  color: #89919f;
   text-decoration: none;
 }
 
@@ -199,7 +202,7 @@
   top: 0.6rem;
   right: 0.75rem;
   border: 1px solid #f59e0b;
-  border-radius: 2px;
+  border-radius: 6px;
   padding: 0 0.4rem;
   color: #fde68a;
   font-size: 0.8125rem;
@@ -219,7 +222,7 @@
 /* The evidence card. */
 .evidence {
   margin-top: 1.75rem;
-  border-top: 1px solid rgb(215 222 224 / 0.16);
+  border-top: 1px solid rgb(255 255 255 / 0.16);
   padding-top: 1.25rem;
 }
 
@@ -228,7 +231,7 @@
 .ref {
   margin-top: 0.5rem;
   min-height: 1.2em;
-  font-family: "Pixelify Sans", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-label);
   font-size: clamp(2.25rem, 9vw, 3.5rem);
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -242,7 +245,7 @@
   margin-top: 0.4rem;
   overflow: hidden;
   font-size: 0.8125rem;
-  color: #8fa1aa;
+  color: #89919f;
 }
 
 .fpLabel { display: block; }
@@ -251,7 +254,7 @@
 
 .fpText {
   display: block;
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-label);
   overflow-wrap: anywhere;
 }
 
@@ -274,7 +277,7 @@
 .note {
   flex-basis: 100%;
   font-size: 0.875rem;
-  color: #8fa1aa;
+  color: #89919f;
 }
 
 /* SpacetimeDB.log: a narrow monospace column at the right; it needs room beside the 44rem sheet, so it shows from 1100 px wide. */
@@ -286,31 +289,31 @@
   display: flex;
   width: min(22rem, calc((100vw - 44rem) / 2 - 2rem));
   flex-direction: column;
-  border-left: 1px solid rgb(215 222 224 / 0.16);
-  background: rgb(16 34 49 / 0.9);
+  border-left: 1px solid rgb(255 255 255 / 0.16);
+  background: rgb(19 21 24 / 0.9);
   padding: 0.25rem 0 0 0.75rem;
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-label);
   font-size: 0.75rem;
   line-height: 1.45;
 }
 
-.logTitle { color: #8fa1aa; }
+.logTitle { color: #89919f; }
 
 .logList {
   margin-top: 0.35rem;
   flex: 1;
   overflow-y: auto;
-  scrollbar-color: rgb(215 222 224 / 0.25) transparent;
+  scrollbar-color: rgb(255 255 255 / 0.25) transparent;
 }
 
 .logLine {
   padding: 0.1rem 0;
-  border-top: 1px solid rgb(215 222 224 / 0.08);
+  border-top: 1px solid rgb(255 255 255 / 0.08);
   overflow-wrap: anywhere;
 }
 
-.logTime { color: #8fa1aa; }
-.logReducer { color: #d7dee0; font-weight: 700; }
+.logTime { color: #89919f; }
+.logReducer { color: #ffffff; font-weight: 700; }
 .logHot { color: #fca5a5; font-weight: 700; }
 
 @media (max-width: 1099px) {
@@ -328,14 +331,14 @@
   align-items: center;
   gap: 0.5rem 1rem;
   border-bottom: 2px solid #ef4444;
-  background: #102231;
+  background: #000000;
   padding: 0.6rem 16px;
 }
 
 .barText { flex: 1 1 16rem; font-size: 0.9375rem; }
 .barButtons { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 
-.mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+.mono { font-family: var(--font-label); }
 
 /* ---- Motion (only under .animate; never with reduced motion) ---- */
 

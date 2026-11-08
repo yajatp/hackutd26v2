@@ -1,43 +1,55 @@
 @import "tailwindcss";
 
-/* One palette for Avon (/console, /attack) and the Darkroom (/box, /witness).
-   Hex values on purpose, so computed colors stay rgb(). No web fonts: the box runs offline.
-   Color only when something is wrong, and every status is also a word or an icon. */
+/* One palette for every screen: the Sui style (docs/HANDOFF.md, measured from sui.io).
+   Pure black page, #131518 / #222529 panels, thin 1px borders, three greys, white type and ONE
+   standout colour, Sui blue, for primary actions, selection, links and key numbers. Red and amber
+   only for alert states. No glows, no neon. Hex values on purpose, so computed colors stay rgb().
+   Fonts ship in public/fonts (app/fonts.css): the box runs offline. */
 :root {
-  color-scheme: light dark;
-  --background: #fafafa;
-  --foreground: #18181b;
-  --surface: #ffffff;
-  --surface-2: #f4f4f5;
-  --muted: #52525b;
-  --line: #d4d4d8;
-  --line-soft: #e4e4e7;
-  --alert: #b91c1c;
-  --alert-bg: #fef2f2;
-  --alert-line: #dc2626;
-  --alert-solid: #b91c1c;
-  --warn: #78350f;
-  --warn-bg: #fffbeb;
-  --warn-line: #f59e0b;
-}
+  color-scheme: dark;
+  /* Sui tokens */
+  --sui-black: #000000;
+  --sui-panel: #131518;
+  --sui-raised: #222529;
+  --sui-border: #222529;
+  --sui-hair: rgb(255 255 255 / 0.08);
+  --sui-grey-1: #6c7584;
+  --sui-grey-2: #89919f;
+  --sui-grey-3: #a1a7b2;
+  --sui-white: #ffffff;
+  --sui-blue: #298dff;
+  --sui-blue-soft: rgb(41 141 255 / 0.12);
+  --font-text: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-label: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius-s: 8px;
+  --radius-m: 10px;
+  --radius-l: 12px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0b;
-    --foreground: #f4f4f5;
-    --surface: #18181b;
-    --surface-2: #27272a;
-    --muted: #a1a1aa;
-    --line: #3f3f46;
-    --line-soft: #27272a;
-    --alert: #fca5a5;
-    --alert-bg: #3b0d0d;
-    --alert-line: #ef4444;
-    --alert-solid: #b91c1c;
-    --warn: #fde68a;
-    --warn-bg: #2e2208;
-    --warn-line: #f59e0b;
-  }
+  /* Roles the screens use */
+  --background: #000000;
+  --foreground: #ffffff;
+  --surface: #131518;
+  --surface-2: #222529;
+  --muted: #a1a7b2;
+  --line: #222529;
+  --line-soft: rgb(255 255 255 / 0.08);
+  --accent: #298dff;
+  --accent-ink: #ffffff;
+  --alert: #fca5a5;
+  --alert-bg: #2a1012;
+  --alert-line: #ef4444;
+  --alert-solid: #b91c1c;
+  --warn: #fde68a;
+  --warn-bg: #2a2110;
+  --warn-line: #f59e0b;
 }
 
 @theme inline {
@@ -48,6 +60,7 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-line-soft: var(--line-soft);
+  --color-accent: var(--accent);
   --color-alert: var(--alert);
   --color-alert-bg: var(--alert-bg);
   --color-alert-line: var(--alert-line);
@@ -55,32 +68,36 @@
   --color-warn: var(--warn);
   --color-warn-bg: var(--warn-bg);
   --color-warn-line: var(--warn-line);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-sans: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 body {
-  background: var(--background);
+  background: #000000;
   color: var(--foreground);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-text);
 }
+
+a { color: inherit; }
+::selection { background: rgb(41 141 255 / 0.35); color: #ffffff; }
+:focus-visible { outline-color: var(--accent); }
 
 /* Shared pieces. app/ui/ wraps the badges; screens use these classes directly for the rest. */
 @layer components {
   .card {
     border: 1px solid var(--line);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-l);
     background: var(--surface);
-    padding: 1rem;
+    padding: 1.25rem;
   }
 
   .section-title {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     line-height: 1.25rem;
     font-weight: 600;
-    letter-spacing: 0.025em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--muted);
+    color: var(--sui-grey-2);
   }
 
   .btn {
@@ -89,38 +106,43 @@ body {
     justify-content: center;
     gap: 0.375rem;
     min-height: 2.5rem;
-    border: 1px solid var(--line);
-    border-radius: 0.375rem;
+    border: 1px solid var(--sui-raised);
+    border-radius: var(--radius-s);
     background: var(--surface);
     color: var(--foreground);
-    padding: 0.375rem 0.875rem;
+    padding: 0.375rem 1rem;
     font-size: 0.875rem;
     line-height: 1.25rem;
     font-weight: 600;
   }
   .btn:hover:not(:disabled) {
-    border-color: var(--foreground);
+    border-color: var(--sui-grey-1);
+    background: var(--surface-2);
   }
   .btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
   }
   .btn-primary {
-    border-color: var(--foreground);
-    background: var(--foreground);
-    color: var(--background);
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+  .btn-primary:hover:not(:disabled) {
+    border-color: #4a9fff;
+    background: #4a9fff;
   }
   .btn-on {
-    border-color: var(--foreground);
-    box-shadow: inset 0 0 0 1px var(--foreground);
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
   }
 
   .field {
-    border: 1px solid var(--line);
-    border-radius: 0.375rem;
+    border: 1px solid var(--sui-raised);
+    border-radius: var(--radius-s);
     background: var(--surface);
     color: var(--foreground);
-    padding: 0.5rem;
+    padding: 0.5rem 0.75rem;
   }
 
   .badge {
@@ -129,15 +151,15 @@ body {
     gap: 0.25rem;
     white-space: nowrap;
     vertical-align: middle;
-    border: 1px solid var(--line);
-    border-radius: 0.25rem;
+    border: 1px solid var(--sui-raised);
+    border-radius: 999px;
     background: var(--surface);
     color: var(--foreground);
-    padding: 0.0625rem 0.5rem;
+    padding: 0.0625rem 0.625rem;
     font-size: 0.875rem;
     line-height: 1.25rem;
-    font-weight: 700;
-    letter-spacing: 0.025em;
+    font-weight: 600;
+    letter-spacing: 0.01em;
   }
   .badge-alert {
     border-color: var(--alert-line);
@@ -160,4 +182,9 @@ body {
     background: transparent;
     color: inherit;
   }
+}
+
+/* The live square in the one accent (unlayered, so a page's .badge color does not reach it). */
+.badge-ok > span[aria-hidden="true"] {
+  color: #298dff;
 }

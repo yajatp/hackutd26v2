@@ -5,7 +5,7 @@ import { labelRows, type TankState } from "../twin/model";
 import { camera, inkOf, renderField, tankTop, torchAt, type Cam, type FieldTank, type Pad, type Point } from "./field";
 import s from "./vr.module.css";
 
-const INKS = { night: inkOf("#102231"), moon: inkOf("#d7dee0"), alert: inkOf("#ef4444"), warn: inkOf("#f59e0b") };
+const INKS = { night: inkOf("#000000"), moon: inkOf("#a1a7b2"), alert: inkOf("#ef4444"), warn: inkOf("#f59e0b") };
 
 // The live table as a dithered picture. The light starts on the console's top problem and
 // follows the pointer; it eases there so the dither visibly sweeps. Labels name only the tanks

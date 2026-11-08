@@ -78,16 +78,16 @@ export function SitePanel({ site, onClose }: { site: SiteSummary | null; onClose
         <section className={s.cost} aria-label="The night's cost">
           <p className={s.sectionLabel}>The night&apos;s cost</p>
           <div className={s.costRow}>
-            <span>These plans</span>
+            <span>Response cost</span>
             <span className={s.costBar} style={{ "--w": shown.plans / max } as React.CSSProperties} data-ink="moon" />
             <b>{money(shown.plans)}</b>
           </div>
           <div className={s.costRow}>
-            <span>Doing nothing</span>
+            <span>Cost if unaddressed</span>
             <span className={s.costBar} style={{ "--w": shown.doNothing / max } as React.CSSProperties} data-ink="dust" />
             <b>{money(shown.doNothing)}</b>
           </div>
-          <p className={s.saving}>Saving <b>{money(saving(shown))}</b></p>
+          <p className={s.saving}>Savings <b>{money(saving(shown))}</b></p>
         </section>
 
         <dl className={s.stats}>

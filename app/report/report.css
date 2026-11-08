@@ -6,17 +6,17 @@
    room, opened and closed). The log follows as a chain, one entry never split across pages. */
 
 body:has(.report-root) {
-  --night: #102231;
-  --moon: #d7dee0;
-  --dust: #8fa1aa;
-  --rule: rgb(215 222 224 / 0.16);
+  --night: #000000;
+  --moon: #ffffff;
+  --dust: #89919f;
+  --rule: rgb(255 255 255 / 0.16);
   --red: #ef4444;
   --amber: #f59e0b;
   /* The shared connection badge above the report reads these product tokens. */
   --background: var(--night);
   --foreground: var(--moon);
-  --surface: #17304a;
-  --line: rgb(215 222 224 / 0.3);
+  --surface: #131518;
+  --line: rgb(255 255 255 / 0.3);
   --muted: var(--dust);
   --alert: #fca5a5;
   --alert-bg: #3b0d0d;
@@ -28,16 +28,16 @@ body:has(.report-root) {
   --ink: var(--moon);
   --ink-2: var(--dust);
   --hair: var(--rule);
-  --link-line: rgb(215 222 224 / 0.45);
+  --link-line: rgb(255 255 255 / 0.45);
 
   background: var(--night);
   color: var(--moon);
 }
 
 .report-root {
-  --sans: "Barlow", "Bahnschrift", "Roboto", system-ui, sans-serif;
-  --cond: "Barlow Condensed", "Barlow", "Bahnschrift", "Roboto Condensed", system-ui, sans-serif;
-  --mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  --sans: var(--font-text);
+  --cond: var(--font-text);
+  --mono: var(--font-label);
 
   max-width: 54rem;
   margin: 0 auto;
@@ -56,7 +56,7 @@ body:has(.report-root) {
 }
 
 .report-root :focus-visible {
-  outline: 2px solid var(--ink);
+  outline: 2px solid #298dff;
   outline-offset: 3px;
 }
 
@@ -147,7 +147,7 @@ body:has(.report-root) {
   display: inline-block;
   padding: 0.5rem 0.9rem;
   border: 1px solid var(--link-line);
-  border-radius: 2px;
+  border-radius: 10px;
   background: transparent;
   color: var(--ink);
   font: inherit;
@@ -157,9 +157,9 @@ body:has(.report-root) {
 }
 
 .report-root .r-btn-primary {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--night);
+  background: #298dff;
+  border-color: #298dff;
+  color: #ffffff;
 }
 
 .report-root .r-notice {
@@ -201,15 +201,15 @@ body:has(.report-root) {
 /* The one bold moment: the status line, as the box says it. */
 .report-root .r-status {
   padding-left: 1rem;
-  border-left: 6px solid var(--ink);
+  border-left: 3px solid #298dff;
 }
 
 .report-root .r-status-word {
   font-family: var(--cond);
-  font-weight: 700;
+  font-weight: 600;
   font-size: clamp(2.5rem, 9vw, 4.25rem);
   line-height: 1;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.02em;
 }
 
 .report-root .r-status-why {
@@ -595,9 +595,9 @@ body:has(.report-root) {
 
     @bottom-right {
       content: "Page " counter(page) " of " counter(pages);
-      font-family: "Barlow", "Bahnschrift", "Roboto", system-ui, sans-serif;
+      font-family: var(--font-text);
       font-size: 8pt;
-      color: #4a5a63;
+      color: #6c7584;
     }
   }
 
@@ -606,13 +606,13 @@ body:has(.report-root) {
   }
 
   body:has(.report-root) {
-    --ink: #102231;
-    --ink-2: #4a5a63;
-    --hair: #c9d1d4;
-    --link-line: #4a5a63;
+    --ink: #000000;
+    --ink-2: #6c7584;
+    --hair: #a1a7b2;
+    --link-line: #6c7584;
     --red: #ef4444;
     background: #ffffff !important;
-    color: #102231 !important;
+    color: #000000 !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
@@ -628,7 +628,7 @@ body:has(.report-root) {
     padding: 0;
     font-size: 10.5pt;
     line-height: 1.4;
-    color: #102231;
+    color: #000000;
   }
 
   .report-root :focus-visible {
@@ -681,7 +681,7 @@ body:has(.report-root) {
   }
 
   .report-root .r-status-broken .r-status-word {
-    color: #102231;
+    color: #000000;
   }
 
   .report-root .r-head8 {
@@ -792,7 +792,7 @@ body:has(.report-root) {
   margin: 0 auto;
   padding: 0.6rem 1rem;
   border-bottom: 2px dashed currentColor;
-  font-family: "Barlow", "Bahnschrift", "Roboto", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-weight: 600;
 }
 
@@ -807,7 +807,7 @@ body:has(.report-root) {
     margin: 0 0 0.15in;
     padding: 0.05in 0;
     font-size: 9pt;
-    color: #102231;
+    color: #000000;
   }
 
   .report-sample .report-no-print {

@@ -1,22 +1,22 @@
 /* The front door (app/home/Home.tsx), on the theme of /vr (docs/DESIGN.md): night and moonlight,
-   red and amber only for state, Barlow and Barlow Condensed, Chakra Petch for numbers and labels.
+   red and amber only for state, Hanken Grotesk for text, IBM Plex Mono for numbers and labels (Sui style).
    One bold moment, the headline; puture's "+" crosshairs behind it; Signal-A's hairline index;
    MECHA's inverted row on hover. */
 
 .page {
-  --night: #102231;
-  --moon: #d7dee0;
-  --dust: #8fa1aa;
-  --rule: rgb(215 222 224 / 0.16);
+  --night: #000000;
+  --moon: #ffffff;
+  --dust: #89919f;
+  --rule: rgb(255 255 255 / 0.16);
   --red: #ef4444;
   --amber: #f59e0b;
-  --green: #3ddc97;
+  --green: #298dff;
   --gutter: clamp(16px, 4vw, 48px);
   /* The shared badges (app/ui/Badge.tsx) read these product tokens. */
   --background: var(--night);
   --foreground: var(--moon);
-  --surface: #17304a;
-  --line: rgb(215 222 224 / 0.3);
+  --surface: #131518;
+  --line: rgb(255 255 255 / 0.3);
   --alert: #fca5a5;
   --alert-bg: #3b0d0d;
   --alert-line: var(--red);
@@ -29,14 +29,14 @@
   overflow-x: clip;
   background: var(--night);
   color: var(--moon);
-  font-family: "Barlow", "Bahnschrift", "Roboto", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-size: 1.0625rem;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
 }
 
 .page :focus-visible {
-  outline: 2px solid var(--moon);
+  outline: 2px solid #298dff;
   outline-offset: 3px;
 }
 
@@ -65,7 +65,7 @@
 .crosses {
   position: absolute;
   inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cpath d='M48 42.5v11M42.5 48h11' stroke='%23d7dee0' stroke-opacity='.3' stroke-width='1'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cpath d='M48 42.5v11M42.5 48h11' stroke='%23ffffff' stroke-opacity='.1' stroke-width='1'/%3E%3C/svg%3E");
   background-size: 96px 96px;
   background-position: calc(var(--gutter) - 48px) -24px;
   -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent);
@@ -76,7 +76,7 @@
 .title {
   position: relative;
   margin: 0;
-  font-family: "Barlow Condensed", "Bahnschrift", sans-serif;
+  font-family: var(--font-text);
   font-size: clamp(2.75rem, 6.7vw, 8rem);
   font-weight: 700;
   line-height: 0.9;
@@ -93,7 +93,7 @@
 }
 
 .index {
-  border-top: 2px solid var(--moon);
+  border-top: 1px solid #222529;
 }
 
 .list {
@@ -120,15 +120,15 @@
 
 .num {
   color: var(--dust);
-  font-family: "Chakra Petch", "Barlow", sans-serif;
-  font-size: 1rem;
-  font-weight: 600;
+  font-family: var(--font-label);
+  font-size: 0.875rem;
+  font-weight: 500;
   letter-spacing: 0.04em;
   transition: transform 120ms ease, color 120ms ease;
 }
 
 .name {
-  font-family: "Barlow Condensed", "Bahnschrift", sans-serif;
+  font-family: var(--font-text);
   font-size: clamp(1.625rem, 2.3vw, 2.25rem);
   font-weight: 600;
   line-height: 1;
@@ -141,10 +141,10 @@
 
 .hint {
   color: var(--dust);
-  font-family: "Chakra Petch", "Barlow", sans-serif;
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-family: var(--font-label);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
   text-align: right;
   white-space: nowrap;
   transition: color 120ms ease;
@@ -156,13 +156,13 @@
 
 .row:hover,
 .row:focus-visible {
-  background: var(--moon);
-  color: var(--night);
+  background: #131518;
+  color: #ffffff;
 }
 
 .row:hover .num,
 .row:focus-visible .num {
-  color: var(--night);
+  color: #298dff;
   transform: translateX(8px);
 }
 
@@ -170,7 +170,7 @@
 .row:focus-visible .what,
 .row:hover .hint,
 .row:focus-visible .hint {
-  color: rgb(16 34 49 / 0.78);
+  color: #a1a7b2;
 }
 
 .foot {

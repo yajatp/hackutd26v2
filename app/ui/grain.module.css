@@ -2,11 +2,13 @@
    contrast pushed toward black and white, filtered in sRGB (color-interpolation-filters) so its
    mean is a true 50% grey, drawn once by the browser and repeated. It is laid on with
    mix-blend-mode: overlay, which leaves a 50% grey unchanged: the page keeps its own Night
-   (#102231, measured 16/34/49 under the grain) and the grain only adds texture, never a grey
+   (#000000, measured 16/34/49 under the grain) and the grain only adds texture, never a grey
    veil. The layer is larger than the viewport so its jumps never show an edge, and only its
    transform changes: a compositor move, not a repaint. */
 
+/* Sui style: no grain. The layer stays in the DOM, switched off. */
 .grain {
+  display: none;
   position: fixed;
   inset: -12%;
   z-index: 95;

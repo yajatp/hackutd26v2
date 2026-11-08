@@ -5,13 +5,13 @@
    Unlayered rules, so they beat the layered ones in app/globals.css: set only what changes. */
 
 .room {
-  --background: #0b191b;
-  --foreground: #e6f2ee;
-  --muted: #8fb3aa;
-  --surface: transparent;
-  --surface-2: rgb(230 242 238 / 0.05);
-  --line: rgb(230 242 238 / 0.28);
-  --line-soft: rgb(230 242 238 / 0.12);
+  --background: #000000;
+  --foreground: #ffffff;
+  --muted: #89919f;
+  --surface: #131518;
+  --surface-2: #222529;
+  --line: #2c3036;
+  --line-soft: rgb(255 255 255 / 0.08);
   --alert: #fca5a5;
   --alert-bg: transparent;
   --alert-line: #ef4444;
@@ -19,93 +19,96 @@
   --warn: #fde68a;
   --warn-bg: rgb(245 158 11 / 0.08);
   --warn-line: #f59e0b;
-  /* Mint means verified, witnessed and closed. Never decoration. */
-  --verified: #3dff9a;
+  /* Sui blue means verified, witnessed and closed. Never decoration. */
+  --verified: #298dff;
 
   color-scheme: dark;
   min-height: 100vh;
-  background: #0b191b;
-  color: #e6f2ee;
-  font-family: "Barlow", "Bahnschrift", system-ui, sans-serif;
+  background: #000000;
+  color: #ffffff;
+  font-family: var(--font-text);
 }
 
 /* Teal past the page's edges too (overscroll, short pages). */
 :global(html):has(.room),
 :global(body):has(.room) {
-  background: #0b191b;
+  background: #000000;
 }
 
 .room :focus-visible {
-  outline: 2px solid #e6f2ee;
+  outline: 2px solid #298dff;
   outline-offset: 3px;
 }
 
 /* No white boxes: a hairline above, text on the teal. */
+/* Sui panels: #131518 on black, a thin border, a modest radius. */
 .room :global(.card) {
-  border: 0;
-  border-top: 1px solid var(--line);
-  border-radius: 0;
-  background: none;
+  border: 1px solid #222529;
+  border-radius: 12px;
+  background: #131518;
   box-shadow: none;
-  padding-inline: 0;
 }
 
 .room :global(.section-title) {
+  font-family: var(--font-text);
   font-size: 1rem;
   line-height: 1.5rem;
   font-weight: 600;
   letter-spacing: normal;
   text-transform: none;
-  color: #e6f2ee;
+  color: #ffffff;
 }
 
 .room :global(.btn) {
   border: 1px solid var(--line);
-  border-radius: 2px;
-  background: transparent;
-  color: #e6f2ee;
+  border-radius: 10px;
+  background: #131518;
+  color: #ffffff;
   font-family: inherit;
 }
 
 .room :global(.btn:hover:not(:disabled)) {
-  border-color: #e6f2ee;
+  border-color: #6c7584;
+  background: #222529;
 }
 
 .room :global(.btn-primary) {
-  border-color: #e6f2ee;
-  background: #e6f2ee;
-  color: #0b191b;
-  font-weight: 700;
+  border-color: #298dff;
+  background: #298dff;
+  color: #ffffff;
+  font-weight: 600;
 }
 
 .room :global(.btn-primary:hover:not(:disabled)) {
-  border-color: #ffffff;
-  background: #ffffff;
+  border-color: #4a9fff;
+  background: #4a9fff;
 }
 
 .room :global(.btn-on) {
-  border-color: #e6f2ee;
+  border-color: #298dff;
   box-shadow: none;
 }
 
 .room :global(.badge) {
-  border-radius: 2px;
+  border-radius: 6px;
 }
 
 .room :global(.field) {
-  border-radius: 2px;
+  border-color: #2c3036;
+  border-radius: 8px;
+  background: #000000;
 }
 
 /* The status headline: LOG VERIFIED, ROLLBACK DETECTED AT #k, TAMPERING AT #k. */
 .room :global(.dr-status) {
-  font-family: "Pixelify Sans", "Barlow", system-ui, sans-serif;
+  font-family: var(--font-text);
   font-weight: 700;
   letter-spacing: 0.02em;
 }
 
 /* Numbers inside pixel type: Pixelify's 5 is an S, so "AT #5" read "AT #S" (Digits.tsx). */
 .room :global(.dr-num) {
-  font-family: "Chakra Petch", ui-monospace, monospace;
+  font-family: var(--font-label);
   font-weight: 700;
 }
 
@@ -119,7 +122,7 @@
   border-left: 6px solid #ef4444;
   border-radius: 0;
   background: rgb(239 68 68 / 0.12);
-  color: #e6f2ee;
+  color: #ffffff;
 }
 
 .room :global([role="alert"][data-chain-status] .dr-status) {
@@ -171,14 +174,14 @@
 @keyframes dr-pulse {
   0% {
     border-left-color: #ef4444;
-    box-shadow: -6px 0 18px rgb(239 68 68 / 0);
+    box-shadow: none;
   }
   35% {
     border-left-color: #ff7a7a;
-    box-shadow: -6px 0 22px rgb(239 68 68 / 0.75);
+    box-shadow: none;
   }
   100% {
     border-left-color: #ef4444;
-    box-shadow: -6px 0 18px rgb(239 68 68 / 0);
+    box-shadow: none;
   }
 }
