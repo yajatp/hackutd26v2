@@ -15,6 +15,7 @@ const eslintConfig = [
     ignores: [
       "node_modules/**",
       ".next/**",
+      ".next-build/**", // next.config.ts sends local `next build` / `next start` output here
       "out/**",
       "build/**",
       "next-env.d.ts",

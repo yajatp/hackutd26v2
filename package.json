@@ -19,7 +19,8 @@
     "demo:darkroom": "node scripts/boot-darkroom.mjs",
     "demo:avon": "node scripts/boot-avon.mjs",
     "demo": "node scripts/boot-avon.mjs",
-    "demo:reset": "node scripts/reset-avon.mjs"
+    "demo:reset": "node scripts/reset-avon.mjs",
+    "e2e": "node scripts/e2e.mjs"
   },
   "dependencies": {
     "@noble/hashes": "^2.4.0",
