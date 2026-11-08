@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { hhmm, money, type Alert, type ConsoleView, type SensorIssue } from "@/lib/eog/alerts";
 import { evidenceFor, evidenceForIssue, type Evidence } from "@/lib/evidence";
 import { Badge, SensorBadge, SimulatedBadge } from "@/app/ui/Badge";
 import { useAvonConsole } from "@/lib/live";
+import { Arm, Collapse, Tick, useBornLive, useBringIntoView } from "./motion";
+import { freshConfirm } from "./tween";
 
 // The alerts view. Renders whatever ConsoleView it is given; where the view comes from
 // (Spacetime subscription) is the page's job.
@@ -33,31 +35,71 @@ function stamp(unix: number): string {
   return new Date(unix * 1000).toISOString().slice(5, 16).replace("T", " ");
 }
 
+// A block that is news (motion.tsx): its space opens (.mo-open, grid row 0fr to 1fr) so the page
+// below slides down instead of jumping, while the block itself slides in (.mo-in). Only the one
+// hero of a change (CONFIRMED, THEN CHANGED) also pulses its amber rule once (.mo-hero), and with
+// `bring` it is scrolled into view once it has opened, if it ended up below the fold.
+// Already on screen at first paint: the same elements, no motion.
+// The margin lives on the outer element and the block's own classes on the inner one; the middle
+// one has no padding, so the opening space can start from zero height.
+function Reveal({ space, className, motion = "mo-in", delay = 0, bring = false, children }: {
+  space: string; className: string; motion?: string; delay?: number; bring?: boolean; children: ReactNode;
+}) {
+  const live = useBornLive();
+  const box = useRef<HTMLDivElement>(null);
+  useBringIntoView(box, live && bring, delay + 380);
+  const wait = live && delay ? { animationDelay: `${delay}ms` } : undefined;
+  return (
+    <div ref={box} className={`${space} ${live ? "mo-open" : ""} ${bring ? "scroll-mb-8" : ""}`} style={wait}>
+      <div style={wait}>
+        <div className={`${className} ${live ? motion : ""}`} style={wait}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
 // A person carries this from the console to the Darkroom box; nothing is sent over the network.
 function SendToDarkroom({ ev, dataset, now }: { ev: Evidence | null; dataset: string; now: number }) {
   const [open, setOpen] = useState(false);
   if (!ev) return null;
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="btn mt-3">
+      <button onClick={() => setOpen(true)} className="btn mo-press mt-3">
         Open an incident in the Darkroom
       </button>
     );
   }
+  return <DarkroomRef ev={ev} dataset={dataset} now={now} />;
+}
+
+// The reference types itself in once (.mo-typed: a stepped mask and a caret over the full text,
+// which is in the DOM from the first frame), then the fingerprint fades in under it.
+function DarkroomRef({ ev, dataset, now }: { ev: Evidence; dataset: string; now: number }) {
+  const live = useBornLive();
   return (
-    <div className={`mt-3 ${WARN}`}>
+    <Reveal space="mt-3" className={WARN}>
       <p className="section-title">Carry this to the Darkroom box</p>
       <p className="mt-1 text-sm">
         A sensor that disagrees with physics can mean someone is inside the network. Nothing is sent from here:
         a person types this reference on the Darkroom box, and the box logs who brought it and when.
       </p>
-      <p className="mt-2 font-mono text-3xl font-bold tracking-[0.05em]">{ev.ref}</p>
-      <p className="mt-1 break-all font-mono text-xs text-muted">Fingerprint (SHA-256): {ev.hash}</p>
-      <p className="mt-1 text-sm text-muted">
+      <p className={`mt-2 font-mono text-3xl font-bold tracking-[0.05em] ${live ? "mo-typed" : ""}`}><span>{ev.ref}</span></p>
+      <p className={`mt-1 break-all font-mono text-xs text-muted ${live ? "mo-late" : ""}`}>Fingerprint (SHA-256): {ev.hash}</p>
+      <p className={`mt-1 text-sm text-muted ${live ? "mo-late" : ""}`}>
         {ev.record.asset_id} {ev.record.metric} · {dataset} at {hhmm(now)} UTC{ev.record.simulated ? " · SIMULATED fault" : ""}
       </p>
-    </div>
+    </Reveal>
   );
+}
+
+// The tank sensor a card's plan rests on, when the console no longer trusts it.
+function badSensor(a: Alert): Alert["tank_sensor"] | null {
+  return a.tank_sensor && ["dead", "drifting", "lying"].includes(a.tank_sensor.state) ? a.tank_sensor : null;
+}
+
+// The plan as confirmed no longer matches the plan as it reads now.
+function planChanged(a: Alert, done: { headline: string; cost: number }): boolean {
+  return done.headline !== a.fix!.headline || Math.round(done.cost) !== Math.round(a.fix!.plan.cost);
 }
 
 function clock(ms: number): string {
@@ -66,15 +108,19 @@ function clock(ms: number): string {
 
 // The operator's decision on this card (PLAN.md section 0: the judge works the shift). The server
 // keeps the plan as it read when confirmed, so a later fault shows against the judge's own choice.
-function ConfirmRow({ a }: { a: Alert }) {
+// On the top card, CONFIRMED, THEN CHANGED is the console's one hero moment: it opens a beat after
+// the other warnings, pulses its rule once and is brought into view (Reveal `bring`).
+function ConfirmRow({ a, top }: { a: Alert; top: boolean }) {
   const { confirmations, confirm, status } = useAvonConsole();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pressedAt = useRef<number | null>(null);    // when this screen last pressed a confirm
   const fix = a.fix!;
   const done = confirmations[a.id];
-  const bad = a.tank_sensor && ["dead", "drifting", "lying"].includes(a.tank_sensor.state) ? a.tank_sensor : null;
-  const changed = done && (done.headline !== fix.headline || Math.round(done.cost) !== Math.round(fix.plan.cost));
+  const bad = badSensor(a);
+  const changed = done && planChanged(a, done);
   async function go() {
+    pressedAt.current = Date.now();
     setBusy(true);
     setError(null);
     try { await confirm(a.id); } catch (e) { setError(e instanceof Error ? e.message : String(e)); } finally { setBusy(false); }
@@ -82,22 +128,17 @@ function ConfirmRow({ a }: { a: Alert }) {
   if (!done) {
     return (
       <div className="mt-5">
-        <button className="btn btn-primary" onClick={go} disabled={busy || status !== "connected"}>
+        {/* Compresses on press and stays pressed while the confirm is on its way (.mo-press). */}
+        <button className="btn btn-primary mo-press" onClick={go} disabled={busy || status !== "connected"} data-busy={busy || undefined}>
           Confirm this plan
         </button>
         {error && <p className="mt-1 text-sm text-alert">{error}</p>}
       </div>
     );
   }
-  if (!bad && !changed) {
-    return (
-      <p className="mt-5 flex flex-wrap items-center gap-2 text-sm">
-        <Badge tone="ok" icon="✓">CONFIRMED</Badge> by the night shift at {clock(done.atMs)}
-      </p>
-    );
-  }
+  if (!bad && !changed) return <ConfirmedLine atMs={done.atMs} pressedAt={pressedAt.current} />;
   return (
-    <div className={`mt-5 ${WARN} text-sm`}>
+    <Reveal space="mt-5" className={`${WARN} text-sm`} motion="mo-hero" delay={200} bring={top}>
       <p className="flex flex-wrap items-center gap-2 font-bold">
         <Badge tone="warn" icon="●">CONFIRMED, THEN CHANGED</Badge>
       </p>
@@ -107,11 +148,37 @@ function ConfirmRow({ a }: { a: Alert }) {
         {changed && <> The plan now reads <b>{fix.headline}</b> ({money(fix.plan.cost)}).</>}
       </p>
       {changed && (
-        <button className="btn mt-2" onClick={go} disabled={busy || status !== "connected"}>Confirm the new plan</button>
+        <button className="btn mo-press mt-2" onClick={go} disabled={busy || status !== "connected"} data-busy={busy || undefined}>Confirm the new plan</button>
       )}
       {error && <p className="mt-1 text-alert">{error}</p>}
-    </div>
+    </Reveal>
   );
+}
+
+// "✓ CONFIRMED by the night shift at …": when the confirmation was just made, the line fades in
+// and the check mark draws itself (an SVG stroke over the ✓, which stays in the DOM as the text
+// the e2e reads). An old confirmation that comes back (its warning cleared) just shows.
+function ConfirmedLine({ atMs, pressedAt }: { atMs: number; pressedAt: number | null }) {
+  const live = useBornLive();
+  const [news] = useState(() => live && freshConfirm(Date.now(), atMs, pressedAt));
+  return (
+    <p className={`mt-5 flex flex-wrap items-center gap-2 text-sm ${news ? "mo-fade" : ""}`}>
+      <Badge tone="ok">
+        <span aria-hidden="true" className="mo-check" data-draw={news ? "" : undefined}>
+          ✓{news && <svg viewBox="0 0 16 16" focusable="false"><path d="M2.5 8.8l3.4 3.4L13.5 4.4" /></svg>}
+        </span>
+        CONFIRMED
+      </Badge> by the night shift at {clock(atMs)}
+    </p>
+  );
+}
+
+// The confirm row's space closes instead of jumping when its warning goes (Collapse); the band
+// shows only when what left was the amber CONFIRMED, THEN CHANGED block.
+function ConfirmCollapse({ a, top }: { a: Alert; top: boolean }) {
+  const done = useAvonConsole().confirmations[a.id];
+  const warned = !!done && (!!badSensor(a) || planChanged(a, done));
+  return <Collapse band={warned}><ConfirmRow a={a} top={top} /></Collapse>;
 }
 
 function FixCardView({ a, top, dataset, now }: { a: Alert; top: boolean; dataset: string; now: number }) {
@@ -125,21 +192,23 @@ function FixCardView({ a, top, dataset, now }: { a: Alert; top: boolean; dataset
           <span className="font-semibold tabular-nums text-[#f87171]"><span aria-hidden="true">▲ </span>{countdown(a.hours_to_limit)}</span>
         )}
       </header>
-      {a.tank_sensor && ["dead", "drifting", "lying"].includes(a.tank_sensor.state) && (
-        <div className={`mt-4 ${WARN} text-sm`}>
-          <p className="flex flex-wrap items-center gap-2 font-bold">
-            CHECK THE TANK SENSOR FIRST: <SensorBadge state={a.tank_sensor.state} />
-            {a.tank_sensor.simulated && <SimulatedBadge />}
-          </p>
-          <p className="mt-1">{a.tank_sensor.evidence} This plan uses its reading.</p>
-          <SendToDarkroom ev={evidenceFor(a, dataset, now)} dataset={dataset} now={now} />
-        </div>
-      )}
+      <Collapse>
+        {a.tank_sensor && badSensor(a) && (
+          <Reveal space="mt-4" className={`${WARN} text-sm`}>
+            <p className="flex flex-wrap items-center gap-2 font-bold">
+              CHECK THE TANK SENSOR FIRST: <SensorBadge state={a.tank_sensor.state} />
+              {a.tank_sensor.simulated && <SimulatedBadge />}
+            </p>
+            <p className="mt-1">{a.tank_sensor.evidence} This plan uses its reading.</p>
+            <SendToDarkroom ev={evidenceFor(a, dataset, now)} dataset={dataset} now={now} />
+          </Reveal>
+        )}
+      </Collapse>
       <div className="mt-4 flex items-end justify-between gap-4 sm:gap-6">
         <p className={`${big} ${DECIDE} min-w-0`}><span className="mb-2 block text-sm font-normal leading-snug text-muted [font-stretch:100%]">Do this:</span> {fix.headline}</p>
-        <p className={`${big} ${DECIDE} shrink-0 text-right tabular-nums`}>{money(fix.plan.cost)}</p>
+        <p className={`${big} ${DECIDE} shrink-0 text-right tabular-nums`}><Tick value={fix.plan.cost} format={money} align="right" /></p>
       </div>
-      {fix.alternatives.length > 0 && <ConfirmRow a={a} />}
+      {fix.alternatives.length > 0 && <ConfirmCollapse a={a} top={top} />}
       <p className="mt-3 text-sm tabular-nums text-muted">
         {[...fix.details,
           fix.trip_at_unix !== null ? `tank would trip ${hhmm(fix.trip_at_unix)}` : null,
@@ -180,25 +249,38 @@ const METRIC_WORD: Record<string, string> = {
 
 function SensorsToCheck({ sensors, dataset, now }: { sensors: SensorIssue[]; dataset: string; now: number }) {
   if (sensors.length === 0) return null;
+  return <SensorsSection sensors={sensors} dataset={dataset} now={now} />;
+}
+
+// When it appears, the block comes down into place as one (.mo-open, .mo-down) and stays quiet:
+// the amber pulse is kept for the one hero, CONFIRMED, THEN CHANGED on the top card.
+function SensorsSection({ sensors, dataset, now }: { sensors: SensorIssue[]; dataset: string; now: number }) {
+  const live = useBornLive();
   return (
-    <section className="mt-10">
-      <h2 className="section-title">Sensors to check</h2>
-      <ul className="mt-3 flex flex-col gap-3">
-        {sensors.map((x) => (
-          <li key={x.key} className={WARN}>
-            <p className="flex flex-wrap items-center gap-2 text-lg font-semibold">
-              <SensorBadge state={x.state} />
-              <span>{pretty(x.asset_id)} {METRIC_WORD[x.metric] ?? x.metric.replace(/_/g, " ")}</span>
-              {x.simulated && <SimulatedBadge />}
-            </p>
-            <p className="mt-1">{x.evidence}</p>
-            {x.state === "dead" && <p className="text-sm">Send someone with a replacement sensor; until then, plans use its last reading.</p>}
-            {x.state === "lying" && <p className="text-sm">Check the sensor on site first. A reading that disagrees with physics can also mean someone changed it.</p>}
-            <SendToDarkroom ev={evidenceForIssue(x, dataset, now)} dataset={dataset} now={now} />
-          </li>
-        ))}
-      </ul>
+    <section className={`mt-10 ${live ? "mo-open" : ""}`}>
+      <div className={live ? "mo-down" : undefined}>
+        <h2 className="section-title">Sensors to check</h2>
+        <ul className="mt-3 flex flex-col gap-3">
+          {sensors.map((x) => <SensorLine key={x.key} x={x} dataset={dataset} now={now} />)}
+        </ul>
+      </div>
     </section>
+  );
+}
+
+function SensorLine({ x, dataset, now }: { x: SensorIssue; dataset: string; now: number }) {
+  return (
+    <li className={WARN}>
+      <p className="flex flex-wrap items-center gap-2 text-lg font-semibold">
+        <SensorBadge state={x.state} />
+        <span>{pretty(x.asset_id)} {METRIC_WORD[x.metric] ?? x.metric.replace(/_/g, " ")}</span>
+        {x.simulated && <SimulatedBadge />}
+      </p>
+      <p className="mt-1">{x.evidence}</p>
+      {x.state === "dead" && <p className="text-sm">Send someone with a replacement sensor; until then, plans use its last reading.</p>}
+      {x.state === "lying" && <p className="text-sm">Check the sensor on site first. A reading that disagrees with physics can also mean someone changed it.</p>}
+      <SendToDarkroom ev={evidenceForIssue(x, dataset, now)} dataset={dataset} now={now} />
+    </li>
   );
 }
 
@@ -234,13 +316,16 @@ export function ConnBanner({ conn }: { conn: Conn }) {
 export function Board({ view, dataset }: { view: ConsoleView; dataset: string }) {
   const failures = view.alerts.filter((a) => a.fix);
   const inspections = view.alerts.filter((a) => !a.fix);
+  // <Arm>: what is on the board when it first renders stays still; what arrives later moves.
   return (
-    <>
-      <SensorsToCheck sensors={view.sensors ?? []} dataset={dataset} now={view.now} />
+    <Arm>
+      <Collapse>
+        <SensorsToCheck sensors={view.sensors ?? []} dataset={dataset} now={view.now} />
+      </Collapse>
       {failures.length > 0 && (
         <p className="mt-10 text-xl leading-snug tabular-nums text-muted">
-          {failures.length} pump failure{failures.length > 1 ? "s" : ""} · doing nothing costs {money(view.totals.do_nothing)} ·
-          these plans cost <b className="font-bold text-foreground">{money(view.totals.plans)}</b>
+          {failures.length} pump failure{failures.length > 1 ? "s" : ""} · doing nothing costs <Tick value={view.totals.do_nothing} format={money} /> ·
+          these plans cost <b className="font-bold text-foreground"><Tick value={view.totals.plans} format={money} /></b>
         </p>
       )}
       <div className="mt-10 flex flex-col gap-14">
@@ -276,6 +361,6 @@ export function Board({ view, dataset }: { view: ConsoleView; dataset: string })
           </tbody>
         </table>
       </details>
-    </>
+    </Arm>
   );
 }
