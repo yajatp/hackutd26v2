@@ -25,3 +25,32 @@ Ten recent Awwwards Sites of the Day and startup honourable mentions, each visit
 ## Versions built from this
 
 `/vr/lab` lists them. `instrument` (Wafer, FORMAT, MECHA), `index` (Grids, Signal-A), `signal` (DeepBook), `depth` (Grail, Spyker). Version zero is `/vr` itself (MECHA's dither). Each was scored by an independent critic; the result and the choice are in DECISIONS.md.
+
+## Round 2 (Sun 03:25): puture.co.kr and ethiack.com, for the 3D space (Mohan's picks)
+
+Scrolled read-only with a headless browser; cookies declined on ethiack. Both use Lenis smooth scrolling and a WebGL canvas.
+
+**puture.co.kr** (#000 / near-white / electric blue; Geist Mono chips, a Korean variable sans):
+- An infinite perspective grid floor with "+" crosshair markers is the space everything lives in.
+- Its carousel: project cards stand as tilted 3D panels on that grid, and the scroll moves through them in depth.
+- Glossy blue glass cubes with white icons float in the space.
+- The process is a 3D path of connected waypoints on the grid (concept, prototype, test).
+- An exploded stack of isometric layers; a giant wordmark under a light beam at the end.
+
+**ethiack.com** (#0b191b dark teal, neon mint; FK Grotesk and FK Raster pixel type):
+- Red finding tags ("RCE IN API", "XSS IN DASHBOARD") pop over a pixel-mosaic city.
+- Pixel-type statements sit in crop-mark frames with a horizontal light streak ("ATTACKERS MOVE FASTER").
+- A sticky `Console.log` terminal streams down the right edge the whole time.
+- Mint stat cards with huge pixel numbers (99.5%, 30x).
+- Its carousel is a plain 34-logo marquee.
+
+**What we take, and where:**
+1. The VR dashboard as **puture's carousel**: glass cards on an arc in front of the judge (Budget, Top fix, Sensors, Potential breaches, What if). The thumbstick or a point-and-pull steps through them, which keeps the controls simple.
+2. **puture's grid floor with + markers** under the table and overview modes, so the data space reads as technical.
+3. **puture's floating glass cubes** as the menu dock buttons, with icons.
+4. **puture's waypoint path** for the what-if ripple: the consequences as waypoints laid across the ground from the facility (T+0, the trip at T+2h03, wells shut in, the truck).
+5. **ethiack's red finding tags** for the attack: "LYING · SIMULATED" pops over the tank, and amber "potential breach" tags over the tanks at risk.
+6. **ethiack's pixel statement in crop marks** for the LOCKDOWN title card, set in Pixelify Sans (OFL), our stand-in for FK Raster.
+7. **ethiack's Console.log** as a live SpacetimeDB event terminal: inject_fault, confirm_plan, enter_lockdown, streaming on a side wing in VR and on the console during lockdown.
+8. **ethiack's pixel stat numbers** for the budget ($1,810 vs $9,957).
+9. A theme switch in the VR menu: Permian Night, Grid (puture: light, blue glass) and Terminal (ethiack: teal, mint, pixel). Mohan's team picks.

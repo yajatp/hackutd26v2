@@ -7,3 +7,11 @@
 @font-face { font-family: "Barlow Condensed"; font-weight: 500; font-display: swap; src: url("/fonts/BarlowCondensed-500.woff2") format("woff2"); }
 @font-face { font-family: "Barlow Condensed"; font-weight: 600; font-display: swap; src: url("/fonts/BarlowCondensed-600.woff2") format("woff2"); }
 @font-face { font-family: "Barlow Condensed"; font-weight: 700; font-display: swap; src: url("/fonts/BarlowCondensed-700.woff2") format("woff2"); }
+/* Chakra Petch (SIL OFL, public/fonts/OFL-ChakraPetch.txt): the headset's labels and headings. */
+@font-face { font-family: "Chakra Petch"; font-weight: 500; font-display: swap; src: url("/fonts/ChakraPetch-500.woff2") format("woff2"); }
+@font-face { font-family: "Chakra Petch"; font-weight: 600; font-display: swap; src: url("/fonts/ChakraPetch-600.woff2") format("woff2"); }
+@font-face { font-family: "Chakra Petch"; font-weight: 700; font-display: swap; src: url("/fonts/ChakraPetch-700.woff2") format("woff2"); }
+/* Pixelify Sans (SIL OFL, public/fonts/OFL-PixelifySans.txt): pixel display type for the attack
+   and LOCKDOWN moments and big numbers (after ethiack.com's raster type). */
+@font-face { font-family: "Pixelify Sans"; font-weight: 500; font-display: swap; src: url("/fonts/PixelifySans-500.woff2") format("woff2"); }
+@font-face { font-family: "Pixelify Sans"; font-weight: 700; font-display: swap; src: url("/fonts/PixelifySans-700.woff2") format("woff2"); }

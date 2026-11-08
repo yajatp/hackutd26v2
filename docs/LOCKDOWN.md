@@ -34,3 +34,10 @@ The judge plays the night operator. A sensor disagrees with physics (LYING · SI
 - Every animation has a reduced-motion version: the final state, instant.
 - The lockdown never blocks reading the data. The data keeps flowing but is marked untrusted. Only the decision moves.
 - `npm run e2e` must still pass. Lockdown is opt-in (a button), so the e2e path never enters it. Add an e2e step only if it stays under about 5 s.
+
+## The look (from Mohan's reference, ethiack.com; notes in docs/DESIGN-RESEARCH.md, round 2)
+
+- The LOCKDOWN title card: "LOCKDOWN" and "MOVE TO THE DARKROOM" in Pixelify Sans 700 (`app/fonts.css`), inside thin crop-mark corners, with a horizontal light streak passing once behind the text.
+- Finding tags: small solid-red tags with a square marker ("■ LYING · SIMULATED") pop in over the suspect tank or row with a 120 ms scale from 0.9 to 1. Potential-breach tags use amber.
+- A live event terminal: a narrow monospace `SpacetimeDB.log` column on the console during lockdown, streaming the reducer events as rows land (fault, confirmation, lockdown). The Darkroom box streams its own log entries the same way.
+- Big numbers (the AV- reference, the budget) may use Pixelify Sans; sentences stay Barlow.
