@@ -174,6 +174,9 @@ export default function BoxScreen() {
                 ) : (
                   <p className="mt-1 text-sm"><Badge tone="alert" icon="●">OPEN</Badge></p>
                 )}
+                <a className="btn mt-2 inline-block" href={`/report?incident=${encodeURIComponent(current.id)}`}>
+                  Incident report (print or save as PDF)
+                </a>
               </>
             ) : (
               <p className="text-xl">{s.ready ? "No incident open yet." : "…"}</p>

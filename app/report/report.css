@@ -1,0 +1,78 @@
+/* Print rules for /report only (body:has(.report-root)). On paper: black on white even when the
+   screen is dark, no buttons, and no table row or short section split across two pages. */
+
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  :root:has(.report-root) {
+    color-scheme: light;
+  }
+
+  body:has(.report-root) {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .report-root {
+    --background: #ffffff;
+    --foreground: #000000;
+    --surface: #ffffff;
+    --surface-2: #ffffff;
+    --muted: #333333;
+    --line: #888888;
+    --line-soft: #bbbbbb;
+    --alert: #000000;
+    --alert-bg: #ffffff;
+    --alert-line: #000000;
+    --warn: #000000;
+    --warn-bg: #ffffff;
+    --warn-line: #000000;
+    background: #ffffff !important;
+    color: #000000 !important;
+    max-width: none;
+    padding: 0;
+  }
+
+  .report-no-print {
+    display: none !important;
+  }
+
+  /* The broken-chain banner prints as black words in a thick red frame: browsers drop
+     background colors on paper, and white text would vanish. */
+  .report-root .report-alert {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 4px solid #b91c1c !important;
+  }
+
+  .report-root .card,
+  .report-root .badge {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .report-root tr,
+  .report-root li,
+  .report-root dl,
+  .report-root pre,
+  .report-root .report-alert {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .report-root h1,
+  .report-root h2 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .report-root thead {
+    display: table-header-group;
+  }
+
+  .report-root .overflow-x-auto {
+    overflow: visible !important;
+  }
+}
