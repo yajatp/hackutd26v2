@@ -1,4 +1,10 @@
-Task (about 5:05): full QA of the whole app, the hosted copy and the Quest. Find bugs; don't fix them.
+Task (start NOW, 4:45): full QA of the whole app, the hosted copy and the Quest. Find bugs; don't fix them.
+
+ORDER (Mohan's session is still landing four lanes: the headset redesign, a UI polish, the Darkroom chain animation, and the US map plus front door):
+- **First, section 7:** the Darkroom on its own network (L2 plus hotspot plus witness phones). It is the one technical piece nobody has run, and its behaviour will not change.
+- **Then sections 2, 3 and 6** on the hosted copy as it is now.
+- **Sections 1, 4 and 5** (`/`, `/map`, `/twin` on the Quest) only after Mohan says "redeployed". Pull `origin/mohan/live` again then.
+- Report each section's failures as you go.
 
 Context: Avon (repo yajatp/hackutd26v2). Mohan wants the whole app working by about 6:00, then one review pass. Mohan's main session is merging the last lanes and redeploying https://avon-hackutd26.vercel.app. Your job: use every screen the way a judge and the team will, on the hosted copy and on the Quest 3S, and write down everything that is broken, confusing, slow or ugly.
 
