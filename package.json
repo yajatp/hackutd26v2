@@ -16,7 +16,9 @@
     "check:hardcode": "node scripts/hardcode-check.mjs",
     "fake:site": "node scripts/make-fake-site.mjs ../eog-data/history/mock_test_2026-10-10T1530 ../eog-data/fake/permian_site --seed 4",
     "smoke": "node scripts/smoke.mjs",
-    "demo:darkroom": "node scripts/boot-darkroom.mjs"
+    "demo:darkroom": "node scripts/boot-darkroom.mjs",
+    "demo:avon": "node scripts/boot-avon.mjs",
+    "demo": "node scripts/boot-avon.mjs"
   },
   "dependencies": {
     "@noble/hashes": "^2.4.0",
