@@ -1,0 +1,14 @@
+us-states.json: the 48 contiguous states and the District of Columbia.
+
+Source: U.S. Census Bureau, 2023 Cartographic Boundary File, States, 1:20,000,000
+(cb_2023_us_state_20m), https://www2.census.gov/geo/tiger/GENZ2023/kml/cb_2023_us_state_20m.zip,
+downloaded Sun 8 Nov 2026.
+
+Licence: a work of the U.S. federal government, in the public domain in the United States
+(17 U.S.C. 105). The Census Bureau asks: "These products are free to use in a product or
+publication, however acknowledgement must be given to the U.S. Census Bureau as the source."
+The /map page credits it in its footer. The file is for display at small scales only.
+
+Changes: converted from KML to GeoJSON; Alaska, Hawaii and Puerto Rico removed; coordinates
+rounded to 3 decimal places (about 100 m); properties reduced to the state's postal code (id)
+and name.

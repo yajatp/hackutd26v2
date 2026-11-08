@@ -1,0 +1,1249 @@
+/* /map. The night look of /vr (docs/DESIGN.md): night and moonlight, red and amber only for a
+   site's state, calm green for all clear. Behind the map, puture's faint perspective grid and "+"
+   crosshairs; on it, ethiack's square finding tags; MECHA's inverted hover on every link. */
+
+.page {
+  --night: #102231;
+  --moon: #d7dee0;
+  --dust: #8fa1aa;
+  --rule: rgb(215 222 224 / 0.16);
+  --red: #ef4444;
+  --amber: #f59e0b;
+  --green: #3ddc97;
+  --gutter: clamp(16px, 4vw, 48px);
+  /* The shared badges (app/ui/Badge.tsx) read these product tokens. */
+  --background: var(--night);
+  --foreground: var(--moon);
+  --surface: #17304a;
+  --line: rgb(215 222 224 / 0.3);
+  --alert: #fca5a5;
+  --alert-bg: #3b0d0d;
+  --alert-line: var(--red);
+  --alert-solid: #b91c1c;
+  --warn: #fde68a;
+  --warn-bg: #2e2208;
+  --warn-line: var(--amber);
+
+  min-height: 100vh;
+  overflow-x: clip;
+  background: var(--night);
+  color: var(--moon);
+  font-family: "Barlow", "Bahnschrift", "Roboto", system-ui, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.page :focus-visible {
+  outline: 2px solid var(--moon);
+  outline-offset: 3px;
+}
+
+/* ---- top line ---- */
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 1rem;
+  padding: 20px var(--gutter) 0;
+}
+
+.wordmark {
+  font-weight: 700;
+  font-size: 1.125rem;
+  letter-spacing: 0.01em;
+  color: var(--moon);
+  text-decoration: none;
+}
+
+.barTitle {
+  color: var(--dust);
+}
+
+.barStatus {
+  margin-left: auto;
+}
+
+/* ---- the one bold line ---- */
+
+.intro {
+  padding: clamp(20px, 3vw, 36px) var(--gutter) 0;
+}
+
+.title {
+  margin: 0;
+  padding-bottom: clamp(12px, 1.4vw, 20px);
+  border-bottom: 2px solid var(--moon);
+  font-family: "Barlow Condensed", "Bahnschrift", sans-serif;
+  font-size: clamp(2.5rem, 5.2vw, 5.5rem);
+  line-height: 0.92;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.introText {
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+  column-gap: clamp(24px, 5vw, 80px);
+  align-items: end;
+}
+
+@media (max-width: 899px) {
+  .introText {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.lede {
+  max-width: 62ch;
+  margin: 16px 0 0;
+  color: var(--dust);
+  font-size: 1.125rem;
+}
+
+.totals {
+  margin: 10px 0 0;
+  font-size: 1.125rem;
+}
+
+.totals b {
+  font-weight: 600;
+}
+
+.alertWord {
+  color: #f87171;
+  font-weight: 600;
+}
+
+/* ---- the map ---- */
+
+.mapWrap {
+  position: relative;
+  margin-top: clamp(20px, 3vw, 32px);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.stage {
+  position: relative;
+  isolation: isolate;
+  height: clamp(420px, calc(100svh - 288px), 780px);
+  overflow: hidden;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  outline: none;
+}
+
+.stage:focus-visible {
+  outline: 2px solid var(--moon);
+  outline-offset: -2px;
+}
+
+.stage[data-zoomed] {
+  touch-action: none;
+}
+
+.stage[data-dragging] {
+  cursor: grabbing;
+}
+
+/* puture's floor: a perspective grid toward the horizon, faint, drifting a little with the pan. */
+.floor {
+  position: absolute;
+  left: -40%;
+  right: -40%;
+  bottom: -18%;
+  height: 72%;
+  transform: perspective(720px) rotateX(66deg);
+  transform-origin: 50% 100%;
+  background-image:
+    linear-gradient(to right, rgb(215 222 224 / 0.075) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(215 222 224 / 0.075) 1px, transparent 1px);
+  background-size: 72px 72px;
+  background-position: var(--px, 0) var(--py, 0);
+  -webkit-mask-image: linear-gradient(to top, #000 20%, transparent 92%);
+  mask-image: linear-gradient(to top, #000 20%, transparent 92%);
+  pointer-events: none;
+}
+
+/* puture's "+" crosshairs over the whole field. */
+.crosses {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cpath d='M48 42.5v11M42.5 48h11' stroke='%23d7dee0' stroke-opacity='.3' stroke-width='1'/%3E%3C/svg%3E");
+  background-size: 96px 96px;
+  background-position: calc(var(--px, 0) * 2) calc(var(--py, 0) * 2);
+  pointer-events: none;
+}
+
+.svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.land path {
+  fill: #142a3c;
+  stroke: rgb(215 222 224 / 0.42);
+  stroke-width: 0.75;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  transition: fill 240ms ease;
+}
+
+.land path[data-site] {
+  fill: #18324a;
+}
+
+.land path[data-on] {
+  fill: #1e3d58;
+}
+
+.basins path {
+  fill: rgb(215 222 224 / 0.05);
+  stroke: rgb(215 222 224 / 0.34);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  vector-effect: non-scaling-stroke;
+  transition: fill 240ms ease, stroke 240ms ease;
+}
+
+.basins path[data-on] {
+  fill: rgb(215 222 224 / 0.1);
+  stroke: rgb(215 222 224 / 0.6);
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.basinLabel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--dust);
+  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: opacity 240ms ease;
+}
+
+/* ---- site markers ---- */
+
+.pin {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: var(--z, 1);
+  width: 0;
+  height: 0;
+}
+
+.marker {
+  --tone: var(--dust);
+  position: absolute;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transform: translateY(-50%);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.marker[data-side="right"] {
+  left: -12px;
+}
+
+.marker[data-side="left"] {
+  right: -12px;
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+.marker[data-tone="alert"] { --tone: var(--red); }
+.marker[data-tone="warn"] { --tone: var(--amber); }
+.marker[data-tone="ok"] { --tone: var(--green); }
+
+.marker:focus-visible {
+  outline: none;
+}
+
+/* A label that does not fit at this zoom: the marker alone, its label on hover or focus. */
+.marker[data-compact] .label {
+  display: none;
+}
+
+.marker[data-compact]:hover .label,
+.marker[data-compact]:focus-visible .label {
+  display: flex;
+}
+
+.pin:hover,
+.pin:focus-within {
+  z-index: 10;
+}
+
+.marker:focus-visible .name {
+  outline: 2px solid var(--moon);
+  outline-offset: 2px;
+}
+
+.dot {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+}
+
+/* ethiack's square marker at the centre, the pulsing ring around it. */
+.dot::before {
+  content: "";
+  position: relative;
+  z-index: 1;
+  width: 9px;
+  height: 9px;
+  background: var(--tone);
+  box-shadow: 0 0 0 2px var(--night);
+}
+
+.ring,
+.ring2 {
+  position: absolute;
+  inset: 3px;
+  border: 1.5px solid var(--tone);
+  border-radius: 50%;
+  opacity: 0.5;
+  transform: scale(1.1);
+}
+
+.ring2 {
+  display: none;
+}
+
+.marker[aria-pressed="true"] .dot::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border: 1px solid var(--moon);
+}
+
+/* --dy (UsMap) raises or lowers a label that would otherwise cover a neighbour; `translate`, so
+   the arrival animation's transform leaves it alone. */
+.label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  translate: 0 var(--dy, 0px);
+}
+
+.marker[data-side="left"] .label {
+  align-items: flex-end;
+}
+
+.name {
+  padding: 1px 6px;
+  background: rgb(16 34 49 / 0.82);
+  color: var(--moon);
+  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.marker:hover .name,
+.marker[aria-pressed="true"] .name {
+  background: var(--moon);
+  color: var(--night);
+}
+
+/* ethiack's finding tag: a flat block in the state's color, square icon, caps. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 7px 2px 6px;
+  background: var(--tone, var(--dust));
+  color: var(--night);
+  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+}
+
+.tag[data-tone="alert"] { --tone: var(--red); }
+.tag[data-tone="warn"] { --tone: var(--amber); }
+
+.tag[data-tone="ok"] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgb(61 220 151 / 0.65);
+  color: var(--green);
+}
+
+.tag[data-tone="off"] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgb(143 161 170 / 0.6);
+  color: var(--dust);
+}
+
+.tagIcon {
+  font-size: 0.5625rem;
+}
+
+/* ---- map controls ---- */
+
+.controls {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  display: flex;
+  gap: 6px;
+  transition: right 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.ctl {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgb(215 222 224 / 0.4);
+  background: rgb(16 34 49 / 0.85);
+  color: var(--moon);
+  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.ctlWide {
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+}
+
+.ctl:hover:not(:disabled) {
+  background: var(--moon);
+  color: var(--night);
+}
+
+.ctl:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.hint {
+  position: absolute;
+  left: 16px;
+  bottom: 12px;
+  z-index: 2;
+  margin: 0;
+  padding: 2px 6px;
+  background: rgb(16 34 49 / 0.75);
+  color: var(--dust);
+  font-size: 0.8125rem;
+  pointer-events: none;
+}
+
+.geoError {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  z-index: 2;
+  margin: 0;
+  color: var(--dust);
+  font-size: 0.875rem;
+}
+
+.legend {
+  position: absolute;
+  right: 16px;
+  bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 2px 6px;
+  list-style: none;
+  background: rgb(16 34 49 / 0.75);
+  color: var(--dust);
+  font-size: 0.8125rem;
+  pointer-events: none;
+  transition: right 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.rowDot {
+  --tone: var(--dust);
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  background: var(--tone);
+}
+
+.rowDot[data-tone="alert"] { --tone: var(--red); }
+.rowDot[data-tone="warn"] { --tone: var(--amber); }
+.rowDot[data-tone="ok"] { --tone: var(--green); }
+
+/* ---- the site panel: beside the map when wide, a bottom sheet on a phone ---- */
+
+.panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  width: 400px;
+  display: flex;
+  flex-direction: column;
+  background: rgb(16 34 49 / 0.97);
+  border-left: 1px solid rgb(215 222 224 / 0.34);
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1), visibility 0s linear 320ms;
+}
+
+.panel[data-open="true"] {
+  transform: none;
+  visibility: visible;
+  transition: transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1), visibility 0s;
+}
+
+@media (min-width: 900px) {
+  .mapWrap[data-panel] .controls,
+  .mapWrap[data-panel] .legend {
+    right: 416px;
+  }
+}
+
+.panelBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 14px 24px 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* More below: the foot of the body fades out until it is scrolled to the end. */
+.panelBody[data-more] {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 44px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 44px), transparent);
+}
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panelBasin {
+  margin: 0;
+  color: var(--dust);
+  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.close {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid rgb(215 222 224 / 0.4);
+  background: none;
+  color: var(--moon);
+  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.close:hover {
+  background: var(--moon);
+  color: var(--night);
+}
+
+.panelName {
+  margin: 4px 0 0;
+  font-family: "Barlow Condensed", "Bahnschrift", sans-serif;
+  font-size: 2.375rem;
+  line-height: 0.95;
+  font-weight: 700;
+}
+
+.panelCity {
+  margin: 4px 0 0;
+  color: var(--dust);
+}
+
+.panelStatus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 10px 0 12px;
+}
+
+.dbName {
+  color: var(--dust);
+  font-size: 0.8125rem;
+}
+
+/* The counts in one hairline row (Signal-A's index rule), three to five cells. */
+.stats {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  margin: 12px 0 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 8px 8px 8px 10px;
+  border-left: 1px solid var(--rule);
+}
+
+.stat:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.stat dt {
+  color: var(--dust);
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.stat dd {
+  margin: 0;
+  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.stat dd[data-tone="alert"] { color: #f87171; }
+.stat dd[data-tone="warn"] { color: var(--amber); }
+
+.cost {
+  margin-top: 14px;
+}
+
+.top {
+  margin-top: 2px;
+}
+
+.sectionLabel {
+  margin: 0 0 6px;
+  color: var(--dust);
+  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* label | bar | amount on one line, the two bars against the larger of the two. */
+.costRow {
+  display: grid;
+  grid-template-columns: 7.4em minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.costRow b {
+  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-weight: 600;
+}
+
+.costBar {
+  justify-self: start;
+  display: block;
+  height: 6px;
+  width: calc(var(--w, 0) * 100%);
+  background: var(--moon);
+  transition: width 500ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.costBar[data-ink="dust"] {
+  background: rgb(143 161 170 / 0.55);
+}
+
+.saving {
+  margin: 4px 0 0;
+}
+
+.saving b {
+  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+/* The console's top card in a line or two; the whole of it in the title. */
+.topLine {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.topLine b {
+  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 0;
+}
+
+/* Pinned to the panel's foot, so the way on is always in reach. */
+.actions {
+  flex: none;
+  padding: 0 24px 6px;
+  border-top: 1px solid var(--moon);
+}
+
+/* MECHA's inverted row: a moonlight fill with night text, 120 ms. */
+.action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 12px;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--rule);
+  color: var(--moon);
+  font-family: "Barlow Condensed", "Bahnschrift", sans-serif;
+  font-size: 1.3125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.action > span:first-child {
+  transition: transform 120ms ease;
+}
+
+.action:hover,
+.action:focus-visible {
+  background: var(--moon);
+  color: var(--night);
+}
+
+.action:hover > span:first-child,
+.action:focus-visible > span:first-child {
+  transform: translateX(8px);
+}
+
+.actionHint {
+  color: var(--dust);
+  font-family: "Barlow", sans-serif;
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
+.action:hover .actionHint,
+.action:focus-visible .actionHint {
+  color: rgb(16 34 49 / 0.72);
+}
+
+/* A short laptop window: the three ways on side by side, so the body keeps the cost in view. */
+@media (min-width: 900px) and (max-height: 820px) {
+  .actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 0;
+  }
+
+  .action {
+    justify-content: center;
+    border-bottom: 0;
+    border-left: 1px solid var(--rule);
+    font-size: 1.125rem;
+    text-align: center;
+  }
+
+  .action:first-child {
+    border-left: 0;
+  }
+
+  .actionHint {
+    display: none;
+  }
+}
+
+/* ---- compare ---- */
+
+.compare {
+  padding: clamp(40px, 6vw, 72px) var(--gutter) 0;
+}
+
+.h2 {
+  margin: 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--moon);
+  font-family: "Barlow Condensed", "Bahnschrift", sans-serif;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+.caption {
+  caption-side: bottom;
+  padding-top: 12px;
+  text-align: left;
+  color: var(--dust);
+  font-size: 0.875rem;
+}
+
+.table th,
+.table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  font-weight: 400;
+  vertical-align: middle;
+}
+
+.table [data-num] {
+  text-align: right;
+}
+
+.table thead th {
+  padding: 0;
+  border-bottom: 1px solid rgb(215 222 224 / 0.5);
+  color: var(--dust);
+  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sortBtn {
+  display: flex;
+  align-items: baseline;
+  width: 100%;
+  padding: 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+
+th[data-num] .sortBtn {
+  justify-content: flex-end;
+}
+
+.sortBtn:hover,
+th[aria-sort="ascending"] .sortBtn,
+th[aria-sort="descending"] .sortBtn {
+  color: var(--moon);
+}
+
+.sortMark {
+  display: inline-block;
+  width: 1ch;
+  margin-left: 4px;
+}
+
+.table tbody tr {
+  transition: background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.table tbody tr:hover {
+  background: rgb(215 222 224 / 0.05);
+}
+
+.table tbody tr[data-on] {
+  background: rgb(215 222 224 / 0.1);
+  box-shadow: inset 3px 0 0 var(--moon);
+}
+
+.table tbody th {
+  padding: 0;
+}
+
+.rowBtn {
+  display: grid;
+  grid-template-columns: 8px auto;
+  align-items: center;
+  column-gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rowName {
+  font-family: "Barlow Condensed", "Bahnschrift", sans-serif;
+  font-size: 1.3rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.rowBasin {
+  grid-column: 2;
+  color: var(--dust);
+  font-size: 0.875rem;
+}
+
+.shortHead,
+.rowCost {
+  display: none;
+}
+
+.rowCost {
+  grid-column: 2;
+  margin-top: 2px;
+  color: var(--dust);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.rowCost > span {
+  display: block;
+  white-space: nowrap;
+}
+
+.rowCost > span[data-tone="warn"] {
+  color: var(--amber);
+}
+
+/* Below 800 px the five numbers do not fit side by side: the plans, the doing-nothing cost and the
+   sensors fold under the site's name and the heads shorten, so the table never scrolls sideways. */
+@media (max-width: 799px) {
+  .table {
+    min-width: 0;
+  }
+
+  .table [data-wide],
+  .rowBasin,
+  .longHead {
+    display: none;
+  }
+
+  .shortHead {
+    display: inline;
+  }
+
+  .rowCost {
+    display: block;
+  }
+
+  .table td {
+    padding: 10px 6px;
+  }
+
+  .sortBtn {
+    padding: 12px 6px;
+    letter-spacing: 0.06em;
+  }
+
+  .table thead th:first-child .sortBtn {
+    padding-left: 4px;
+  }
+
+  .rowBtn {
+    column-gap: 10px;
+    padding: 10px 6px 10px 4px;
+  }
+
+  .rowName {
+    font-size: 1.2rem;
+  }
+}
+
+.table td {
+  font-family: "Chakra Petch", "Barlow", sans-serif;
+  font-weight: 600;
+}
+
+.table td[data-tone="alert"] { color: #f87171; }
+.table td[data-tone="warn"] { color: var(--amber); }
+
+.cellMoney {
+  display: block;
+}
+
+.cellBar {
+  display: block;
+  height: 3px;
+  width: calc(var(--w, 0) * 100%);
+  margin: 6px 0 0 auto;
+  background: rgb(215 222 224 / 0.75);
+  transition: width 500ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.cellBar[data-ink="dust"] {
+  background: rgb(143 161 170 / 0.5);
+}
+
+.foot {
+  max-width: 86ch;
+  margin: clamp(48px, 6vw, 72px) var(--gutter) 0;
+  padding: 16px 0 40px;
+  border-top: 1px solid var(--rule);
+  color: var(--dust);
+  font-size: 0.8125rem;
+}
+
+.foot p {
+  margin: 0;
+}
+
+/* ---- a phone: the map on top, the panel as a bottom sheet ---- */
+
+@media (max-width: 899px) {
+  .page {
+    --sheet: 50svh;
+  }
+
+  .panel {
+    position: fixed;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    width: auto;
+    max-height: var(--sheet);
+    background: var(--night);
+    border-left: 0;
+    border-top: 1px solid var(--moon);
+    transform: translateY(100%);
+  }
+
+  .page:has(.mapWrap[data-panel]) {
+    padding-bottom: var(--sheet);
+  }
+
+  .panelBody {
+    padding: 14px 16px 12px;
+  }
+
+  /* On a phone the three ways on sit side by side under the sheet. */
+  .actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 0;
+  }
+
+  .action {
+    justify-content: center;
+    padding: 12px 6px;
+    border-bottom: 0;
+    border-left: 1px solid var(--rule);
+    font-size: 1.125rem;
+    text-align: center;
+  }
+
+  .action:first-child {
+    border-left: 0;
+  }
+
+  .actionHint {
+    display: none;
+  }
+
+  .legend {
+    position: static;
+    padding: 10px var(--gutter);
+    background: none;
+  }
+}
+
+@media (max-width: 640px) {
+  /* The map (320 px) sits at the top once a site is picked: the sheet takes the rest. */
+  .page {
+    --sheet: max(50svh, calc(100svh - 340px));
+  }
+
+  .bar {
+    padding-top: 14px;
+  }
+
+  .title {
+    font-size: 2.6rem;
+  }
+
+  .lede,
+  .totals {
+    font-size: 1rem;
+  }
+
+  .stage {
+    height: 320px;
+  }
+
+  .controls {
+    top: 10px;
+    right: 10px;
+  }
+
+  .ctl {
+    min-width: 36px;
+    height: 36px;
+  }
+
+  .hint {
+    left: 10px;
+    bottom: 8px;
+  }
+
+  .panelName {
+    font-size: 2.25rem;
+  }
+
+  .name {
+    font-size: 0.75rem;
+  }
+
+  .tag {
+    font-size: 0.625rem;
+  }
+}
+
+/* ---- motion: rings pulse by state, markers arrive once; none of it with reduced motion ---- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .ring,
+  .ring2 {
+    animation: pulse 2.8s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
+    animation-delay: calc(var(--i, 0) * -410ms);
+  }
+
+  .ring2 {
+    display: block;
+    animation-delay: calc(var(--i, 0) * -410ms - 1.4s);
+  }
+
+  .marker[data-tone="alert"] .ring,
+  .marker[data-tone="alert"] .ring2 {
+    animation-duration: 1.6s;
+  }
+
+  .marker[data-tone="alert"] .ring2 {
+    animation-delay: calc(var(--i, 0) * -410ms - 0.8s);
+  }
+
+  .marker[data-tone="off"] .ring,
+  .marker[data-tone="off"] .ring2 {
+    animation: none;
+  }
+
+  .dot::before {
+    animation: drop 420ms cubic-bezier(0.2, 0.7, 0.2, 1.3) both;
+    animation-delay: calc(var(--i, 0) * 70ms + 150ms);
+  }
+
+  .label {
+    animation: slideIn 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation-delay: calc(var(--i, 0) * 70ms + 260ms);
+  }
+
+  .marker[data-side="left"] .label {
+    animation-name: slideInLeft;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .panel[data-open="true"],
+  .controls,
+  .legend,
+  .costBar,
+  .cellBar,
+  .land path,
+  .basins path,
+  .basinLabel {
+    transition: none;
+  }
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.55); opacity: 0.9; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+@keyframes drop {
+  from { transform: scale(0); }
+  to { transform: none; }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: none; }
+}
