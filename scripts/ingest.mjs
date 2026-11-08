@@ -6,7 +6,7 @@
 //                           [--batch 1000] [--inflight 4]
 //   npm run st:ingest -- <folder>
 //
-// Local servers only: the URI must be plain ws:// (the public cloud is wss:// only).
+// Local servers by default: the URI must be plain ws://. The hosted copy's wss:// database needs --cloud.
 import { tsImport } from "tsx/esm/api";
 import { readFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
@@ -21,6 +21,7 @@ function args(argv) {
     };
     if (a === "--id") out.id = val();
     else if (a === "--uri") out.uri = val();
+    else if (a === "--cloud") out.cloud = true;
     else if (a === "--db") out.db = val();
     else if (a === "--batch") out.batch = Number(val());
     else if (a === "--inflight") out.inflight = Number(val());
@@ -28,7 +29,8 @@ function args(argv) {
     else out.folder = a;
   }
   if (!out.folder) throw new Error("usage: node scripts/ingest.mjs <folder> [--id <dataset_id>] [--uri ws://127.0.0.1:3001]");
-  if (!/^ws:\/\//.test(out.uri)) throw new Error(`refusing ${out.uri}: local ws:// servers only`);
+  // A hosted database (wss://, for the Vercel copy) only with --cloud, so a typo never loads the cloud.
+  if (!/^ws:\/\//.test(out.uri) && !(out.cloud && /^wss:\/\//.test(out.uri))) throw new Error(`refusing ${out.uri}: local ws:// servers only (wss:// needs --cloud)`);
   out.folder = resolve(out.folder);
   out.id ||= basename(out.folder);
   return out;

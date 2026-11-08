@@ -15,7 +15,10 @@ import type { DetectedEvent } from "./eog/types.ts";
 import { datasetToRows, type WideRow } from "../spacetimedb/src/wide.ts";
 import { RTT_INTERVAL_MS, RttMeter } from "./rules/darkroom/rtt.ts";
 
-export const AVON_DB = "avon";
+// The hosted copy (Vercel, https) cannot open ws:// to a laptop, so it is built with
+// NEXT_PUBLIC_AVON_URI (a wss:// SpacetimeDB, e.g. maincloud) and NEXT_PUBLIC_AVON_DB. The demo LAN
+// sets neither and keeps the laptop's own SpacetimeDB.
+export const AVON_DB = process.env.NEXT_PUBLIC_AVON_DB || "avon";
 export const AVON_PORT = 3001;
 
 export type AvonStatus = "connecting" | "connected" | "disconnected";
@@ -40,9 +43,9 @@ export interface AvonConsole {
 }
 
 // Same host as the page, so phones on the LAN reach the laptop's Spacetime. Plain ws://, so
-// the page must be served over http (as on the demo LAN).
+// the page must be served over http (as on the demo LAN). A hosted build points elsewhere (above).
 export function avonUri(): string {
-  return `ws://${window.location.hostname}:${AVON_PORT}`;
+  return process.env.NEXT_PUBLIC_AVON_URI || `ws://${window.location.hostname}:${AVON_PORT}`;
 }
 
 // The ConsoleView that finish_ingest built, from the rows it wrote. Returns undefined while
