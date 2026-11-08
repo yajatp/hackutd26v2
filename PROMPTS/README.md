@@ -8,6 +8,8 @@ Paste one file into one agent. Each job owns its own files and branch, so the ag
 | yajat-codex-fake-site.md | Yajat (Codex), in `avon-codex/` | Fake second oil site + hardcode check; later a review | yajat/fake-site |
 | yajat-claude-boot-l1.md | Yajat (Claude Code), in `avon/`, after the remote | Boot Avon on L1 from cold, phone over the hotspot, one-command boot + runbook | yajat/boot |
 | yajat-codex-review.md | Yajat (Codex), in `avon-codex/`, after the fake site | Independent review of tonight's code, findings in REVIEW-codex.md | yajat/review |
+| yajat-claude-reset-l1.md | Yajat (Claude Code), in `avon/` | Between-judges reset for L1: `npm run demo:reset` | yajat/reset |
+| yajat-codex-review-2.md | Yajat (Codex), in `avon-codex/`, after "Fix review findings" lands | Re-check the first review, red-team the Darkroom on a throwaway server | yajat/review-2 |
 | sreesh-claude-ui-audit.md | Sreesh (Claude Code) | UI audit (report only) + 90-second demo run sheet | none (no commits) |
 
 Setup on Yajat's laptop, once:

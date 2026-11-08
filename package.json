@@ -18,7 +18,8 @@
     "smoke": "node scripts/smoke.mjs",
     "demo:darkroom": "node scripts/boot-darkroom.mjs",
     "demo:avon": "node scripts/boot-avon.mjs",
-    "demo": "node scripts/boot-avon.mjs"
+    "demo": "node scripts/boot-avon.mjs",
+    "demo:reset": "node scripts/reset-avon.mjs"
   },
   "dependencies": {
     "@noble/hashes": "^2.4.0",
