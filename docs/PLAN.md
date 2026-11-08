@@ -2,6 +2,94 @@
 
 Sat 7:20pm to Sun 5pm (CT). Agents write the code; our limits are clock time and a demo that never breaks. These times replace the full plan's; its verified technical decisions hold. Devpost title: **Avon**. "The Darkroom" is the breach room, named in beat 3 only.
 
+## 0. NARROWED PLAN (Sat ~8:15pm). This section wins over anything below that disagrees.
+
+Why: ChatGPT and Gemini, acting as harsh judges, both said the same thing. The idea is strong, but we show too much. Judges get 3 minutes and see 25+ tables. If they can't explain our project back to a friend, we lose. So we narrow.
+
+### What a judge must understand (and nothing else)
+
+**The 5-second version:** "Avon tells oil-field night crews what's broken, what it costs to fix, and which sensors are lying."
+
+**The 15-second version:** "EOG told us every site uses different tools, and they only find out a sensor died when its data stops. Avon reads any site's data, finds the problem, plans the cheapest fix, and checks every sensor against physics. If a sensor might be hacked, the evidence goes to a sealed room that proves nobody edited the record."
+
+Three ideas, in this order. Everything else is optional.
+1. **What's broken and the cheapest fix** (EOG). The hero.
+2. **Which sensors to trust** (dead, drifting, lying). The twist.
+3. **A record nobody can secretly edit** (Darkroom). The ending.
+
+### The default demo: 90 seconds, one laptop, one judge phone
+
+The judge only ever holds **one phone** (Phone 1, the "break a sensor" remote). Teammates hold everything else. Laptop 1 is the main screen; Laptop 2 (the Darkroom) sits next to it.
+
+| Time | What happens | Who |
+|---|---|---|
+| 0:00-0:15 | "An EOG engineer told us she only finds out a sensor died when its data stops. And every site uses different software." | Mohan |
+| 0:15-0:45 | Load their data folder. Top alert card: what broke, when the tank shuts in, the cheapest fix, and **why the other options lose** (see the fix card below). | Yajat |
+| 0:45-1:10 | Hand the judge Phone 1. They tap **Kill**: "DEAD, last heard 10 min ago, bring a replacement." They tap **Fake**: "LYING: water in says rising, sensor says flat." Every fault shows a **SIMULATED** badge. | Sreesh hands, Mohan narrates |
+| 1:10-1:30 | Click **Send to Darkroom**. The incident opens on Laptop 2. A teammate deletes log entries as root. **ROLLBACK DETECTED** on Laptop 2 and on the witness phone. "Nobody can quietly rewrite what happened." | Sreesh, Mohan |
+
+Close: "One view for every site, the cheapest fix, and you know which sensors to trust."
+
+### 30-second add-ons, only when that judge asks
+- **EOG:** load the `test/` folder live, then the events table. "Everything comes from your three files."
+- **Winstead:** show the threat model card (below), add a member by code, mark one scope row EXFILTRATED.
+- **Spacetime:** stop Spacetime and every screen says Disconnected. Show the reducers in `spacetimedb/src`. Explain the two databases (below).
+- **Design:** "A stranger found the next action in [N] seconds with no help."
+- **Quest:** only if a judge wants to try it, and only if it's already working. Never part of the main demo.
+
+### The fix card (make the optimizer inspectable)
+Never show only "Cheapest: $905". Show:
+- The plan: trucks, trips each, when the first truck arrives, when the tank would have tripped.
+- Total cost.
+- The alternatives and their costs: shut in which wells from when; do nothing.
+- One line on why each alternative loses (for example, "Do nothing: wells shut in 04:49 to 06:20, $5,016").
+- If our time is a minute or two off because of sensor noise, say so plainly: "same decision, start time within 3 minutes."
+
+### Sensor health: show evidence, not a mystery number
+- Drop the 0-100 trust score from the main screen. Show the evidence instead: "Physics says +9.1 pts/h. Sensor says 0. Off for 30 min."
+- DEAD: "No reading for 10 min. Last value 61%."
+- DRIFTING: "Off from physics by 0.9 pts/h, growing."
+- Show "0 false alarms on clean data (5 folders checked)" once that check passes. Until then, don't claim it.
+- Every injected fault carries a **SIMULATED** badge. Their real data has no broken sensors, and we say so.
+
+### Winstead, narrowed
+Pitch the Darkroom as **an isolated incident documentation and evidence-integrity room**, not as "a cybersecurity product". Put this threat model card on Laptop 2:
+
+**Protects against**
+- An attacker on the company network reading or changing the incident record (the Darkroom is on its own router with nothing plugged into the internet port).
+- Someone quietly editing or deleting log entries afterward (fingerprint chain, witness phones, and a separate verifier laptop).
+- People writing to the record without being let in (in-person join code; roles checked by the server).
+
+**Does not protect against**
+- Someone with physical control of the Darkroom laptop changing what it displays live.
+- A compromised phone.
+- Proving the original sensor evidence was true. We prove the record wasn't changed after it was written (integrity, not truth).
+
+Words: "isolated local network", "tamper-evident", "integrity, not authenticity". Never: "air-gapped", "tamper-proof", "unhackable", "independently secure".
+
+Darkroom must-haves: open incident, scope board (ENCRYPTED, EXFILTRATED, ACCESSED, SUSPECTED vs CONFIRMED), team chat where every message is a log entry, root delete and ROLLBACK DETECTED, verifier on Laptop 3. Nice-to-haves if time allows: join by code, Legal determination with the Texas clock ("demo rules, not legal advice").
+
+### Spacetime, explained simply
+- Two databases on purpose: `avon` (the company side) and `darkroom` (the isolated room). If they shared one database, the isolation would be fake. That's the answer if a judge asks.
+- Don't quote the 1.5 ms number as performance; it was on one laptop. Say "every screen updates instantly because they all subscribe to the same live data."
+
+### Quest: optional garnish
+- The site twin must also run in a normal browser window, so the demo never depends on the headset.
+- Use the Quest only for judges who want to try it, cast to a screen.
+
+### README for judges (3 steps)
+1. `npm ci`
+2. `spacetime start` (then publish the module; exact command in the README)
+3. `npm run demo`, then open http://localhost:3000
+
+### Priority order for the rest of the build
+1. EOG console plus the fix card, loading any folder (including a fake second site) with no code change.
+2. Sensor health (DEAD, LYING first; DRIFTING after) with evidence text and SIMULATED badges.
+3. Darkroom must-haves plus the threat model card.
+4. Design polish of the main console: color only when something is wrong, the next action always on top.
+5. Then nice-to-haves: join by code, Legal clock, Quest, cross-site feed panel.
+
+
 ## 1. Pitch
 
 **One line:** Avon puts every site's sensors in one view and gives the night shift the cheapest fix. It flags any sensor that goes silent and checks every tank level against physics. When a sensor lies, a person carries the evidence to the Darkroom: a breach room on an isolated laptop with a tamper-evident log.
