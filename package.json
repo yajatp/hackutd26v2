@@ -14,7 +14,9 @@
     "st:ingest": "node scripts/ingest.mjs",
     "test:st": "tsx --test --test-concurrency=1 \"spacetimedb/test/*.test.ts\"",
     "check:hardcode": "node scripts/hardcode-check.mjs",
-    "fake:site": "node scripts/make-fake-site.mjs ../eog-data/history/mock_test_2026-10-10T1530 ../eog-data/fake/permian_site --seed 4"
+    "fake:site": "node scripts/make-fake-site.mjs ../eog-data/history/mock_test_2026-10-10T1530 ../eog-data/fake/permian_site --seed 4",
+    "smoke": "node scripts/smoke.mjs",
+    "demo:darkroom": "node scripts/boot-darkroom.mjs"
   },
   "dependencies": {
     "@noble/hashes": "^2.4.0",
