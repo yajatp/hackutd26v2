@@ -26,11 +26,12 @@ const GLITCH_EVERY_MS = 1400;
 const GLITCH_FOR_MS = 220;
 
 // The eye stands zc meters south of the table's center, looking down at it: the horizon is just
-// above the frame, the table's far rim a third of the way down, its near rim off the bottom edge.
+// above the frame, the table's far rim about 40% of the way down (room for labels), its near rim
+// off the bottom edge.
 export function camera(W: number, H: number): Cam {
   const zc = 1.35;
   const f = 0.76 * W;
-  const horizon = -0.1 * H;
+  const horizon = -0.04 * H;
   const camH = (0.86 * H) / f;
   return { W, H, f, horizon, camH, zc };
 }

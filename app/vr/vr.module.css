@@ -42,7 +42,7 @@
 
 .field {
   position: relative;
-  height: clamp(420px, 68vh, 760px);
+  height: clamp(380px, 62vh, 720px);
   overflow: hidden;
   cursor: crosshair;
   touch-action: pan-y;
@@ -77,6 +77,26 @@
   width: 1px;
   height: var(--lead, 12px);
   background: var(--moon);
+}
+
+/* A flag: the label beside its leader line instead of centred over it. */
+.labelRight {
+  transform: translate(0, calc(-100% - 14px));
+  align-items: flex-start;
+}
+
+.labelRight::after {
+  left: 0;
+}
+
+.labelLeft {
+  transform: translate(-100%, calc(-100% - 14px));
+  align-items: flex-end;
+}
+
+.labelLeft::after {
+  left: auto;
+  right: 0;
 }
 
 .labelName {
@@ -136,46 +156,120 @@
 
 /* Words. Left-aligned on one margin with the bar above. */
 .intro,
-.grid,
+.deck,
+.runsheet,
 .foot {
   padding-inline: clamp(16px, 4vw, 48px);
-  max-width: 1280px;
 }
 
+/* The title runs the full width under the table, closed by one moonlight rule (after Grids). */
 .intro {
-  padding-top: clamp(28px, 5vw, 56px);
-  padding-bottom: clamp(32px, 5vw, 64px);
+  padding-top: clamp(20px, 3vw, 36px);
 }
 
 .title {
   margin: 0;
-  max-width: 14ch;
-  font-size: clamp(2.5rem, 7vw, 5.5rem);
-  line-height: 0.95;
+  padding-bottom: clamp(14px, 1.6vw, 22px);
+  border-bottom: 2px solid var(--moon);
   font-family: "Barlow Condensed", "Bahnschrift", sans-serif;
+  font-size: clamp(2.75rem, 7.1vw, 8.5rem);
+  line-height: 0.9;
   font-weight: 700;
-  font-stretch: 75%;
   letter-spacing: -0.01em;
 }
 
+@media (min-width: 900px) {
+  .title {
+    white-space: nowrap;
+  }
+}
+
+.deck {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  column-gap: clamp(32px, 6vw, 96px);
+  row-gap: 32px;
+  padding-top: clamp(24px, 3vw, 40px);
+}
+
+@media (max-width: 860px) {
+  .deck {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.lead {
+  max-width: 44rem;
+}
+
 .summary {
-  margin: 1.25rem 0 0;
-  max-width: 60ch;
+  margin: 0 0 1.5rem;
+  max-width: 52ch;
   color: var(--dust);
   font-size: 1.1875rem;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-  column-gap: clamp(32px, 6vw, 96px);
-  row-gap: clamp(48px, 6vw, 80px);
+.rail .h2 {
+  font-size: 1rem;
+  color: var(--dust);
+  font-weight: 600;
 }
 
-@media (max-width: 860px) {
-  .grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.runsheet {
+  max-width: 920px;
+  margin-top: clamp(64px, 9vw, 120px);
+}
+
+.finish {
+  margin: 0;
+  padding-top: 0.875rem;
+  border-top: 3px solid var(--moon);
+  font-family: "Barlow Condensed", "Bahnschrift", sans-serif;
+  font-size: 1.625rem;
+  font-weight: 600;
+}
+
+.more {
+  max-width: 920px;
+  margin: clamp(56px, 8vw, 96px) clamp(16px, 4vw, 48px) 0;
+  border-top: 1px solid var(--rule);
+}
+
+.more details {
+  border-bottom: 1px solid var(--rule);
+}
+
+.more summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 1rem 0;
+  list-style: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.more summary::-webkit-details-marker {
+  display: none;
+}
+
+.more summary::after {
+  content: "+";
+  color: var(--dust);
+  font-weight: 400;
+}
+
+.more details[open] summary::after {
+  content: "\2212";
+}
+
+.more details > :not(summary) {
+  margin-bottom: 1.25rem;
+}
+
+.moreText {
+  max-width: 64ch;
+  color: var(--dust);
 }
 
 .h2 {
@@ -230,10 +324,6 @@
 
 .checkText {
   color: var(--dust);
-}
-
-.go {
-  margin-top: 1.75rem;
 }
 
 .primary {
@@ -319,27 +409,14 @@
   border-color: var(--moon);
 }
 
-.alt {
-  margin-top: 1.75rem;
-  padding-left: 1rem;
-  border-left: 2px solid var(--rule);
-  color: var(--dust);
-}
-
-.alt p {
-  margin: 0;
-}
-
-.alt em {
-  font-style: normal;
+.steps code,
+.moreText code,
+.pairs code,
+.checkText code {
+  font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+  font-size: 0.875em;
   color: var(--moon);
-}
-
-.h3 {
-  margin: 0 0 0.375rem;
-  font-size: 1.0625rem;
-  font-weight: 600;
-  color: var(--moon);
+  overflow-wrap: anywhere;
 }
 
 .code {
@@ -434,6 +511,7 @@
 }
 
 .foot {
+  max-width: none;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 1.5rem;

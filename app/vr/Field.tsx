@@ -96,7 +96,7 @@ export function Field({ tanks, pads, states, top }: { tanks: FieldTank[]; pads: 
       />
       {labels.map((l, i) => (
         // Earlier labels sit on top, so a lifted label's leader line passes behind them.
-        <div key={l.id} className={s.label} style={{ left: l.x, top: l.y - l.lift, zIndex: labels.length - i, ["--lead" as string]: `${12 + l.lift}px` }}>
+        <div key={l.id} className={`${s.label} ${l.side === "right" ? s.labelRight : l.side === "left" ? s.labelLeft : ""}`} style={{ left: l.x, top: l.y - l.lift, zIndex: labels.length - i, ["--lead" as string]: `${12 + l.lift}px` }}>
           {l.rows.map((r, i) => (
             <span key={i} className={r.tone === "name" ? s.labelName : r.tone === "alert" ? s.toneAlert : s.toneWarn}>{r.text}</span>
           ))}
@@ -106,24 +106,46 @@ export function Field({ tanks, pads, states, top }: { tanks: FieldTank[]; pads: 
   );
 }
 
-// Labels for the top problem and every tank with a state, in the headset's words (labelRows).
-// A label that would cover one already placed moves up; its leader line grows to match.
-const ROW_PX = 16, CHAR_PX = 7.4;
+// Labels for the top problem and every tank with a state, in the headset's words. On a laptop a
+// state line stays whole; on a phone it breaks as in the headset (labelRows). A label that would
+// cover one already placed is lifted or flagged (beside its leader line) instead; a tank with a
+// labelled neighbour flags away from it. Labels never rise under the top bar, and every leader
+// line ends on its own tank.
+const ROW_PX = 16, CHAR_PX = 7.2, MIN_TOP = 60;
+type Side = "center" | "right" | "left";
 
 function placeLabels(cam: Cam, px: number, tanks: FieldTank[], states: Map<string, TankState>, top: string | null) {
   const rank = (t: FieldTank) => (t.facility_id === top ? 0 : t.tone === "alert" ? 1 : 2);
-  const placed: { id: string; x: number; y: number; lift: number; rows: ReturnType<typeof labelRows>; box: [number, number, number, number] }[] = [];
-  for (const t of tanks.filter((x) => x.facility_id === top || x.tone !== "ok").sort((a, b) => rank(a) - rank(b))) {
+  const placed: { id: string; x: number; y: number; lift: number; side: Side; rows: { text: string; tone: string }[]; box: [number, number, number, number] }[] = [];
+  const labelled = tanks.filter((x) => x.facility_id === top || x.tone !== "ok");
+  const sx = new Map(labelled.map((t) => [t.facility_id, tankTop(cam, t).sx * px]));
+  for (const t of [...labelled].sort((a, b) => rank(a) - rank(b))) {
     const st = states.get(t.facility_id);
     if (!st) continue;
-    const rows = labelRows(st).filter((r) => r.tone !== "ok");
+    const rows = px >= 4
+      ? [{ text: st.short, tone: "name" }, ...st.lines.filter((l) => l.tone !== "ok")]
+      : labelRows(st).filter((r) => r.tone !== "ok");
     const p = tankTop(cam, t);
     const x = p.sx * px, y = p.sy * px - 14;
     const w = Math.max(...rows.map((r) => r.text.length)) * CHAR_PX + 12, h = rows.length * ROW_PX + 4;
-    let lift = 0;
-    const hits = (l: number) => placed.some(({ box: [a, b, c, d] }) => x - w / 2 < c && x + w / 2 > a && y - l - h < d && y - l > b);
-    while (hits(lift) && lift < 240) lift += 6;
-    placed.push({ id: t.facility_id, x, y: p.sy * px, lift, rows, box: [x - w / 2, y - lift - h, x + w / 2, y - lift] });
+    const span = (side: Side): [number, number] => (side === "center" ? [x - w / 2, x + w / 2] : side === "right" ? [x + 6, x + 6 + w] : [x - 6 - w, x - 6]);
+    const hits = (side: Side, l: number) => {
+      const [a0, c0] = span(side);
+      return placed.some(({ box: [a, b, c, d] }) => a0 < c && c0 > a && y - l - h < d && y - l > b);
+    };
+    const maxLift = Math.max(0, y - h - MIN_TOP);
+    // Two labelled tanks side by side: each flags away from the other, like a drawing's callouts.
+    const near = labelled.filter((o) => o !== t && Math.abs(sx.get(o.facility_id)! - x) < w);
+    const away: Side[] = near.length === 0 ? ["center", "right", "left"]
+      : near.every((o) => sx.get(o.facility_id)! >= x) ? ["left", "center", "right"]
+      : near.every((o) => sx.get(o.facility_id)! <= x) ? ["right", "center", "left"]
+      : ["center", "right", "left"];
+    let pick: { side: Side; lift: number } = { side: away[0], lift: 0 };
+    search: for (const side of away) {
+      for (let lift = 0; lift <= maxLift; lift += 6) if (!hits(side, lift)) { pick = { side, lift }; break search; }
+    }
+    const [a, c] = span(pick.side);
+    placed.push({ id: t.facility_id, x, y: p.sy * px, lift: pick.lift, side: pick.side, rows, box: [a, y - pick.lift - h, c, y - pick.lift] });
   }
   return placed;
 }
