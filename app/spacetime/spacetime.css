@@ -1,0 +1,250 @@
+/* /spacetime only (docs/DESIGN.md): night page, DIN, hairline lists, red and amber only for state.
+   One bold moment: the reducer-by-table matrix lighting up when a transaction lands. */
+
+body:has(.st-root) {
+  background: #102231;
+  color: #d7dee0;
+}
+
+.st-root {
+  --night: #102231;
+  --moon: #d7dee0;
+  --dust: #8fa1aa;
+  --rule: rgb(215 222 224 / 0.16);
+  --settled: rgb(215 222 224 / 0.14);
+
+  /* ConnBadge (app/ui/Badge.tsx) reads these from globals.css; restated for the night page. */
+  --surface: transparent;
+  --foreground: var(--moon);
+  --line: var(--rule);
+  --muted: var(--dust);
+  --warn: #f59e0b;
+  --warn-bg: transparent;
+  --warn-line: #f59e0b;
+  --alert-solid: #ef4444;
+
+  min-height: 100vh;
+  background: var(--night);
+  color: var(--moon);
+  font-family: "Bahnschrift", "DIN Alternate", "Roboto", system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  padding: 2rem 1rem 4rem;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .st-root { padding: 2.5rem 2.5rem 5rem; }
+}
+
+.st-root code {
+  font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  font-size: 0.875em;
+}
+
+.st-root :focus-visible {
+  outline: 2px solid var(--moon);
+  outline-offset: 2px;
+}
+
+.st-root h1,
+.st-root h2 {
+  font-weight: 700;
+  font-stretch: 75%;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.st-root h1 { font-size: clamp(2rem, 5vw, 3.25rem); }
+.st-root h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+
+.st-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.st-lede,
+.st-note,
+.st-down,
+.st-empty,
+.st-caption {
+  max-width: 70ch;
+  margin: 0.75rem 0 0;
+}
+
+.st-note { color: var(--dust); font-size: 15px; }
+.st-empty { color: var(--dust); }
+.st-down { color: #ef4444; }
+
+/* ---------- The matrix ---------- */
+
+.st-matrix { margin-top: 2.5rem; }
+
+.st-grid-wrap { margin-top: 1rem; }
+
+.st-grid {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  max-width: 1100px;
+}
+
+.st-col-reducer { width: 11rem; }
+
+.st-grid th[scope="row"] {
+  text-align: left;
+  font-weight: 400;
+  color: var(--dust);
+  padding: 0 0.75rem 0 0;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+
+.st-grid thead th {
+  font-weight: 400;
+  color: var(--dust);
+  text-align: left;
+  vertical-align: bottom;
+  padding: 0 0 0.5rem 0.5rem;
+}
+
+.st-colname {
+  font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.st-grid thead th[data-lit],
+.st-grid tr[data-lit] th[scope="row"] {
+  color: var(--moon);
+  font-weight: 700;
+}
+
+.st-grid td {
+  height: 3.25rem;
+  border: 1px solid var(--rule);
+  text-align: center;
+  vertical-align: middle;
+  background: transparent;
+  color: var(--moon);
+}
+
+.st-ring {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 1.5px solid var(--dust);
+  border-radius: 50%;
+}
+
+.st-n {
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+/* The transaction that just landed: its cells flash full moonlight, then settle. */
+.st-grid td[data-lit] {
+  background: var(--settled);
+  animation: st-land 1.6s ease-out both;
+}
+
+.st-grid td[data-lit] .st-ring { border-color: currentColor; }
+
+@keyframes st-land {
+  0%, 15% { background: var(--moon); color: var(--night); }
+  100% { background: var(--settled); color: var(--moon); }
+}
+
+.st-caption { color: var(--dust); }
+.st-caption code { color: var(--moon); }
+
+/* Narrow screens: column names stand up so seven tables fit beside the reducer names. */
+@media (max-width: 899px) {
+  .st-col-reducer { width: 7.25rem; }
+  .st-grid th[scope="row"] { padding-right: 0.375rem; }
+  .st-grid th[scope="row"] code { font-size: 0.75rem; }
+  .st-grid thead th { padding: 0 0 0.5rem; text-align: center; height: 7.5rem; }
+  .st-colname {
+    display: inline-block;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    overflow-wrap: normal;
+    white-space: nowrap;
+  }
+  .st-grid td { height: 2.5rem; }
+}
+
+/* ---------- Feed and tables ---------- */
+
+.st-split {
+  display: grid;
+  gap: 3rem;
+  margin-top: 3rem;
+}
+
+@media (min-width: 1100px) {
+  .st-split { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+}
+
+.st-lines,
+.st-tables ul {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+}
+
+.st-line {
+  display: grid;
+  grid-template-columns: 5.5rem 8.5rem 5rem minmax(0, 1fr);
+  gap: 0 0.75rem;
+  align-items: baseline;
+  padding: 0.25rem 0;
+}
+
+.st-newtx { border-top: 1px solid var(--rule); margin-top: 0.25rem; padding-top: 0.5rem; }
+
+.st-time { color: var(--dust); font-size: 15px; }
+.st-op { color: var(--dust); }
+.st-fields { overflow-wrap: anywhere; }
+
+.st-line[data-tx="last"] { animation: st-arrive 1.2s ease-out; }
+
+@keyframes st-arrive {
+  0% { background: var(--settled); }
+  100% { background: transparent; }
+}
+
+@media (max-width: 599px) {
+  .st-line {
+    grid-template-columns: 5rem minmax(0, 1fr) auto;
+    grid-template-areas: "time table op" "fields fields fields";
+  }
+  .st-time { grid-area: time; }
+  .st-table { grid-area: table; }
+  .st-op { grid-area: op; }
+  .st-fields { grid-area: fields; }
+}
+
+.st-tables li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0 1rem;
+  padding: 0.625rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.st-tables li code { color: var(--dust); }
+.st-tables li[data-touched] code { color: var(--moon); font-weight: 700; }
+.st-count { text-align: right; }
+.st-when { grid-column: 1 / -1; color: var(--dust); font-size: 15px; }
+.st-tables li[data-touched] .st-when { color: var(--moon); }
+
+@media (prefers-reduced-motion: reduce) {
+  .st-grid td[data-lit],
+  .st-line[data-tx="last"] { animation: none; }
+  .st-grid th[scope="row"] { transition: none; }
+}
