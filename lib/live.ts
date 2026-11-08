@@ -24,6 +24,8 @@ export interface AvonConsole {
   view: ConsoleView | null;
   source: AvonSource | null;                      // which dataset the view was built from, and when
   load(files: DatasetFiles, datasetId: string): Promise<void>;
+  // The loaded site's facilities with their map position (3D twin, maps).
+  facilities: SiteFacility[];
   // Phone 1 remote: the loaded site's tanks, the simulated faults on them, and the reducers.
   targets: AttackTarget[];
   faults: ActiveFault[];
@@ -57,6 +59,11 @@ function sourceOf(meta: ConsoleMeta | undefined): AvonSource | null {
   return meta ? { datasetId: meta.datasetId, builtAtMs: Number(meta.builtAt.microsSinceUnixEpoch) / 1000 } : null;
 }
 
+export interface SiteFacility {
+  facility_id: string; system_id: string; lat: number; lon: number;
+  tank_id: string; pump_id: string; capacity_bbl: number; well_ids: string[];
+}
+
 export interface AvonLinkOptions {
   uri: string;
   database?: string;
@@ -65,6 +72,7 @@ export interface AvonLinkOptions {
   onStatus(status: AvonStatus): void;
   onView(view: ConsoleView | null, source: AvonSource | null): void;
   onAttack?(targets: AttackTarget[], faults: ActiveFault[]): void;
+  onFacilities?(facilities: SiteFacility[]): void;
 }
 
 // "<SYS>_FACILITY_C" -> "<SYS> · Facility C tank"
@@ -153,6 +161,10 @@ export function connectAvon(opts: AvonLinkOptions): AvonLink {
         if (view !== undefined) opts.onView(view, sourceOf(meta));
         const a = attackFromRows([...c.db.facility.iter()], [...c.db.fault.iter()], [...c.db.alert.iter()]);
         opts.onAttack?.(a.targets, a.faults);
+        opts.onFacilities?.([...c.db.facility.iter()].map((f) => ({
+          facility_id: f.facilityId, system_id: f.systemId, lat: f.lat, lon: f.lon,
+          tank_id: f.tankId, pump_id: f.pumpId, capacity_bbl: f.capacityBbl, well_ids: [...f.wellIds],
+        })).sort((x, y) => x.facility_id.localeCompare(y.facility_id)));
       });
     };
     c.db.alert.onInsert(rebuild);
@@ -242,6 +254,7 @@ export function AvonProvider({ children, uri, database = AVON_DB }: { children: 
   const [source, setSource] = useState<AvonSource | null>(null);
   const [targets, setTargets] = useState<AttackTarget[]>([]);
   const [faults, setFaults] = useState<ActiveFault[]>([]);
+  const [facilities, setFacilities] = useState<SiteFacility[]>([]);
   const link = useRef<AvonLink | null>(null);
 
   useEffect(() => {
@@ -251,6 +264,7 @@ export function AvonProvider({ children, uri, database = AVON_DB }: { children: 
       onStatus: setStatus,
       onView: (v, s) => { setView(v); setSource(s); },
       onAttack: (t, f) => { setTargets(t); setFaults(f); },
+      onFacilities: setFacilities,
     });
     link.current = l;
     return () => { l.close(); if (link.current === l) link.current = null; };
@@ -282,8 +296,8 @@ export function AvonProvider({ children, uri, database = AVON_DB }: { children: 
   }, []);
 
   const value = useMemo<AvonConsole>(
-    () => ({ status, view, source, load, targets, faults, inject, clear }),
-    [status, view, source, load, targets, faults, inject, clear],
+    () => ({ status, view, source, load, facilities, targets, faults, inject, clear }),
+    [status, view, source, load, facilities, targets, faults, inject, clear],
   );
   return createElement(AvonContext.Provider, { value }, children);
 }
