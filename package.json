@@ -21,7 +21,8 @@
     "demo": "node scripts/boot-avon.mjs",
     "demo:reset": "node scripts/reset-avon.mjs",
     "e2e": "node scripts/e2e.mjs",
-    "quest": "node scripts/quest.mjs"
+    "quest": "node scripts/quest.mjs",
+    "perf": "node scripts/quest-perf.mjs"
   },
   "dependencies": {
     "@noble/hashes": "^2.4.0",
