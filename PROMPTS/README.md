@@ -43,3 +43,12 @@ git worktree add ../avon-codex -b yajat/fake-site origin/mohan/live
 New judge-facing pages follow `docs/DESIGN.md`.
 
 Push only your own branch. Never push to main or mohan/live, never force push. Mohan merges.
+
+## About 5:05 (after the agents come back). Do NOT paste yajat-codex-fleet, yajat-claude-map or sreesh-claude-hub-pr: Mohan's session took those over at 4:36.
+
+| File | Who | Job | Branch |
+|---|---|---|---|
+| yajat-claude-final-qa.md | Yajat (Claude Code) | Full QA of the whole app, hosted copy, Quest and L2 Darkroom; ranked bug list, no fixes | yajat/final-qa |
+| yajat-codex-e2e-lockdown.md | Yajat (Codex) | `npm run e2e -- --lockdown`: the LOCKDOWN path end to end | yajat/e2e-lockdown |
+| sreesh-claude-runsheet.md | Sreesh (Claude Code), small budget | docs/RUNSHEET.md: who stands where, the 3-minute demo, lines, reset, five fixes; as a PR | sreesh/runsheet (PR) |
+
