@@ -24,6 +24,8 @@ Paste one file into one agent. Each job owns its own files and branch, so the ag
 | yajat-claude-lockdown-avon.md | Yajat (Claude Code) | LOCKDOWN on the Avon side (docs/LOCKDOWN.md): lockdown table and reducers, the console's shutter-and-evidence sequence, Phone 1 and banners | yajat/lockdown |
 | sreesh-claude-lockdown-darkroom.md | Sreesh (Claude Code) | LOCKDOWN on the Darkroom side: /box seals, the hash chain drawn live, witness ticks, the crack on rollback | sreesh/lockdown-darkroom |
 | yajat-codex-sites.md | Yajat (Codex), after the cloud prompt | Oil sites across America: a site registry, `--center` for fake sites, one SpacetimeDB database per site, local and hosted | yajat/sites |
+| yajat-codex-fleet.md | Yajat (Codex), after sites | Provision the sites (local and hosted), `cloud:check --all`, and `lib/fleet.ts`: every site's live status in one hook | yajat/fleet |
+| yajat-claude-map.md | Yajat (Claude Code), after lockdown | `/map`: zoomable US map (own Albers projection, offline GeoJSON), live site markers, a site panel with links, and a site comparison | yajat/map |
 
 Setup on Yajat's laptop, once:
 
