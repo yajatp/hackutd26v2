@@ -114,7 +114,7 @@ export function UsMap3D({ sites, onPick }: { sites: SiteSummary[]; onPick(key: s
 
   return (
     <group name="twin-usmap" position={[MODEL_CENTER[0], TABLE_TOP_Y + LIFT, MODEL_CENTER[2]]}>
-      {/* No plate: the country itself is the shape (Mohan, 06:33). This invisible plane only keeps
+      {/* No plate: the country itself is the shape. This invisible plane only keeps
           clicks between the states and labels from falling through to the table. */}
       <mesh rotation-x={-Math.PI / 2} position={[0, -0.002, 0.03]} onClick={(e: ThreeEvent<MouseEvent>) => e.stopPropagation()}>
         <planeGeometry args={[MAP_W + 0.08, MAP_D + 0.26]} />

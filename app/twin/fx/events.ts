@@ -1,4 +1,4 @@
-// The attack moment as data (docs/TWIN-THEME.md "The attack moment"): compare two snapshots of
+// The attack moment as data: compare two snapshots of
 // the tanks (tankStates in ../model) and say what just happened, so the headset can light a
 // beacon, send a shockwave, slide a toast in and chirp. Pure, no DOM: tested in events.test.ts.
 // Words are the console's: the state line of a tank is quoted, never reworded.

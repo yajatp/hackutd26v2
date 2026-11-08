@@ -129,7 +129,7 @@ async function main() {
   }
   if (!existsSync(join(ROOT, "node_modules"))) fail("node_modules is missing. Run npm ci first.");
   const st = findSpacetime();
-  if (!st) fail("the spacetime CLI is not installed. See docs/RUNBOOK-L1.md, section 1.");
+  if (!st) fail("the spacetime CLI is not installed. See docs/RUNNING.md.");
   if (st.version !== PIN) {
     fail(`spacetime is ${st.version}, Avon needs ${PIN}.\n  Fix: spacetime version install ${PIN} && spacetime version use ${PIN}`);
   }
@@ -206,7 +206,7 @@ async function main() {
     console.log(`  Phone console: http://${best.address}:3000/console`);
   } else {
     console.log("  Phone URLs:    none. This laptop has no LAN address both phones' ports answer on.");
-    console.log("                 Join the hotspot / Wi-Fi, then run this again. See docs/RUNBOOK-L1.md.");
+    console.log("                 Join the hotspot / Wi-Fi, then run this again. See docs/RUNNING.md.");
   }
   for (const l of lines) {
     const note = l.web && l.db ? "ok" : `${l.web ? "" : " port 3000 not reachable"}${l.db ? "" : " port 3001 not reachable (SpacetimeDB on 127.0.0.1 only? stop it and rerun)"}`;

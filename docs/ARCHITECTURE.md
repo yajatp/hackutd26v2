@@ -1,6 +1,6 @@
-# Avon architecture
+# Architecture
 
-Avon reads oil-field telemetry, detects operating problems and sensor issues, and presents response plans. It uses two SpacetimeDB databases: `avon` is the company-side operational view; `darkroom` is an incident room on its own isolated local network. The databases are not linked. A person carries an evidence reference from the console to the room. Isolation depends on the actual network setup.
+Brine reads oil-field telemetry, detects operating problems and sensor issues, and presents response plans. It uses two SpacetimeDB databases: `avon` is the company-side operational view; `darkroom` is an incident room on its own isolated local network. The databases are not linked. A person carries an evidence reference from the console to the room. Isolation depends on the actual network setup.
 
 ```text
  Company network                                 Isolated local network
@@ -84,21 +84,21 @@ Each `/box` or `/witness` browser keeps a witness in local storage: genesis hash
 
 - `npm ci && npm test` on this checkout: **89 passed, 0 failed, 0 skipped**. Node 22.17.0 produced an engine warning for the installed SpacetimeDB package.
 - `docs/planner-accuracy.md`: **18 of 20** listed answer-key cases match exactly; the other two make the same decisions with different timings and costs.
-- `REDTEAM-claude.md`: the first pass caught **24** of 34 attacks and missed 10. The rerun, with the payload-byte and chain-head checks and the witness fix now on main (`92dc51d`), measured **28 caught, 6 missed**; both verifiers agreed on every attack. The 6 misses are listed under known limits.
+- The Darkroom red-team suite (`scripts/redteam.mjs`): the first pass caught **24** of 34 attacks and missed 10. The rerun, with the payload-byte and chain-head checks and the witness fix now on main (`92dc51d`), measured **28 caught, 6 missed**; both verifiers agreed on every attack. The 6 misses are listed under known limits.
 - `finish_ingest` on mock_test, three local loads each: **85-180 ms** before the insight tables, **419-773 ms** with them (breach rows rerun the engine for the two failed pumps and plan a stop for each running one).
-- `docs/RUNBOOK-L1.md` records three cold boots on one laptop at **4.1 to 4.3 seconds**, and the listed ingest at **0.7 seconds**. These are local measurements, not general performance guarantees.
+- Three cold boots on one laptop at **4.1 to 4.3 seconds**, and the listed ingest at **0.7 seconds**. These are local measurements, not general performance guarantees.
 
 ## Known limits
 
-- An owner with control of the box can append a forged event under another member's name and move the head; hashes provide integrity, not authenticity (`REDTEAM-claude.md`).
-- An owner can forge a membership event and matching member row; an inactive unlogged member row is ignored by the member comparison (`REDTEAM-claude.md`).
+- An owner with control of the box can append a forged event under another member's name and move the head; hashes provide integrity, not authenticity.
+- An owner can forge a membership event and matching member row; an inactive unlogged member row is ignored by the member comparison.
 - A verifier without an earlier witness cannot detect a complete, consistently rehashed history; deleting and restoring identical rows is also indistinguishable.
 - The browser does not flag a head-only edit until it affects the verified log; the CLI head check does not check the stored count or a missing head.
 - The Avon reducers trust clients on their network; the load lock does not prevent an authorized-looking client from replacing data or injecting faults.
-- Darkroom uses unencrypted `ws://`; a network observer can obtain reusable credentials, and public tables can be read by anyone with network access (`REVIEW-codex.md`).
+- Darkroom uses unencrypted `ws://`; a network observer can obtain reusable credentials, and public tables can be read by anyone with network access.
 - A compromised phone or someone controlling the box display can misrepresent what a user sees; isolation requires a separately configured local network (`app/box/ThreatModelCard.tsx`).
 - A what-if or breach row is a model run on the loaded data, not a forecast: a pipeline leak's repair time is not in ops.json (the pump repair time is used), and a silent stop's flag time follows the sensor rules rather than data.
 - The planner does not prove the globally cheapest plan: whole-minute rounding can miss a cheaper split (`docs/planner-accuracy.md`).
 - Silence checks cover sensors; physics-based drift and lie checks apply to tank levels, not every individual sensor (`lib/rules/health.ts`).
-- A selected Fake fault does not guarantee that the engine will classify every target as LYING, and the remote's label can imply otherwise (`REVIEW-codex-2.md`).
-- Opening an incident and entering the evidence on the Darkroom are manual; the delete demonstration requires enough entries (`REVIEW-codex-2.md`).
+- A selected Fake fault does not guarantee that the engine will classify every target as LYING, and the remote's label can imply otherwise.
+- Opening an incident and entering the evidence on the Darkroom are manual; the delete demonstration requires enough entries.

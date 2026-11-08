@@ -13,7 +13,7 @@ export function scrambleFrame(word: string, i: number, pick: (n: number) => numb
   return [...word].map((ch, k) => (k < settled || ch === " " ? ch : GLYPHS[pick(GLYPHS.length)])).join("");
 }
 
-// Sui style (docs/HANDOFF.md): no scramble effect. The wordmark is plain text with the same DOM.
+// Sui style: no scramble effect. The wordmark is plain text with the same DOM.
 export function Scramble({ text, className = "" }: { text: string; className?: string }) {
   // fontWeight inherit: a page's `header h1 span` rule (Phone 1 thins those) must not reach the wordmark.
   return (

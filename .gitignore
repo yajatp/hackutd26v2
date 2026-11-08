@@ -1,11 +1,53 @@
+# Dependencies and build output
 node_modules/
 .next/
 .next-build/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Deployment
 .vercel/
+
+# Credentials and local configuration
 .env
 .env.*
-*.log
-next-env.d.ts
-*.tsbuildinfo
+!.env.example
+*.pem
+*.key
+
+# Local data, logs and caches
 data/*.db
+*.log
 __pycache__/
+*.py[cod]
+.DS_Store
+.playwright-mcp/
+.redteam-module/
+
+# AI agent tooling (local only, not part of the published project)
+.agents/
+.claude/
+.codex/
+.cursor/
+.impeccable/
+graphify-out/
+AGENTS.md
+CLAUDE.md
+TEAM.md
+STATE.md
+
+# Private planning, prompts, reviews and event-day notes
+PROMPTS/
+REDTEAM*.md
+REVIEW*.md
+docs/FULL_PLAN.md
+docs/PLAN.md
+docs/HANDOFF.md
+docs/DESIGN.md
+docs/DESIGN-RESEARCH.md
+docs/TWIN-THEME.md
+docs/QUEST-PERF.md
+docs/RUNBOOK-*.md
+docs/test-*.md
+docs/ui-audit.md

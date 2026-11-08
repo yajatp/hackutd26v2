@@ -30,7 +30,7 @@ const PAL = () => ({
   lamp: color("#ffe6c8"),
   window: color("#f3d6a8"),
   screen: color("#3d7fc4"),
-  // Permian stock tanks are painted desert tan (docs/TWIN-THEME.md "Realism pass"), courses a shade apart.
+  // Permian stock tanks are painted desert tan, courses a shade apart.
   tan: color("#b9a37f"),
   tanDark: color("#a8916c"),
 });
@@ -122,7 +122,7 @@ export function tankGeometry(): BufferGeometry {
 
 // The tank for the miniatures (Table, Overview): the same silhouette in about 200 triangles (shell
 // in two tones, roof, top ring, gauge housing), since the ladder, cage, seams and rail are under a
-// pixel at table scale. Level of detail for the Quest's budget (docs/TWIN-THEME.md "Scope").
+// pixel at table scale. Level of detail for the Quest's budget.
 export function tankGeometryLow(): BufferGeometry {
   return once("tank-low", () => {
     const P = PAL(), p = new Parts(), R = TANK.R;

@@ -1,5 +1,5 @@
 "use client";
-// The lease at night, by ear (docs/TWIN-THEME.md "Immersion"): synthesized WebAudio only, no files,
+// The lease at night, by ear: synthesized WebAudio only, no files,
 // on the one shared context (audio.ts, unlocked by the first click or Enter VR; silent before).
 // - wind: low broadband noise, slowly gusting (every view);
 // - insects: a faint high chirr that comes and goes (Walk);

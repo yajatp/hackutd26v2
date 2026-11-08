@@ -1,6 +1,6 @@
 "use client";
-// What really happens on the pad when something goes wrong (docs/TWIN-THEME.md "Scope set by
-// Mohan": the drama is in the world, not in the interface). Walk view only, in pad space.
+// What really happens on the pad when something goes wrong (the drama is in the world, not
+// in the interface). Walk view only, in pad space.
 // - Pump failed: an amber strobe on the battery's alarm pole, a sharp flash about once a second;
 //   its real light (StrobeLight, always mounted so the light count never changes) lights the
 //   nearby steel. The pumpjacks coast to a stop on their own (PumpjackModel crankSpeed).

@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* One palette for every screen: the Sui style (docs/HANDOFF.md, measured from sui.io).
+/* One palette for every screen: the Sui style.
    Pure black page, #131518 / #222529 panels, thin 1px borders, three greys, white type and ONE
    standout colour, Sui blue, for primary actions, selection, links and key numbers. Red and amber
    only for alert states. No glows, no neon. Hex values on purpose, so computed colors stay rgb().
@@ -19,7 +19,7 @@
   --sui-white: #ffffff;
   --sui-blue: #298dff;
   --sui-blue-soft: rgb(41 141 255 / 0.12);
-  /* More of the one blue (Mohan, Sun 06:30): tinted panels, a blue hairline on key cards, light
+  /* More of the one blue: tinted panels, a blue hairline on key cards, light
      blue labels and figures. Same hue throughout; no glow. */
   --sui-blue-light: #7db9ff;
   --sui-blue-tint: color-mix(in srgb, #298dff 8%, #131518);

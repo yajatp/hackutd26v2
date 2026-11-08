@@ -1,5 +1,5 @@
-/* The Darkroom screens (/box, /witness, /join) as a "secure room" (docs/DESIGN-RESEARCH.md,
-   after ethiack.com): dark teal, hairlines, mint only for verified. The console's pattern
+/* The Darkroom screens (/box, /witness, /join) as a "secure room"
+   after ethiack.com: dark teal, hairlines, mint only for verified. The console's pattern
    (app/console/console.module.css): the route layout wraps the page in .room, which gives the
    shared tokens their teal values, so token-based classes follow with almost no component edits.
    Unlayered rules, so they beat the layered ones in app/globals.css: set only what changes. */

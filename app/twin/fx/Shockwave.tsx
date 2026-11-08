@@ -1,5 +1,5 @@
 "use client";
-// The holo shockwave (docs/TWIN-THEME.md "The attack moment", step 2): when `trigger` changes to a
+// The holo shockwave: when `trigger` changes to a
 // new number above 0, a ring races out across the ground (or table) from `origin`, trailing fine
 // scan lines, a low wall of light and a warn echo, with a light column at the origin, fading out
 // over ~1.2 s. Three draw calls while it runs, none at rest. `still`: no wave at all.

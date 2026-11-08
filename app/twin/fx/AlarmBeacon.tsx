@@ -1,5 +1,5 @@
 "use client";
-// A rotating warn beacon for a tank roof (docs/TWIN-THEME.md "The attack moment", step 1): a steel
+// A rotating warn beacon for a tank roof: a steel
 // base, a glowing dome, and two additive light cones sweeping round. When a cone passes the
 // viewer the halo flashes, the way a real beacon does. No real light unless `light` is set (then
 // one cheap point light). It fades in and out calmly. `still`: no spin, no cones; the dome and halo

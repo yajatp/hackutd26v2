@@ -1,6 +1,6 @@
 // Where everything stands on one facility's pad, as plain numbers (unit-tested in models.test.ts).
 // Pad-local meters: the tank at the origin, +x east, -z north, y up. The judge's life-size start is
-// SIZE.standOff south of the tank, facing it (docs/TWIN-THEME.md), so nothing stands in that
+// SIZE.standOff south of the tank, facing it, so nothing stands in that
 // corridor. The pump house sits east of the tank; pumpjacks stand around the pad 10-17 m out,
 // side-on to the middle so their nod reads from the tank.
 import { SIZE } from "../theme";

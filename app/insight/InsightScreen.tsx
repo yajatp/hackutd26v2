@@ -5,7 +5,7 @@
 //   flow_series  rate in vs rate out per tank, last 24 h
 //   breach_risk  what a spoofed level sensor would hide on each tank, in dollars
 //   scenario     what_if ripples: one event, every consequence in time order
-// Night design (docs/DESIGN.md): red and amber only for state, hairline lists, one bold moment
+// Night design: red and amber only for state, hairline lists, one bold moment
 // (the saving, drawn as the share of the do-nothing cost the plans avoid).
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useAvonConsole, useAvonRtt, type ScenarioRun, type SiteFacility } from "@/lib/live";

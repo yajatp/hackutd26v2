@@ -5,7 +5,7 @@ import { chirpPlan, CHIRP_GAP_MS } from "./motion";
 import type { FxKind } from "./events";
 
 let ctx: AudioContext | null = null;
-// Sound is removed (Mohan, Sun 07:25): no AudioContext is ever made, so chirps and the site's
+// Sound is removed: no AudioContext is ever made, so chirps and the site's
 // ambience never play, and the mute state stays on whatever a toggle asks.
 const SOUND_REMOVED = true;
 let muted = true;

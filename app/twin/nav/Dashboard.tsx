@@ -1,5 +1,5 @@
 "use client";
-// The dashboard (docs/TWIN-THEME.md "The menu and the dashboard"): a panel about 1.19 x 0.74 m,
+// The dashboard: a panel about 1.19 x 0.74 m,
 // 1.0 m ahead, with the console's own live data from useAvonConsole(), in FOUR calm columns:
 // PROBLEM (the pump failure, its hours to limit, Previous / n of N / Next), ACTION (the plan, its
 // response cost and a big "Confirm this plan"; "CONFIRMED, THEN CHANGED" when it applies),

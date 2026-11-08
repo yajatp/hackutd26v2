@@ -1,4 +1,4 @@
-/* Shared LOCKDOWN banner (app/ui/LockdownBanner.tsx). Red is the lockdown state (docs/DESIGN.md). */
+/* Shared LOCKDOWN banner (app/ui/LockdownBanner.tsx). Red is the lockdown state. */
 
 .banner {
   position: sticky;

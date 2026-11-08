@@ -1,6 +1,5 @@
 "use client";
-// What makes the Walk pad read as a real Permian lease beyond the equipment (docs/TWIN-THEME.md
-// "Realism pass"), cheap enough for the Quest 3S:
+// What makes the Walk pad read as a real Permian lease beyond the equipment, cheap enough for the Quest 3S:
 // - the tank battery: the monitored tank, a stock tank and a smaller produced-water tank in a row
 //   to its west (one instanced draw of the tank's own geometry);
 // - the battery's secondary containment dike: a low 0.6 m steel wall round all three with a

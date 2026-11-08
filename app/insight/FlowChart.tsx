@@ -3,7 +3,7 @@
 // Top: water into the tank (in) and the pump (out) on one bpd scale shared by every chart, as step
 // lines (each value is an hour's mean). Where in > out the tank fills: a quiet band, red only for
 // hours when the pump had failed. Below: the level on its own 0-100% scale, with the shutdown limit.
-// No second y-axis on one plot (docs/DESIGN.md, dataviz: one axis per plot). The rate axis has its
+// No second y-axis on one plot. The rate axis has its
 // own gutter with 0, half and full scale; the margin of error sits under the chart, not on the axis.
 import { useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { FlowSeries } from "@/lib/eog/flows";

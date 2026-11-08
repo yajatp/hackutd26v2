@@ -1,5 +1,5 @@
 "use client";
-// The pipe popout (docs/TWIN-THEME.md "Follow-up pass"): point at the pipeline in Walk and pull
+// The pipe popout: point at the pipeline in Walk and pull
 // the trigger (or click it) and a small quiet glass card opens at that point on the pipe: flow in
 // and out (bpd, the last hour of flow_series from useAvonConsole().insight), the line's status,
 // and the facilities on it. It turns to face the judge; a second press, on the card or the pipe,

@@ -1,4 +1,4 @@
-// The three views of /twin as plain numbers (docs/TWIN-THEME.md "The three views"): where the site
+// The three views of /twin as plain numbers: where the site
 // goes and where the judge stands in each. Unit-tested in views.test.ts; no three.js, no React.
 //
 // World frame (WebXR local-floor, as app/twin/stage.ts): meters, y up, north is -z, east is +x.

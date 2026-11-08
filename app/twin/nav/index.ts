@@ -1,4 +1,4 @@
-// The three views, movement, the menu dock and the dashboard for /twin (docs/TWIN-THEME.md).
+// The three views, movement, the menu dock and the dashboard for /twin.
 export { ViewProvider, ViewFade, ViewOrigin, useView, useStill, TELEPORT_FADE_MS, type ViewApi } from "./ViewContext";
 export { Dock } from "./Dock";
 export { Dashboard } from "./Dashboard";

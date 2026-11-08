@@ -1,4 +1,4 @@
-// The /twin models (docs/TWIN-THEME.md "Models"): procedural, life size in meters, shared geometry
+// The /twin models: procedural, life size in meters, shared geometry
 // and materials. A view scales them by putting them in a scaled group.
 export { TankModel, type TankModelProps } from "./TankModel";
 export { PumpjackModel, Pumpjacks, type JackItem } from "./PumpjackModel";

@@ -1,5 +1,5 @@
 "use client";
-// The site in Permian Night (docs/TWIN-THEME.md "Models"), placed by plan.ts for the view.
+// The site in Permian Night, placed by plan.ts for the view.
 //
 // MiniSite (table and overview): the same life-size models drawn small in "model space" (the site
 // root divided by the view's modelScale): one TankModel per facility (gauge, state band, glow pool;

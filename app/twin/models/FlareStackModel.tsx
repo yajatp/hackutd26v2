@@ -59,7 +59,7 @@ export function FlareStackModel({ light = false, lightIntensity = 180, lightRang
 // Every system's flare stack in a miniature (Table, Overview) in a few draw calls: the stacks and
 // their warm ground pools instanced, the halos in one Glows set, one flame each (the second, smaller
 // flame and the halo's flicker are under a pixel at table scale). About 3 + n calls where the
-// FlareStackModel per stack cost 5 each (docs/TWIN-THEME.md "Scope": the Quest 3S budget).
+// FlareStackModel per stack cost 5 each.
 export function FlareStacks({ items, seed = 0 }: { items: { x: number; z: number; s: number }[]; seed?: number }) {
   const stacks = useRef<InstancedMesh>(null);
   const pools = useRef<InstancedMesh>(null);

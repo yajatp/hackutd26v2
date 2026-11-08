@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// Independent red team of the Darkroom log (a second pass next to scripts/redteam.mjs).
+// Automated red team of the Darkroom log.
 // For each attack: a fresh throwaway database on a throwaway server, a normal log built through
 // the reducers, a witness saved by scripts/verify.mjs, one edit as the box owner, then
 // verify.mjs again. One line per attack: CAUGHT, MISSED or N/A (the database refused the edit).
 //
 //   spacetime start --listen-addr 127.0.0.1:3102 --data-dir "$TMPDIR/st-3102"   (own data folder:
 //       a second server on the default folder locks the team's 3001 out)
-//   node scripts/redteam-claude.mjs [--server http://127.0.0.1:3102] [--only <name>] [--keep]
+//   node scripts/redteam.mjs [--server http://127.0.0.1:3102] [--only <name>] [--keep]
 //
 // Safety: refuses port 3001 and 3101 (the team's and the other red team's), only touches
 // databases named rt-c*, never runs spacetime login, never prints a token.
@@ -29,7 +29,7 @@ if (["3001", "3101"].includes(PORT) || !/^http:\/\/(127\.0\.0\.1|localhost):/.te
 }
 const { hashEvent, canonical } = await tsImport(pathToFileURL(join(ROOT, "lib/chain.ts")).href, import.meta.url);
 
-const work = mkdtempSync(join(tmpdir(), "redteam-claude-"));
+const work = mkdtempSync(join(tmpdir(), "redteam-"));
 const st = (args) => execFileSync("spacetime", args, { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 const call = (db, reducer, ...a) => st(["call", "-s", SERVER, db, reducer, ...a.map((x) => JSON.stringify(x))]);
 const sqlExec = (db, q) => st(["sql", "-s", SERVER, db, q]);
@@ -74,7 +74,7 @@ async function relinkFrom(db, rows, from) {
 let evilDir = null;
 function evilModule() {
   if (evilDir) return evilDir;
-  evilDir = join(ROOT, ".redteam-claude-module");   // same depth as spacetimedb-darkroom: ../../lib resolves
+  evilDir = join(ROOT, ".redteam-module");   // same depth as spacetimedb-darkroom: ../../lib resolves
   rmSync(evilDir, { recursive: true, force: true });
   cpSync(join(ROOT, "spacetimedb-darkroom"), evilDir, { recursive: true, filter: (p) => !p.includes("/dist") });
   const src = join(evilDir, "src", "index.ts");

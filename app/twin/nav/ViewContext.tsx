@@ -1,5 +1,5 @@
 "use client";
-// Which of the three views the judge is in (docs/TWIN-THEME.md), and the comfortable way between
+// Which of the three views the judge is in, and the comfortable way between
 // them: fade to the night sky (skyZenith) over FADE_MS, switch while dark, fade back. The camera
 // never glides on its own. Mount <ViewProvider> around the page (it works outside the Canvas too:
 // r3f bridges the context in); mount <ViewFade /> at the scene root and <ViewOrigin /> inside <XR>.

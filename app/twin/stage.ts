@@ -82,7 +82,7 @@ export const PANEL = { at: [0.9, 1.02, -0.72] as P3, widthM: 0.62, pxPerM: 1600,
 // Legend: the same on the left.
 export const LEGEND = { at: [-0.9, 1.02, -0.72] as P3, widthM: 0.5, pxPerM: 1600 };
 
-// Scene colors (docs/DESIGN.md): a tank's shell and fill (TONE_HEX) and its label words
+// Scene colors: a tank's shell and fill (TONE_HEX) and its label words
 // (LINE_HEX). Red and amber are the console's state colors and nothing else; OK is matte dust.
 // Red words are a step lighter than the red tank so they read on the night background.
 export const TONE_HEX: Record<Tone, string> = { alert: "#ef4444", warn: "#f59e0b", ok: "#8fa1aa" };

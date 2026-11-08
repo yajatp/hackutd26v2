@@ -1,4 +1,4 @@
-// The attack moment and motion polish for /twin (docs/TWIN-THEME.md "The attack moment").
+// The attack moment and motion polish for /twin.
 // Preview: /twin/lab/fx.
 export { diffFaults, fakedIds, confirmedFacilities, simulatedLine, failedLine, loudest, RESTS_ON_IT, type FxEvent, type FxKind, type FxNotice } from "./events";
 export { approach, glitchSample, toastPose, waveAt, beaconAngle, chirpPlan, type GlitchSample } from "./motion";

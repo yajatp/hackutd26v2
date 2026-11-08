@@ -1,5 +1,5 @@
 "use client";
-// /twin: the loaded site in Permian Night (docs/TWIN-THEME.md), from the live avon data only. Works
+// /twin: the loaded site in Permian Night, from the live avon data only. Works
 // in any browser (and the Quest browser as a 2D page): the same world and models on the canvas,
 // the view buttons (Table, Overview, Walk) in the bar, the selected tank's story in a glass panel.
 // "Enter VR" appears only where the browser reports immersive-vr support; the headset starts at

@@ -1,5 +1,5 @@
 "use client";
-// The in-VR notice (docs/TWIN-THEME.md "The attack moment", step 4): a glass card that slides up
+// The in-VR notice: a glass card that slides up
 // from below the judge's view to 1.0 m ahead at about eye level, says what happened in the
 // console's words ("S9 Facility Q · tank level sensor / LYING · SIMULATED / Your confirmed plan
 // rests on it"), holds 6 s with a draining bar, and slides away. It draws over every panel

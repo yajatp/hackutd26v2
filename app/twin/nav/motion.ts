@@ -1,5 +1,5 @@
 // How the menu dock and the dashboard move with the judge, and the view-change fade, as plain
-// numbers and rules (unit-tested in motion.test.ts). Comfort first (docs/TWIN-THEME.md): nothing
+// numbers and rules (unit-tested in motion.test.ts). Comfort first: nothing
 // moves the judge without their input; the menu waits until they have turned well away (40 deg),
 // then eases round to meet them.
 import { FADE_MS } from "../theme";

@@ -111,7 +111,7 @@ async function main() {
     process.exit(1);
   }
   const st = findSpacetime();
-  if (!st) notReady("the spacetime CLI is not installed. See docs/RUNBOOK-L1.md, section 1.");
+  if (!st) notReady("the spacetime CLI is not installed. See docs/RUNNING.md.");
   const steps = [["checks", secs(from)]];
 
   // 2. Clear every simulated fault. Loading the site below clears them too; this makes the phone
@@ -169,7 +169,7 @@ async function main() {
     console.log(`  Phone console: http://${best.address}:3000/console`);
   } else {
     console.log("  Phone URLs:    none. No LAN address answers on both ports 3000 and 3001.");
-    console.log("                 See docs/RUNBOOK-L1.md, section 5.");
+    console.log("                 See docs/RUNNING.md.");
   }
   console.log("================================================\n");
 }

@@ -1,5 +1,5 @@
 // How the model looks and moves, as plain numbers and rules (unit-tested in look.test.ts).
-// The palette is docs/DESIGN.md's night page: two inks, night and moonlight, with red and amber
+// The palette is the night page: two inks, night and moonlight, with red and amber
 // only for a tank's state. The motion is small and quick, and only answers the judge or the data.
 import type { PlacedTank, TankState } from "./model";
 import { SNAP_RAD } from "./stage";
@@ -39,7 +39,7 @@ export interface Pt { x: number; z: number }
 export interface Focus { top: string | null; hovered: string | null; selected: string | null }
 
 // Every tank carries its name, the same words as Phone 1's buttons ("S1 · Facility A tank"), so a
-// tank called out from the attack phone is found at once in the headset (Mohan, Sun 09:40).
+// tank called out from the attack phone is found at once in the headset.
 export function labelVisible(_s: Pick<TankState, "facility_id" | "tone" | "sensor">, _f: Focus): boolean {
   return true;
 }

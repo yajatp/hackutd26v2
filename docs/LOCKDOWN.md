@@ -1,7 +1,5 @@
 # Lockdown: the action sequence when we think we are hacked
 
-Mohan (Sun 03:15): "we need to have the actual action sequence for when we get hacked, we need to enter our 'lockdown darkroom', so figure out and plan the animations for that as well." This file is the storyboard every screen follows.
-
 The judge plays the night operator. A sensor disagrees with physics (LYING · SIMULATED), and the plan they confirmed rests on it (CONFIRMED, THEN CHANGED). The judge decides the company network may be compromised. They lock it down and move the decision to the isolated Darkroom box, carrying the evidence by hand.
 
 ## The state (SpacetimeDB, avon module)
@@ -35,7 +33,7 @@ The judge plays the night operator. A sensor disagrees with physics (LYING · SI
 - The lockdown never blocks reading the data. The data keeps flowing but is marked untrusted. Only the decision moves.
 - `npm run e2e` must still pass. Lockdown is opt-in (a button), so the e2e path never enters it. Add an e2e step only if it stays under about 5 s.
 
-## The look (from Mohan's reference, ethiack.com; notes in docs/DESIGN-RESEARCH.md, round 2)
+## The look (after ethiack.com)
 
 - The LOCKDOWN title card: "LOCKDOWN" and "MOVE TO THE DARKROOM" in Pixelify Sans 700 (`app/fonts.css`), inside thin crop-mark corners, with a horizontal light streak passing once behind the text.
 - Finding tags: small solid-red tags with a square marker ("■ LYING · SIMULATED") pop in over the suspect tank or row with a 120 ms scale from 0.9 to 1. Potential-breach tags use amber.

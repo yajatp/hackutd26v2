@@ -1,4 +1,4 @@
-/* /spacetime only (docs/DESIGN.md): night page, DIN, hairline lists, red and amber only for state.
+/* /spacetime only: night page, DIN, hairline lists, red and amber only for state.
    One bold moment: the reducer-by-table matrix lighting up when a transaction lands. */
 
 body:has(.st-root) {

@@ -1,4 +1,4 @@
-/* /console in the night language of /vr (docs/DESIGN.md). Night in both color schemes: the
+/* /console in the night language of /vr. Night in both color schemes: the
    product tokens get the /vr page's values here, so every token-based class on the board, the
    header and the badges follows. The board's own pieces are Tailwind utilities on those tokens.
    These rules are unlayered, so they beat the layered ones in app/globals.css (and Tailwind

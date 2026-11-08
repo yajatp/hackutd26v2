@@ -14,7 +14,7 @@
 //   npm run demo:darkroom -- --db <name>     a test database instead of "darkroom" (the screens always use "darkroom")
 //
 // Between rehearsals use node scripts/darkroom-reset.mjs, not --fresh: reset keeps the enrolled screens.
-// Ctrl+C stops the web server. SpacetimeDB keeps running; see docs/RUNBOOK-L2.md to stop it.
+// Ctrl+C stops the web server. SpacetimeDB keeps running; see docs/RUNNING.md to stop it.
 // Safety: every spacetime call names the local server (-s http://127.0.0.1:3001). The CLI's
 // default server is maincloud (public cloud); this script never talks to it.
 // Node standard library only; works on Linux, WSL, macOS and Windows.
@@ -212,7 +212,7 @@ async function main() {
 
   // 0. Checks before touching anything. The CLI version comes first.
   const st = findSpacetime();
-  if (!st) fail(`the spacetime CLI is not installed. Install SpacetimeDB ${PIN}: see docs/RUNBOOK-L2.md, section 1.`);
+  if (!st) fail(`the spacetime CLI is not installed. Install SpacetimeDB ${PIN}: see docs/RUNNING.md.`);
   if (st.version !== PIN) {
     fail(`spacetime is ${st.version}, the Darkroom needs ${PIN}.\n  Fix: spacetime version install ${PIN} && spacetime version use ${PIN}`);
   }
@@ -264,7 +264,7 @@ async function main() {
   if (!pub.ok) {
     fail(
       "publish failed (see above).\n" +
-      "  If it says you are not logged in, see docs/RUNBOOK-L2.md section 1 (a local identity, no internet needed).\n" +
+      "  If it says you are not logged in, see docs/RUNNING.md (a local identity, no internet needed).\n" +
       "  If it says the schema change needs a data wipe, that is a decision for the team: rerun with --fresh.",
     );
   }
@@ -279,7 +279,7 @@ async function main() {
         "darkroom-seed.mjs failed (see above).\n" +
         "  It talks to the server nickname avonlocal. If that is missing on this laptop, add it once:\n" +
         "    spacetime server add --url http://127.0.0.1:3001 avonlocal\n" +
-        '  "owner only" means this CLI identity did not publish "darkroom": see docs/RUNBOOK-L2.md.',
+        '  "owner only" means this CLI identity did not publish "darkroom": see docs/RUNNING.md.',
       );
     }
   } else {
@@ -322,7 +322,7 @@ async function main() {
   console.log(`  ${"total".padEnd(24)} ${secs(t0)}`);
   console.log(`\n  This laptop:  http://localhost:${WEB_PORT}/box`);
   if (lines.length === 0) {
-    console.log("  No LAN address. Join the Darkroom hotspot, then run this again. See docs/RUNBOOK-L2.md.");
+    console.log("  No LAN address. Join the Darkroom hotspot, then run this again. See docs/RUNNING.md.");
   }
   for (const l of lines) {
     const st3001 = l.st ? "3001 ok" : "3001 NOT reachable (SpacetimeDB on 127.0.0.1 only? stop it and run this again)";
@@ -334,7 +334,7 @@ async function main() {
   if (WSL) {
     const wslIp = lines[0]?.address ?? "<WSL IP from hostname -I>";
     console.log("\n  WSL2: phones cannot reach the addresses above directly. On Windows (admin PowerShell), forward");
-    console.log(`  ports 3000 and 3001 to ${wslIp} (netsh portproxy, docs/RUNBOOK-L2.md section 3) and give the`);
+    console.log(`  ports 3000 and 3001 to ${wslIp} (netsh portproxy, docs/RUNNING.md) and give the`);
     console.log("  phones the Windows Wi-Fi IPv4 from ipconfig instead.");
   }
   console.log("\n  Enroll the box screen once per browser, so it can write:");
