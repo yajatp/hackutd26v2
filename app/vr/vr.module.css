@@ -1,0 +1,448 @@
+/* /vr, the Quest station. Two inks, night and moonlight, like the dithered table; red and amber
+   appear only where the console says a tank has that state. DIN is the face of industrial and
+   road signage: Bahnschrift on Windows, DIN on macOS, Roboto on the Quest. No web fonts. */
+
+.page {
+  --night: #102231;
+  --moon: #d7dee0;
+  --dust: #8fa1aa;
+  --rule: rgb(215 222 224 / 0.16);
+  --red: #ef4444;
+  --amber: #f59e0b;
+  /* The shared badges read these product tokens; give them the night page's values. */
+  --background: var(--night);
+  --foreground: var(--moon);
+  --surface: #17304a;
+  --line: rgb(215 222 224 / 0.3);
+  --alert: #fca5a5;
+  --alert-bg: #3b0d0d;
+  --alert-line: var(--red);
+  --warn: #fde68a;
+  --warn-bg: #2e2208;
+  --warn-line: var(--amber);
+
+  min-height: 100vh;
+  background: var(--night);
+  color: var(--moon);
+  font-family: "Bahnschrift", "DIN Alternate", "Roboto", system-ui, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.page :focus-visible {
+  outline: 2px solid var(--moon);
+  outline-offset: 3px;
+}
+
+/* The field: the bold moment. Everything after it stays quiet. */
+.hero {
+  position: relative;
+}
+
+.field {
+  position: relative;
+  height: clamp(420px, 68vh, 760px);
+  overflow: hidden;
+  cursor: crosshair;
+  touch-action: pan-y;
+}
+
+.canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+
+.label {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 14px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2px 6px;
+  background: var(--night);
+  font-size: 0.8125rem;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.label::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 1px;
+  height: var(--lead, 12px);
+  background: var(--moon);
+}
+
+.labelName {
+  color: var(--moon);
+}
+
+.toneAlert {
+  color: #f87171;
+}
+
+.toneWarn {
+  color: var(--amber);
+}
+
+.bar {
+  position: absolute;
+  inset: 0 0 auto 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 20px clamp(16px, 4vw, 48px);
+  pointer-events: none;
+}
+
+.bar a,
+.bar span {
+  pointer-events: auto;
+}
+
+.wordmark {
+  font-weight: 700;
+  font-size: 1.125rem;
+  letter-spacing: 0.01em;
+  color: var(--moon);
+  text-decoration: none;
+}
+
+.barTitle {
+  color: var(--dust);
+}
+
+.barStatus {
+  margin-left: auto;
+}
+
+.hint {
+  position: absolute;
+  right: clamp(16px, 4vw, 48px);
+  bottom: 16px;
+  margin: 0;
+  padding: 2px 6px;
+  background: var(--night);
+  color: var(--dust);
+  font-size: 0.875rem;
+  pointer-events: none;
+}
+
+/* Words. Left-aligned on one margin with the bar above. */
+.intro,
+.grid,
+.foot {
+  padding-inline: clamp(16px, 4vw, 48px);
+  max-width: 1280px;
+}
+
+.intro {
+  padding-top: clamp(28px, 5vw, 56px);
+  padding-bottom: clamp(32px, 5vw, 64px);
+}
+
+.title {
+  margin: 0;
+  max-width: 14ch;
+  font-size: clamp(2.5rem, 7vw, 5.5rem);
+  line-height: 0.95;
+  font-weight: 700;
+  font-stretch: 75%;
+  letter-spacing: -0.01em;
+}
+
+.summary {
+  margin: 1.25rem 0 0;
+  max-width: 60ch;
+  color: var(--dust);
+  font-size: 1.1875rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  column-gap: clamp(32px, 6vw, 96px);
+  row-gap: clamp(48px, 6vw, 80px);
+}
+
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.h2 {
+  margin: 0 0 1rem;
+  font-size: 1.375rem;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.checks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--rule);
+}
+
+.check {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  gap: 0.5rem;
+  padding: 0.875rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.mark {
+  /* One symbol font, so the four marks are the same size whatever the text face. */
+  font-family: "Segoe UI Symbol", "Apple Symbols", "Noto Sans Symbols 2", system-ui, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.85;
+}
+
+.mark_ok {
+  color: var(--moon);
+}
+
+.mark_warn {
+  color: var(--amber);
+}
+
+.mark_alert {
+  color: var(--red);
+}
+
+.mark_info {
+  color: var(--dust);
+}
+
+.checkTitle {
+  margin: 0;
+  font-weight: 600;
+}
+
+.checkText {
+  color: var(--dust);
+}
+
+.go {
+  margin-top: 1.75rem;
+}
+
+.primary {
+  display: inline-block;
+  padding: 0.875rem 1.75rem;
+  background: var(--moon);
+  color: var(--night);
+  font-weight: 700;
+  font-size: 1.1875rem;
+  text-decoration: none;
+  border-radius: 2px;
+}
+
+.primary:hover {
+  background: #ffffff;
+}
+
+.goNote {
+  margin: 0.75rem 0 0;
+  color: var(--dust);
+  font-size: 0.9375rem;
+}
+
+/* The hand-off is a real sequence, so it is numbered. */
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+  border-top: 1px solid var(--rule);
+}
+
+.steps > li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  padding: 0.875rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.steps > li::before {
+  content: counter(step);
+  grid-row: span 9;
+  font-weight: 700;
+  font-size: 1.375rem;
+  line-height: 1.15;
+  font-stretch: 75%;
+  color: var(--dust);
+}
+
+.cmd {
+  position: relative;
+  margin: 0.625rem 0 0.375rem;
+  padding: 0.75rem 4.5rem 0.75rem 0.875rem;
+  background: rgb(0 0 0 / 0.25);
+  border-left: 2px solid var(--moon);
+}
+
+.cmd pre {
+  margin: 0;
+  font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.copy {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.625rem;
+  background: transparent;
+  color: var(--moon);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.copy:hover {
+  border-color: var(--moon);
+}
+
+.alt {
+  margin-top: 1.75rem;
+  padding-left: 1rem;
+  border-left: 2px solid var(--rule);
+  color: var(--dust);
+}
+
+.alt p {
+  margin: 0;
+}
+
+.alt em {
+  font-style: normal;
+  color: var(--moon);
+}
+
+.h3 {
+  margin: 0 0 0.375rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--moon);
+}
+
+.code {
+  font-family: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+  font-size: 0.9375rem;
+  color: var(--moon);
+  overflow-wrap: anywhere;
+}
+
+.aside {
+  display: block;
+  margin-top: 0.5rem;
+  color: var(--dust);
+  font-size: 0.9375rem;
+}
+
+.say {
+  display: block;
+  margin-top: 0.625rem;
+  font-size: 1.25rem;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.pairs {
+  margin: 0;
+  border-top: 1px solid var(--rule);
+}
+
+.pairs dt {
+  padding-top: 0.875rem;
+  font-weight: 600;
+}
+
+.pairs dd {
+  margin: 0;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid var(--rule);
+  color: var(--dust);
+}
+
+.legend {
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.swatch {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+
+.swatchAlert {
+  background: var(--red);
+}
+
+.swatchWarn {
+  background: var(--amber);
+}
+
+.swatchOk {
+  background: var(--dust);
+}
+
+.swatchRing {
+  border: 2px solid var(--moon);
+  border-radius: 50%;
+}
+
+.link,
+.inline {
+  color: var(--moon);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.inline {
+  padding: 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  margin-top: clamp(56px, 8vw, 112px);
+  padding-top: 1.25rem;
+  padding-bottom: 2.5rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.9375rem;
+}
+
+.footNote {
+  margin-left: auto;
+  color: var(--dust);
+}
