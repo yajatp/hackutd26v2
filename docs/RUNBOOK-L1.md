@@ -63,6 +63,19 @@ Check it worked:
 3. On the phone, open the printed `/attack` URL. Tap **S5 · Facility C tank**, then **Fake**. Within a second or two the laptop console shows "LYING · S5 · TANK C level SIMULATED. Physics says +9 pts/h. Sensor says 0." with no reload.
 4. Tap **Clear all** before handing the phone to a judge.
 
+## 3b. Between judges
+
+With Avon up, in a second terminal:
+
+```bash
+npm run demo:reset                    # mock_test folder
+npm run demo:reset -- <folder>        # if you booted with another folder
+```
+
+It clears every simulated fault, reloads the demo folder (same as boot step 3) and checks the result: the console shows the folder, no faults, no sensor issues, and S5 · FACILITY C on top. Then it prints **READY** with the time and the phone URLs. It never restarts SpacetimeDB or the dev server, never publishes, and leaves the open pages alone: the laptop console and Phone 1 both go back to the clean start by themselves, with no reload. If it prints **NOT READY**, the reason is on the same line. "run npm run demo first" means Avon isn't up.
+
+Tested 2026-11-08 on L1: Fake on S5 · Facility C and Kill on S1 · Facility A from `/attack`, then reset, 3 times in a row: **0.9 s, 0.9 s, 0.8 s**. Each time the console went back to "2 pump failures · doing nothing costs $9,957", S5 · FACILITY C, TRIPS IN 2H 03M, $905, with no Sensors to check, and `/attack` showed Active faults (0).
+
 ## 4. Firewall
 
 **macOS.** The firewall was off on L1, so nothing was needed. Check with:
@@ -92,6 +105,7 @@ Work down this list:
    - On the phone, open `http://<laptop IP>:3001/v1/ping`. A blank page means 3001 is reachable. An error means it is blocked (firewall, section 4).
    - On the laptop, run `lsof -nP -iTCP:3001 -sTCP:LISTEN`. It must show `*:3001`. If it shows `127.0.0.1:3001`, SpacetimeDB was started with `npm run st:start`, which binds to localhost only, so phones can't reach it. Stop it, then run `npm run demo:avon`.
    - Did SpacetimeDB die? The boot script stops with "SpacetimeDB exited"; see `$TMPDIR/avon-spacetime.log`. Run `npm run demo:avon` again.
+   - The log says `cannot take lock on database; spacetime.pid already exists`: another SpacetimeDB server on this laptop is using the default data folder, for example a throwaway one on port 3101 (`ps aux | grep spacetimedb-standalone`). Even with `--in-memory`, it holds the folder's lock. Stop it, or start throwaway servers with their own folder: `spacetime start --listen-addr 127.0.0.1:3101 --data-dir "$TMPDIR/st-3101"`.
 3. **It says "● Connecting..." and never turns LIVE.** Same checks as item 2. The page retries every 2 seconds on its own, so it turns LIVE once the port is reachable.
 4. **The laptop's IP changed** (rejoined the hotspot). Ctrl+C, run `npm run demo:avon` again, and use the new URL.
 5. **No tanks listed, but LIVE.** No site is loaded. Run the boot again, or pick a site on the laptop console.
