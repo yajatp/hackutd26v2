@@ -95,7 +95,7 @@ function report(log, witness, status) {
   console.log(`  entries: ${sorted.length}${last ? ` (#${sorted[0].seq}..#${last.seq}), head ${short(last.hash)}` : ""}`);
   if (witness) console.log(`  witness: saw up to #${witness.seq}, head ${short(witness.head)}${witnessPath ? ` (${witnessPath})` : ""}`);
   else console.log(`  witness: none${witnessPath ? ` yet (will save to ${witnessPath})` : " (pass --witness to catch deleted entries)"}`);
-  if (status.kind === "tampering" && status.head) {
+  if (status.kind === "tampering" && status.headChanged) {
     console.log("  why:     chain_head was changed without a matching log entry; the next honest entry would be blamed");
   } else if (status.kind === "tampering" && status.members) {
     console.log(`  why:     member ${status.members} in the member table does not match the member entries in the log`);
@@ -136,12 +136,12 @@ async function checkOnce(witness, quiet) {
     const head = await readHead();
     const last = [...log].sort((a, b) => a.seq - b.seq).at(-1);
     if (head && last && (head.seq !== last.seq || head.hash !== last.hash)) {
-      status = { kind: "tampering", text: `CHAIN HEAD CHANGED OUTSIDE THE LOG (head #${head.seq}, last entry #${last.seq})`, at: last.seq, head: true };
+      status = { kind: "tampering", text: `CHAIN HEAD CHANGED OUTSIDE THE LOG (head #${head.seq}, last entry #${last.seq})`, at: last.seq, headChanged: true };
     }
   }
   if (!quiet) report(log, witness, status);
   if (exportPath) writeFileSync(exportPath, JSON.stringify([...log].sort((a, b) => a.seq - b.seq), null, 2));
-  const next = stray || status.head ? witness : advanceWitness(log, witness);
+  const next = stray || status.headChanged ? witness : advanceWitness(log, witness);
   if (witnessPath && next && JSON.stringify(next) !== JSON.stringify(witness)) {
     writeFileSync(witnessPath, JSON.stringify(next, null, 2));
     if (!quiet) console.log(`  saved:   witness now #${next.seq}, head ${short(next.head)}`);
