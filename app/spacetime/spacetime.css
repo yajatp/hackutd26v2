@@ -26,7 +26,7 @@ body:has(.st-root) {
   min-height: 100vh;
   background: var(--night);
   color: var(--moon);
-  font-family: "Bahnschrift", "DIN Alternate", "Roboto", system-ui, sans-serif;
+  font-family: "Barlow", "Bahnschrift", "Roboto", system-ui, sans-serif;
   font-size: 17px;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
