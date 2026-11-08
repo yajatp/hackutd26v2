@@ -1,6 +1,6 @@
 // The night-shift sound choice (app/ui/NightGate.tsx asks once per browser session). Kept in
 // sessionStorage, with a copy in memory for browsers that refuse storage. Sound helpers ask
-// soundOn() before they play: on unless the person chose Without sound.
+// soundOn() before they play: off unless the person chose With sound.
 
 export type SoundChoice = "on" | "off";
 
@@ -22,5 +22,5 @@ export function setSoundChoice(c: SoundChoice): void {
 }
 
 export function soundOn(): boolean {
-  return soundChoice() !== "off";
+  return soundChoice() === "on";   // off until the person chooses With sound (Mohan, Sun 07:20)
 }
