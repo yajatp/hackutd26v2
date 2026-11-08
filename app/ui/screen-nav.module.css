@@ -1,0 +1,157 @@
+/* ScreenNav (app/ui/ScreenNav.tsx): the Avon screens as hairline-underlined tabs, after
+   signal-a.studio. Fixed night inks, because every screen it sits on is a night screen and each
+   names its own tokens differently. The dot is one element on a rail one tab wide; the rail moves
+   by whole tabs to the hovered or focused tab, else to this screen's tab (--at from the inline
+   style, also as column and row for the two-row layout in a narrow column). */
+
+.nav {
+  --sn-ink: #d7dee0;
+  --sn-night: #102231;
+  --sn-dust: #8fa1aa;
+  --sn-rule: rgb(215 222 224 / 0.24);
+  --sn-gap: clamp(8px, 1.6vw, 20px);
+
+  position: relative;
+  container-type: inline-size;
+  font-family: "Barlow", "Bahnschrift", "Roboto", system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  letter-spacing: 0.01em;
+}
+
+/* The list runs one gap past the nav's right edge, so the last tab's hairline (which stops a gap
+   short of its cell) ends on the content edge, and each tab k starts at k * (width + gap) / 6: the
+   column lines ScreenHeader's row 2 shares. */
+.list {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin: 0 calc(-1 * var(--sn-gap)) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list > li {
+  min-width: 0;
+}
+
+/* The whole cell is the link, so the pointer never falls in a gap between tabs; the hairline
+   (::after) stops short of the cell's right edge to leave the gap you see. */
+.tab {
+  position: relative;
+  isolation: isolate;
+  display: block;
+  padding: 0.5rem calc(var(--sn-gap) + 0.25rem) 0.5rem 1rem;
+  overflow: hidden;
+  color: var(--sn-dust);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: var(--sn-gap);
+  bottom: 0;
+  height: 1px;
+  background: var(--sn-rule);
+}
+
+/* After MECHA: a tab inverts on hover (moonlight fill, night text) instead of glowing. The fill
+   starts right of the dot, so the dot always sits on night. */
+.tab::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0.25rem var(--sn-gap) 0.25rem 0.625rem;
+  background: var(--sn-ink);
+  opacity: 0;
+}
+
+.tab[aria-current="page"] {
+  color: var(--sn-ink);
+}
+
+.tab[aria-current="page"]::after {
+  background: var(--sn-ink);
+}
+
+.tab:hover {
+  color: var(--sn-night);
+}
+
+.tab:hover::before {
+  opacity: 1;
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--sn-ink);
+  outline-offset: -2px;
+}
+
+/* Never takes the pointer, even inside a page rule that turns pointer events back on for spans. */
+.nav .rail,
+.nav .dot {
+  pointer-events: none;
+}
+
+.rail {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc((100% + var(--sn-gap)) / 6);
+  height: 100%;
+  transform: translateX(calc(var(--at) * 100%));
+}
+
+.dot {
+  position: absolute;
+  left: 0.125rem;
+  top: calc(50% - 3.5px);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sn-ink);
+}
+
+.nav:has(li:nth-child(1) > .tab:is(:hover, :focus-visible)) .rail { --at: 0; --c3: 0; --r3: 0; }
+.nav:has(li:nth-child(2) > .tab:is(:hover, :focus-visible)) .rail { --at: 1; --c3: 1; --r3: 0; }
+.nav:has(li:nth-child(3) > .tab:is(:hover, :focus-visible)) .rail { --at: 2; --c3: 2; --r3: 0; }
+.nav:has(li:nth-child(4) > .tab:is(:hover, :focus-visible)) .rail { --at: 3; --c3: 0; --r3: 1; }
+.nav:has(li:nth-child(5) > .tab:is(:hover, :focus-visible)) .rail { --at: 4; --c3: 1; --r3: 1; }
+.nav:has(li:nth-child(6) > .tab:is(:hover, :focus-visible)) .rail { --at: 5; --c3: 2; --r3: 1; }
+
+/* A narrow column (a phone, or Phone 1's 448 px column on a laptop): two rows of three. */
+@container (max-width: 620px) {
+  .list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    font-size: 0.8125rem;
+  }
+
+  .rail {
+    width: calc((100% + var(--sn-gap)) / 3);
+    height: 50%;
+    transform: translate(calc(var(--c3) * 100%), calc(var(--r3) * 100%));
+  }
+}
+
+/* The dot slides in 220 ms; the fill and the text swap in 120 ms; a press compresses the tab. */
+@media (prefers-reduced-motion: no-preference) {
+  .rail {
+    transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .tab {
+    transition: color 120ms ease-out, transform 120ms ease-out;
+  }
+
+  .tab::before {
+    transition: opacity 120ms ease-out;
+  }
+
+  .tab:active {
+    transform: scale(0.97);
+  }
+}

@@ -4,6 +4,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { hhmm, money, type Alert, type ConsoleView, type SensorIssue } from "@/lib/eog/alerts";
 import { evidenceFor, evidenceForIssue, type Evidence } from "@/lib/evidence";
 import { Badge, SensorBadge, SimulatedBadge } from "@/app/ui/Badge";
+import { LineReveal } from "@/app/ui/LineReveal";
 import { useAvonConsole } from "@/lib/live";
 import { LockdownButton } from "./lockdown/LockdownButton";
 import { Arm, Collapse, Tick, useBornLive, useBringIntoView } from "./motion";
@@ -16,10 +17,11 @@ export type Conn = "connecting" | "connected" | "disconnected";
 
 // The night look of /vr (docs/DESIGN.md), as Tailwind utilities on the tokens that
 // app/console/layout.tsx gives night values. A state is a rule on the left in its color over a
-// faint tint, never a box. The decision is the page's one bold moment: DIN bold, condensed.
+// faint tint, never a box. The decision is the page's one bold moment: Barlow Condensed 700
+// (.decide in console.module.css, a global name so this file imports no CSS).
 const WARN = "border-l-[3px] border-warn-line bg-warn-bg py-3 pr-3 pl-4";
 const ALERT = "border-l-[3px] border-alert-line bg-alert-bg py-3 pr-3 pl-4";
-const DECIDE = "font-bold leading-none [font-stretch:75%]";
+const DECIDE = "decide";
 
 function countdown(h: number | null): string {
   if (h === null) return "";
@@ -30,6 +32,33 @@ function countdown(h: number | null): string {
 
 function pretty(id: string): string {
   return id.replace(/^(S\d+)_/, "$1 · ").replace(/_/g, " ");
+}
+
+// "Truck arrives 17:10" as a label and a value: the words before the first clock time, then the
+// rest. A detail with no time in it stays a sentence (null).
+export function splitDetail(d: string): { k: string; v: string } | null {
+  const m = d.match(/^(.+?) (\d{1,2}:\d{2}\b.*)$/);
+  return m ? { k: m[1], v: m[2] } : null;
+}
+
+// The facts under the decision, as one row of label-over-value pairs (the pattern /insight uses).
+function factsFor(a: Alert): { pairs: { k: string; v: string }[]; notes: string[] } {
+  const fix = a.fix!;
+  const pairs: { k: string; v: string }[] = [];
+  const notes: string[] = [];
+  for (const d of fix.details) {
+    const kv = splitDetail(d);
+    if (kv) pairs.push(kv); else notes.push(d);
+  }
+  if (fix.trip_at_unix !== null) pairs.push({ k: "Tank would trip", v: hhmm(fix.trip_at_unix) });
+  pairs.push({ k: "Repair done", v: hhmm(fix.repair_done_unix) });
+  if (a.event.level_pct !== undefined) pairs.push({ k: "Level now", v: `${a.event.level_pct.toFixed(1)}%` });
+  return { pairs, notes };
+}
+
+// A facility in the same system, named without the system again ("FACILITY B", not "S5 · FACILITY B").
+function sameSystem(id: string, system: string): string {
+  return id.startsWith(`${system}_`) ? id.slice(system.length + 1).replace(/_/g, " ") : pretty(id);
 }
 
 function stamp(unix: number): string {
@@ -87,7 +116,7 @@ function DarkroomRef({ ev, dataset, now }: { ev: Evidence; dataset: string; now:
       <p className={`mt-2 font-mono text-3xl font-bold tracking-[0.05em] ${live ? "mo-typed" : ""}`}><span>{ev.ref}</span></p>
       <p className={`mt-1 break-all font-mono text-xs text-muted ${live ? "mo-late" : ""}`}>Fingerprint (SHA-256): {ev.hash}</p>
       <p className={`mt-1 text-sm text-muted ${live ? "mo-late" : ""}`}>
-        {ev.record.asset_id} {ev.record.metric} · {dataset} at {hhmm(now)} UTC{ev.record.simulated ? " · SIMULATED fault" : ""}
+        {ev.record.asset_id} {ev.record.metric} in {dataset} at {hhmm(now)} UTC{ev.record.simulated ? ", a SIMULATED fault" : ""}.
       </p>
     </Reveal>
   );
@@ -185,7 +214,9 @@ function ConfirmCollapse({ a, top }: { a: Alert; top: boolean }) {
 
 function FixCardView({ a, top, dataset, now }: { a: Alert; top: boolean; dataset: string; now: number }) {
   const fix = a.fix!;
-  const big = top ? "text-[2rem] sm:text-[2.75rem]" : "text-[1.5rem] sm:text-[1.75rem]";
+  const live = useBornLive();
+  const big = top ? "text-[2.5rem] sm:text-[3.5rem]" : "text-[1.75rem] sm:text-[2.25rem]";
+  const facts = factsFor(a);
   return (
     <section className={`border-alert-line pl-5 sm:pl-7 ${top ? "border-l-[3px]" : "border-l"}`}>
       <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-[0.9375rem]">
@@ -207,26 +238,31 @@ function FixCardView({ a, top, dataset, now }: { a: Alert; top: boolean; dataset
         )}
       </Collapse>
       <div className="mt-4 flex items-end justify-between gap-4 sm:gap-6">
-        <p className={`${big} ${DECIDE} min-w-0`}><span className="mb-2 block text-sm font-normal leading-snug text-muted [font-stretch:100%]">Do this:</span> {fix.headline}</p>
+        {/* A changed plan, or a card that is news, rises line by line from behind a mask (LineReveal); the words are in the DOM at once. */}
+        <p className={`${big} ${DECIDE} min-w-0`}><span className="decide-label mb-2 block text-sm text-muted">Do this:</span> <LineReveal text={fix.headline} onMount={live} /></p>
         <p className={`${big} ${DECIDE} shrink-0 text-right tabular-nums`}><Tick value={fix.plan.cost} format={money} align="right" /></p>
       </div>
       {fix.alternatives.length > 0 && <ConfirmCollapse a={a} top={top} />}
-      <p className="mt-3 text-sm tabular-nums text-muted">
-        {[...fix.details,
-          fix.trip_at_unix !== null ? `tank would trip ${hhmm(fix.trip_at_unix)}` : null,
-          `repair done ${hhmm(fix.repair_done_unix)}`,
-          a.event.level_pct !== undefined ? `level now ${a.event.level_pct.toFixed(1)}%` : null,
-        ].filter(Boolean).join(" · ")}
-      </p>
+      <dl className="mt-5 flex flex-wrap gap-x-8 gap-y-3 tabular-nums">
+        {facts.pairs.map((p, i) => (
+          <div key={`${i}-${p.k}`}>
+            <dt className="text-xs text-muted">{p.k}</dt>
+            <dd className="text-[0.9375rem]">{p.v}</dd>
+          </div>
+        ))}
+      </dl>
+      {facts.notes.map((n) => <p key={n} className="mt-2 text-sm text-muted">{n}.</p>)}
       {fix.shares_fleet_with.length > 0 && (
-        <p className="text-sm text-muted">
-          Shares {a.event.system_id}&apos;s {fix.fleet} trucks with {fix.shares_fleet_with.map(pretty).join(", ")}.
+        <p className="mt-2 text-sm text-muted">
+          Shares {a.event.system_id}&apos;s {fix.fleet} trucks with {fix.shares_fleet_with.map((id) => sameSystem(id, a.event.system_id)).join(", ")}.
         </p>
       )}
       {fix.alternatives.length > 0 && (
         <div className="mt-6">
           <p className="section-title">Why not the others</p>
-          <table className="mt-2 w-full border-b border-line-soft text-sm tabular-nums">
+          {/* Fixed columns, so the prices line up from card to card. */}
+          <table className="mt-2 w-full table-fixed border-b border-line-soft text-sm tabular-nums">
+            <colgroup><col /><col className="w-[76px] sm:w-[88px]" /><col className="w-[124px] sm:w-[200px]" /></colgroup>
             <tbody>
               {fix.alternatives.map((alt) => (
                 <tr key={alt.label} className="border-t border-line-soft">
@@ -327,8 +363,8 @@ export function Board({ view, dataset }: { view: ConsoleView; dataset: string })
       </Collapse>
       {failures.length > 0 && (
         <p className="mt-10 text-xl leading-snug tabular-nums text-muted">
-          {failures.length} pump failure{failures.length > 1 ? "s" : ""} · doing nothing costs <Tick value={view.totals.do_nothing} format={money} /> ·
-          these plans cost <b className="font-bold text-foreground"><Tick value={view.totals.plans} format={money} /></b>
+          {failures.length} pump failure{failures.length > 1 ? "s" : ""}. Doing nothing costs <Tick value={view.totals.do_nothing} format={money} />;
+          {" "}{failures.length > 1 ? "these plans cost" : "this plan costs"} <b className="font-semibold text-foreground"><Tick value={view.totals.plans} format={money} /></b>.
         </p>
       )}
       <div className="mt-10 flex flex-col gap-14">

@@ -2,8 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useAvonConsole, useAvonRtt } from "@/lib/live";
 import { ConnBadge, connState } from "@/app/ui/Badge";
+import { Grain } from "@/app/ui/Grain";
+import { LineReveal } from "@/app/ui/LineReveal";
+import { LiveClock } from "@/app/ui/LiveClock";
 import { LockdownBanner } from "@/app/ui/LockdownBanner";
+import { ScreenHeader } from "@/app/ui/ScreenHeader";
+import "@/app/ui/motion.css";
 import { Field } from "./Field";
 import { useStation, type Mark } from "./useStation";
 import { CONTROLS, FAKED_NOTE, HTTPS_NOTE, LEGEND, NO_CABLE, SAY, STEPS, TITLE, TROUBLE, fill } from "./content";
@@ -47,22 +53,24 @@ function code(text: string): React.ReactNode {
 
 export function Station() {
   const st = useStation();
+  const dataAt = useAvonConsole().view?.now ?? null;
+  const rtt = useAvonRtt();
   const top = st.topState?.name ?? "the top problem";
   return (
     <div className={s.page}>
+      <Grain />
       <LockdownBanner />
       <section className={s.hero}>
         <Field tanks={st.tanks} pads={st.pads} states={st.states} top={st.top} />
-        <header className={s.bar}>
-          <Link href="/" className={s.wordmark}>Avon</Link>
-          <span className={s.barTitle}>VR station</span>
-          <span className={s.barStatus}><ConnBadge state={connState(st.status)} /></span>
-        </header>
+        {/* The one Avon header, laid over the table. */}
+        <ScreenHeader as="p" current="vr" title="VR station" className={s.bar}
+          clock={<LiveClock dataUnix={dataAt} />} status={<ConnBadge state={connState(st.status)} ms={rtt} />} />
         <p className={s.hint}>Move the pointer to light the table.</p>
       </section>
 
       <div className={s.intro}>
-        <h1 className={s.title}>{TITLE}</h1>
+        {/* Rises line by line from behind a mask on load (LineReveal); the words are in the DOM at once. */}
+        <h1 className={s.title}><LineReveal text={TITLE} onMount /></h1>
       </div>
 
       <div className={s.deck}>

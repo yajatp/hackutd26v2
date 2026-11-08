@@ -1,0 +1,121 @@
+/* ScreenHeader (app/ui/ScreenHeader.tsx): one header for every Avon screen, after signal-a.studio.
+   Night inks are fixed here, as in ScreenNav, because each page names its own tokens differently.
+   The header has no side padding: it sits on the page's one margin (16 px on a phone, 40 px from
+   768 px up). Row 2 is a grid with the tab row's column lines: the same column count and the same
+   gap (--sn-gap, also set in screen-nav.module.css), so column k starts where tab k's hairline
+   starts. */
+
+.head {
+  --sh-ink: #d7dee0;
+  --sh-dust: #8fa1aa;
+  --sn-gap: clamp(8px, 1.6vw, 20px);
+  /* The shared badge (app/ui/Badge.tsx, .badge in globals.css) reads the product tokens: give it
+     the night values here, so LIVE looks the same on every screen whatever the page sets. */
+  --background: #102231;
+  --foreground: #d7dee0;
+  --surface: transparent;
+  --line: rgb(215 222 224 / 0.3);
+  --muted: #8fa1aa;
+  --warn: #fde68a;
+  --warn-bg: rgb(245 158 11 / 0.08);
+  --warn-line: #f59e0b;
+  --alert-solid: #b91c1c;
+
+  container-type: inline-size;
+  padding-top: 20px;
+  color: var(--sh-ink);
+  font-family: "Barlow", "Bahnschrift", "Roboto", system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  column-gap: var(--sn-gap);
+  align-items: center;
+  margin-top: 28px;
+}
+
+/* The wordmark, then this screen's name in Dust, 12 px apart, no separator glyph. */
+.name {
+  grid-column: 1 / 5;
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.mark {
+  flex: none;
+  color: var(--sh-ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.mark:focus-visible {
+  outline: 2px solid var(--sh-ink);
+  outline-offset: 3px;
+}
+
+.title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--sh-dust);
+}
+
+/* Under the fifth tab. It may run past its column into the sixth (the badge there is
+   right-aligned); where the columns are too narrow for that, it drops under the name. */
+.clock {
+  grid-column: 5;
+  min-width: 0;
+  white-space: nowrap;
+  color: var(--sh-dust);
+}
+
+@container (max-width: 1080px) {
+  .clock {
+    grid-column: 1 / 5;
+    grid-row: 2;
+  }
+}
+
+/* The one connection badge, right-aligned under the sixth tab, ending on the content edge. */
+.status {
+  grid-column: 6;
+  justify-self: end;
+  display: inline-flex;
+  font-size: 0.875rem;
+}
+
+/* A narrow column (a phone): the tabs fold to two rows of three, so row 2 does too. The name takes
+   two columns, the badge the third, and the clock its own line under the name. */
+@container (max-width: 620px) {
+  .row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    row-gap: 2px;
+    margin-top: 20px;
+  }
+
+  .name {
+    grid-column: 1 / 3;
+    font-size: 1.125rem;
+  }
+
+  .status {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .clock {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

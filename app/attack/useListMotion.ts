@@ -1,5 +1,5 @@
 "use client";
-// Active faults slide in and out (a cleared one in green). React drops a cleared <li> at once (the words leave the DOM the
+// Active faults slide in and out (a cleared one with its heal). React drops a cleared <li> at once (the words leave the DOM the
 // moment the data does, as the e2e expects), so the slide out is played by a copy: an inert,
 // aria-hidden <div> (never an <li>, so nothing reading "the faults" counts it) drawn in a layer
 // over the list where the item was. The items that stay glide to their new place, and the
@@ -22,7 +22,7 @@ function ghostOf(s: Snap): HTMLDivElement {
     position: "absolute", top: `${s.top}px`, left: `${s.left}px`, width: `${s.width}px`, height: `${s.height}px`,
     margin: "0", pointerEvents: "none",
   });
-  // Still, except the green heal of a row that was cleared ([data-heal]): it plays as it slides out.
+  // Still, except the heal of a row that was cleared ([data-heal]): it plays as it slides out.
   for (const el of [g, ...g.querySelectorAll<HTMLElement>("*")]) if (!el.hasAttribute("data-heal")) el.style.animation = "none";
   return g;
 }

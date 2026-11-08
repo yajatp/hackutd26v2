@@ -4,15 +4,17 @@
 // reads which pumps failed from the console's own view, only to color the tank dots.
 // Every fault is simulated: an overlay on the live tank panel, never a change to the data files.
 // Each fault can be undone: when the picked tank has one, a Restore button ("Undo Kill" / "Undo
-// Fake" / "Undo Drift") sits above Kill / Fake / Drift and plays an attack backwards in green.
-// The red-team skin and the CSS animations live in attack.module.css, the Web Animations in
+// Fake" / "Undo Drift") sits above Kill / Fake / Drift and plays an attack backwards in Moonlight.
+// The night skin and the CSS animations live in attack.module.css, the Web Animations in
 // useRemoteMotion.ts and useListMotion.ts. Motion follows the data and the person's taps
 // (app/console/motion.tsx), plus the tank rows coming in once on first data; none of it runs
 // under prefers-reduced-motion.
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAttack, type ActiveFault, type AttackTarget, type FaultKind, type Verdict } from "@/lib/attack";
 import { useAvonConsole } from "@/lib/live";
-import { AppHeader } from "@/app/ui/AppHeader";
+import { Grain } from "@/app/ui/Grain";
+import { LiveClock } from "@/app/ui/LiveClock";
+import { ScreenHeader } from "@/app/ui/ScreenHeader";
 import { LockdownBanner } from "./LockdownBanner";
 import { ConnBadge, SENSOR_STATE, SensorBadge, SimulatedBadge, connState, type ConnState } from "@/app/ui/Badge";
 import { Arm, useArmed, useBornLive } from "@/app/console/motion";
@@ -66,7 +68,7 @@ const sameUndo = (a: Undo, b: Undo) => a.asset_id === b.asset_id && a.kind === b
 
 // The reducer call in flight ("Sending…" / "Restoring…"), then accepted ("Sent to the site" /
 // "Sensor restored"). kind: the Kill / Fake / Drift button that started it, if one did. undo: the
-// fault a Restore or a row's Clear takes off. hold: the Restore button stays for its green rings.
+// fault a Restore or a row's Clear takes off. hold: the Restore button stays for its rings.
 interface Send { n: number; kind?: FaultKind; undo?: Undo; hold?: boolean; phase: "sending" | "sent" }
 
 // ---- pieces that move only when they are news (useBornLive) ----
@@ -75,7 +77,7 @@ interface Send { n: number; kind?: FaultKind; undo?: Undo; hold?: boolean; phase
 // when the state changes. What the console says moves it once (useDotMotion): DEAD flatlines it
 // (a dim flat line), LYING jitters it for three frames before it reads amber, DRIFTING wobbles it
 // once; LYING and DRIFTING then pop in amber and ring (<Flagged>). heal: bumps when a restore
-// lands on this tank: a green flash that settles into its own color.
+// lands on this tank: a Moonlight flash that settles into its own color.
 function Dot({ tone, state, heal }: { tone: DotTone; state?: string; heal: number }) {
   const ref = useRef<HTMLSpanElement>(null);
   const said = tone === "flag" ? state : undefined;
@@ -142,7 +144,7 @@ function TankRow({ t, i, n, on, tone, verdict, faulted, scan, wave, heal, intro,
       className={`${s.tank} ${intro !== undefined ? s.rowIn : ""}`}
       style={intro !== undefined ? { animationDelay: `${intro}ms` } : undefined}
     >
-      <span className={s.tankLabel}><span className={s.glyph}>{on ? "◉" : "○"}</span> {t.label}</span>
+      <span className={s.tankLabel}>{t.label}</span>
       <span className={s.side}>
         {verdict
           ? <Glitch key={verdict.state}><SensorBadge state={verdict.state} /></Glitch>
@@ -157,8 +159,8 @@ function TankRow({ t, i, n, on, tone, verdict, faulted, scan, wave, heal, intro,
   );
 }
 
-// 2 · Restore: "Undo Kill" over "Restore the S5 · Facility C tank sensor". An attack played
-// backwards: the charge drains right to left in green, then two green rings go out once. It
+// Restore: "Undo Kill" over "Restore the S5 · Facility C tank sensor". An attack played
+// backwards: the charge drains right to left, then two rings go out once. It
 // unfolds when the picked tank gets a fault and folds away once the fault is gone (useFold).
 function RestoreSlot({ item, leaving, phase, n, off, disabled, onRestore }: {
   item: Undo; leaving: boolean; phase?: "sending" | "sent"; n: number; off: boolean; disabled: boolean; onRestore(asset_id: string): void;
@@ -191,8 +193,8 @@ function RestoreSlot({ item, leaving, phase, n, off, disabled, onRestore }: {
   );
 }
 
-// healing: its Clear (or the Restore button, or Clear all) was tapped. The row turns green and
-// flashes, its Clear flashes green, and it slides out green ([data-heal] plays in the copy).
+// healing: its Clear (or the Restore button, or Clear all) was tapped. The row's rule turns
+// Moonlight and flashes, its Clear inverts, and it slides out that way ([data-heal] plays in the copy).
 function FaultItem({ f, label, verdict, disabled, healing, onClear }: {
   f: ActiveFault; label: string; verdict?: Verdict; disabled: boolean; healing: boolean; onClear(): void;
 }) {
@@ -202,8 +204,8 @@ function FaultItem({ f, label, verdict, disabled, healing, onClear }: {
     <li data-id={f.asset_id} className={`${s.fault} ${live ? s.enter : ""} ${healing ? s.healed : ""}`}>
       <span className="min-w-0">
         <span className={s.faultName}>{label}</span>
-        <span className="mt-1 flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-muted">{b?.verb ?? f.kind} on since {utc(f.since_ts)} ·</span>
+        <span className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <span className="text-muted">{b?.verb ?? f.kind} on since {utc(f.since_ts)}</span>
           {verdict
             ? <Glitch key={verdict.state}>console: <SensorBadge state={verdict.state} /></Glitch>
             : <span className="text-muted">console: no change yet (a tank whose pump has failed shows it best)</span>}
@@ -230,7 +232,7 @@ function AllClear() {
   return <p className={`pt-2 text-muted ${live ? s.after : ""}`}><span aria-hidden="true">✓ </span>None. Every sensor is telling the truth.</p>;
 }
 
-// 3 · Active faults. Its own component so it sits inside <Arm> and its list can slide.
+// Step 3, Active faults. Its own component so it sits inside <Arm> and its list can slide.
 function ActiveFaults({ active, verdicts, labelOf, live, busy, healing, onClear, onClearAll }: {
   active: ActiveFault[]; verdicts: Record<string, Verdict>; labelOf(asset_id: string): string;
   live: boolean; busy: boolean; healing: ReadonlySet<string>; onClear(asset_id: string): void; onClearAll(): void;
@@ -241,7 +243,7 @@ function ActiveFaults({ active, verdicts, labelOf, live, busy, healing, onClear,
   return (
     <section className="mt-6 pb-10" aria-labelledby="active">
       <h2 id="active" className="section-title">
-        3 · Active faults (<Swap key={active.length}>{active.length}</Swap>)
+        <span className={s.step}>3</span>Active faults (<Swap key={active.length}>{active.length}</Swap>)
       </h2>
       <div ref={wrap} className="relative">
         {active.length === 0 ? (
@@ -285,8 +287,8 @@ export default function AttackPage() {
   const [send, setSend] = useState<Send | null>(null);
   const [scan, setScan] = useState(0);    // bumps on every pick: the picked row's scan line
   const [wave, setWave] = useState(0);    // bumps on Clear all: the calm wave down the list
-  const [healed, setHealed] = useState({ asset_id: "", n: 0 });   // bumps when a restore lands: that tank's green heal
-  const [healing, setHealing] = useState<ReadonlySet<string>>(NONE);   // faults being cleared: their rows go green
+  const [healed, setHealed] = useState({ asset_id: "", n: 0 });   // bumps when a restore lands: that tank's heal
+  const [healing, setHealing] = useState<ReadonlySet<string>>(NONE);   // faults being cleared: their rows show the heal
   const [intro, setIntro] = useState(true);   // the tank rows' entrance, once, on the first data
   const seq = useRef(0);
 
@@ -305,7 +307,7 @@ export default function AttackPage() {
 
   // The call starts at the tap and is never held back for an animation. "Sent to the site" or
   // "Sensor restored" (and the rings) wait only for what is left of the button's 350 ms charge
-  // or drain. heal: the faults whose rows turn green until they have slid out.
+  // or drain. heal: the faults whose rows show the heal until they have slid out.
   async function act(run: () => Promise<void>, how: { kind?: FaultKind; undo?: Undo; heal?: string[] } = {}) {
     const { kind, undo, heal } = how;
     const n = ++seq.current;
@@ -370,14 +372,14 @@ export default function AttackPage() {
 
   return (
     <Arm ready={live && api.targets.length > 0}>
-      <main className="mx-auto min-h-dvh max-w-md px-4 pt-4">
-        <AppHeader product="Avon" title="Break a sensor">
-          <Conn state={connState(api.status)} />
-        </AppHeader>
+      <main className={s.main}>
+        <ScreenHeader current="attack" title="Break a sensor" clock={<LiveClock dataUnix={view?.now ?? null} />}
+          status={<Conn state={connState(api.status)} />} />
+        <Grain />
         <LockdownBanner />
 
         {api.status === "disconnected" && (
-          <p role="alert" className={`mt-3 rounded-[3px] bg-alert-solid p-3 font-bold text-white ${s.shake}`}>
+          <p role="alert" className={`mt-3 bg-alert-solid p-3 font-bold text-white ${s.shake}`}>
             ▲ DISCONNECTED from the console. Faults can&apos;t be sent until it reconnects.
           </p>
         )}
@@ -387,11 +389,11 @@ export default function AttackPage() {
         </p>
 
         <section className="mt-5" aria-labelledby="pick">
-          <h2 id="pick" className="section-title">1 · Pick a tank</h2>
+          <h2 id="pick" className="section-title"><span className={s.step}>1</span>Pick a tank</h2>
           {api.targets.length === 0 ? (
             <p className="mt-2 text-muted">No tanks yet. Load a site on the console first.</p>
           ) : (
-            <div className="mt-2 flex flex-col gap-2" role="radiogroup" aria-labelledby="pick">
+            <div className={`mt-2 ${s.tanks}`} role="radiogroup" aria-labelledby="pick">
               {api.targets.map((t, i) => (
                 <TankRow
                   key={t.asset_id}
@@ -419,7 +421,7 @@ export default function AttackPage() {
         {/* Sticks to the bottom of the screen, so the next action never scrolls away behind the tank list. */}
         <section aria-labelledby="break" className={`${s.dock} sticky bottom-0 z-10 -mx-4 mt-4 px-4 pb-3 pt-2`}>
           <h2 id="break" className="section-title truncate">
-            2 · Break it{target ? <Swap key={target.asset_id} className="normal-case text-foreground">: {target.label}</Swap> : null}
+            <span className={s.step}>2</span>Break it{target ? <Swap key={target.asset_id} className={s.target}>: {target.label}</Swap> : null}
           </h2>
           {slot.item && (
             <RestoreSlot
@@ -432,7 +434,7 @@ export default function AttackPage() {
               onRestore={restore}
             />
           )}
-          <div data-sending={sending} className={`${s.grid} mt-2 grid grid-cols-3 gap-2`}>
+          <div data-sending={sending} className={`${s.grid} mt-2 grid grid-cols-3`}>
             {FAULTS.map((f) => {
               const on = current?.kind === f.kind;
               const st = SENSOR_STATE[f.sensor];
@@ -451,7 +453,7 @@ export default function AttackPage() {
                   <span aria-hidden="true" className={s.fill}>{mine && <span key={mine.n} className={s.charge} />}</span>
                   {mine?.phase === "sent" && <span key={`ring-${mine.n}`} aria-hidden="true" className={s.pulse} />}
                   <span className={s.verb}>{f.verb}</span>
-                  <span className={s.word}>{st.word}</span>
+                  <span className={s.word}>{st.word.toLowerCase()}</span>
                   <Swap key={on ? "on" : "off"} className={s.what}>{on ? `${st.icon} ON` : f.what}</Swap>
                 </button>
               );

@@ -30,13 +30,18 @@ body:has(.st-root) {
   font-size: 17px;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
-  padding: 2rem 1rem 4rem;
+  padding: 0 1rem 4rem;
   max-width: 1440px;
   margin: 0 auto;
 }
 
+/* The page's one margin: 16 px on a phone, 40 px from 768 px up, shared with the header. */
 @media (min-width: 768px) {
-  .st-root { padding: 2.5rem 2.5rem 5rem; }
+  .st-root { padding: 0 2.5rem 5rem; }
+}
+
+.st-head {
+  padding-top: 3rem;
 }
 
 .st-root code {
@@ -51,8 +56,8 @@ body:has(.st-root) {
 
 .st-root h1,
 .st-root h2 {
+  font-family: "Barlow Condensed", "Bahnschrift", system-ui, sans-serif;
   font-weight: 700;
-  font-stretch: 75%;
   line-height: 1.1;
   margin: 0;
 }

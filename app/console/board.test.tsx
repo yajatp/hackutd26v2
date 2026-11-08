@@ -10,7 +10,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { Alert, ConsoleView, SensorIssue } from "../../lib/eog/alerts.ts";
 import type { DetectedEvent } from "../../lib/eog/types.ts";
 import { AvonProvider } from "../../lib/live.ts";
-import { Board, ConnBanner } from "./Board";
+import { Board, ConnBanner, splitDetail } from "./Board";
 
 // Under this repo's "jsx": "preserve", tsx compiles JSX to React.createElement (Next uses the
 // automatic runtime), so the components need React as a global when rendered here.
@@ -190,10 +190,10 @@ test("no element on the board carries the Tailwind class uppercase", () => {
 test("the board still says what it said", () => {
   const t = words(render());
   for (const want of [
-    "2 pump failures · doing nothing costs $9,957 · these plans cost $1,810",
+    "2 pump failures. Doing nothing costs $9,957 ; these plans cost $1,810 .",
     "Why not the others", "Call 2 trucks now, 1 trip each", "$1,810", "$905 more",
-    "Truck arrives 17:10 · tank would trip 17:33 · repair done 20:00 · level now 73.5%",
-    "Shares S5's 2 trucks with S5 · FACILITY B.",
+    "Truck arrives 17:10 Tank would trip 17:33 Repair done 20:00 Level now 73.5%",
+    "Shares S5's 2 trucks with FACILITY B.",
     "Times come from noisy readings: same decision, start times within about 3 min.",
     "Needs a field inspection", "● Pump wearing out · S2 · FACILITY A PUMP", "Send someone to look at the pump",
     "Check the sensor on site first.", "Send someone with a replacement sensor",
@@ -203,6 +203,13 @@ test("the board still says what it said", () => {
   }
   const none = words(render({ ...VIEW, alerts: [], sensors: [] }));
   assert.ok(none.includes("✓ No pump failures right now. Every tank is draining normally."));
+});
+
+test("a fix detail splits into a label and its clock time, or stays a sentence", () => {
+  assert.deepEqual(splitDetail("Truck arrives 17:10"), { k: "Truck arrives", v: "17:10" });
+  assert.deepEqual(splitDetail("Trucks arrive 17:10, then 19:30"), { k: "Trucks arrive", v: "17:10, then 19:30" });
+  assert.deepEqual(splitDetail("Tripped at 15:12"), { k: "Tripped at", v: "15:12" });
+  assert.equal(splitDetail("$905/h of production lost until then"), null);
 });
 
 test("ConnBanner speaks only when the live data is lost", () => {

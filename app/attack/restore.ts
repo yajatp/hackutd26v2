@@ -29,6 +29,6 @@ export function sendWords(phase: "sending" | "sent", restoring: boolean): string
 }
 
 // How long the Restore button stays after its fault is gone: the drain (CHARGE_MS, the reducer
-// call never waits for it), then RINGS_MS for the green rings, then it folds away in FOLD_MS.
+// call never waits for it), then RINGS_MS for the rings, then it folds away in FOLD_MS.
 export const RINGS_MS = 420;
 export const FOLD_MS = 240;

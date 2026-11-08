@@ -1,0 +1,31 @@
+/* Global motion classes for app/ui components that must render in plain Node (Board.tsx imports
+   LineReveal, and board.test.tsx renders Board without a bundler), so they cannot import a CSS
+   module. Import this sheet from the page that uses them: /console, /insight, /vr. */
+
+/* LineReveal: the mask and the rise exist only while .lr-play is on (it comes off when the last
+   line has landed). The clip reaches past each word's box, so descenders and the comma are never
+   cut, and the rise starts low enough to be fully under it. */
+@media (prefers-reduced-motion: no-preference) {
+  .lr-play > .lr-w,
+  .lr-pre > .lr-w {
+    display: inline-block;
+    clip-path: inset(-0.4em -0.3em -0.28em -0.3em);
+  }
+
+  .lr-play > .lr-w > .lr-i,
+  .lr-pre > .lr-w > .lr-i {
+    display: inline-block;
+    animation: lr-rise 380ms cubic-bezier(0.2, 0.8, 0.2, 1) var(--lr-d, 0ms) both;
+  }
+
+  /* Rendered on the server for a reveal on load: under the mask until the script plays it, or
+     rising together by itself at 2.6 s if no script runs. */
+  .lr-pre > .lr-w > .lr-i {
+    animation-delay: 2600ms;
+  }
+}
+
+@keyframes lr-rise {
+  from { transform: translateY(132%); }
+  to { transform: none; }
+}

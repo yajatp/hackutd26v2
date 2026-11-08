@@ -31,7 +31,7 @@ export function sentDelay(elapsedMs: number, chargeMs = CHARGE_MS): number {
   return Math.max(0, Math.round(chargeMs - elapsedMs));
 }
 
-// Clear all: a calm green ripple up the tank list, starting at the bottom row (the end nearest
+// Clear all: a calm ripple up the tank list, starting at the bottom row (the end nearest
 // the Clear all button, which is where the thumb and the eye are) and reaching the top row by
 // spreadMs at most, a step of no more than 30 ms between rows.
 export function waveDelay(i: number, n: number, spreadMs = 300): number {

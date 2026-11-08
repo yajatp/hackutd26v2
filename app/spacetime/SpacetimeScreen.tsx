@@ -6,6 +6,8 @@ import { Fragment, useEffect, useState } from "react";
 import { connectAvon, avonUri, AVON_DB, type AvonStatus } from "@/lib/live";
 import { tables, type DbConnection, type EventContext } from "@/lib/module_bindings";
 import { ConnBadge, connState } from "@/app/ui/Badge";
+import { Grain } from "@/app/ui/Grain";
+import { ScreenHeader } from "@/app/ui/ScreenHeader";
 import {
   REDUCERS, TABLES, WRITES, emptyStats, matchReducers, matchWords, nextStats, observe, pushFeed, touchedTables,
   type FeedLine, type Observed, type Op, type ReducerName, type RowChange, type Stats, type TableName, type Txn,
@@ -107,10 +109,11 @@ export default function SpacetimeScreen() {
 
   return (
     <main className="st-root">
-      <header className="st-head">
+      <Grain />
+      <ScreenHeader as="p" current="spacetime" title="SpacetimeDB" status={<ConnBadge state={connState(status)} />} />
+      <div className="st-head">
         <div className="st-title">
           <h1>The avon database, live</h1>
-          <ConnBadge state={connState(status)} />
         </div>
         <p className="st-lede">
           This page only reads. Press Confirm on the console or tap Fake on Phone 1, and the transaction lands here: the
@@ -122,7 +125,7 @@ export default function SpacetimeScreen() {
             page reconnects by itself and keeps what it already showed.
           </p>
         )}
-      </header>
+      </div>
 
       <Matrix seen={seen} last={last} />
 

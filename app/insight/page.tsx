@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import InsightScreen from "./InsightScreen";
+import "@/app/ui/motion.css";
 import "./insight.css";
 
 export const metadata: Metadata = {

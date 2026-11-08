@@ -1,0 +1,176 @@
+/* NightGate (app/ui/NightGate.tsx), after overworldaudio.com's way in: night, grain (the page's
+   Grain sits above this layer), a small wordmark and clock on a hairline, and the two ways in.
+   Ours is left-aligned on the page's one margin, not a centred hero. "With sound" wears a double
+   hairline; both invert on hover. It leaves as a shutter going up. */
+
+.gate {
+  --g-ink: #d7dee0;
+  --g-night: #102231;
+  --g-dust: #8fa1aa;
+  --g-rule: rgb(215 222 224 / 0.22);
+  --g-pad: clamp(16px, 4vw, 48px);
+
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow-y: auto;
+  border-bottom: 1px solid var(--g-rule);
+  background: var(--g-night);
+  color: var(--g-ink);
+  font-family: "Barlow", "Bahnschrift", "Roboto", system-ui, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+}
+
+.top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 var(--g-pad);
+  padding: 20px 0 12px;
+  border-bottom: 1px solid var(--g-rule);
+}
+
+.mark {
+  font-weight: 600;
+  font-size: 1.125rem;
+  letter-spacing: 0.01em;
+}
+
+.clock {
+  color: var(--g-dust);
+}
+
+.body {
+  align-self: end;
+  padding: 48px var(--g-pad) clamp(28px, 6vh, 64px);
+}
+
+.title {
+  margin: 0;
+  font-family: "Barlow Condensed", "Bahnschrift", sans-serif;
+  font-weight: 700;
+  font-size: clamp(3.5rem, 11vw, 10.5rem);
+  line-height: 0.88;
+  letter-spacing: -0.01em;
+}
+
+.line {
+  display: block;
+  padding-bottom: 0.06em;
+  overflow: hidden;
+}
+
+.rise {
+  display: block;
+}
+
+.lede {
+  max-width: 46ch;
+  margin: clamp(20px, 3vh, 32px) 0 0;
+  color: var(--g-dust);
+}
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin-top: clamp(24px, 4vh, 40px);
+  padding-top: 20px;
+  border-top: 1px solid var(--g-rule);
+}
+
+.with,
+.without {
+  font: inherit;
+  cursor: pointer;
+  color: var(--g-ink);
+  background: transparent;
+}
+
+/* The double hairline: the border, a night gap, then an inner rule drawn by an inset shadow. */
+.with {
+  min-height: 3.25rem;
+  padding: 0.75rem 2rem;
+  border: 1px solid rgb(215 222 224 / 0.6);
+  border-radius: 0;
+  box-shadow: inset 0 0 0 3px var(--g-night), inset 0 0 0 4px rgb(215 222 224 / 0.32);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.without {
+  min-height: 2.75rem;
+  padding: 0.25rem 0.5rem;
+  margin-right: -0.5rem;
+  border: 0;
+  color: var(--g-dust);
+  text-decoration: underline;
+  text-decoration-color: var(--g-rule);
+  text-underline-offset: 5px;
+}
+
+/* After MECHA: invert, do not glow. */
+.with:hover {
+  background: var(--g-ink);
+  color: var(--g-night);
+  box-shadow: inset 0 0 0 3px var(--g-ink), inset 0 0 0 4px var(--g-night);
+}
+
+.without:hover {
+  background: var(--g-ink);
+  color: var(--g-night);
+  text-decoration-color: transparent;
+}
+
+.with:focus-visible,
+.without:focus-visible {
+  outline: 2px solid var(--g-ink);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .with,
+  .without {
+    transition: background-color 120ms ease-out, color 120ms ease-out, box-shadow 120ms ease-out, transform 120ms ease-out;
+  }
+
+  .with:active,
+  .without:active {
+    transform: scale(0.97);
+  }
+
+  /* The title rises line by line from behind its mask on the first paint (no JS needed). */
+  .rise {
+    animation: rise 380ms cubic-bezier(0.2, 0.8, 0.2, 1) 120ms both;
+  }
+
+  .lede,
+  .choices {
+    animation: fade 320ms ease-out 360ms both;
+  }
+
+  .leaving {
+    animation: shutter 420ms cubic-bezier(0.7, 0, 0.2, 1) both;
+  }
+}
+
+@keyframes rise {
+  from { transform: translateY(105%); }
+  to { transform: none; }
+}
+
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shutter {
+  from { transform: none; }
+  to { transform: translateY(-100%); }
+}

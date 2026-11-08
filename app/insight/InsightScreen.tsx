@@ -8,12 +8,17 @@
 // Night design (docs/DESIGN.md): red and amber only for state, hairline lists, one bold moment
 // (the saving, drawn as the share of the do-nothing cost the plans avoid).
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { useAvonConsole, type ScenarioRun, type SiteFacility } from "@/lib/live";
+import { useAvonConsole, useAvonRtt, type ScenarioRun, type SiteFacility } from "@/lib/live";
 import type { BreachRisk } from "@/lib/eog/breach";
 import type { SystemBudget } from "@/lib/eog/budget";
 import type { ConsoleView } from "@/lib/eog/alerts";
 import type { FlowSeries } from "@/lib/eog/flows";
 import { WHAT_IF_KINDS, type WhatIfKind } from "@/lib/eog/whatif";
+import { ConnBadge, connState } from "@/app/ui/Badge";
+import { Grain } from "@/app/ui/Grain";
+import { LineReveal } from "@/app/ui/LineReveal";
+import { LiveClock } from "@/app/ui/LiveClock";
+import { ScreenHeader } from "@/app/ui/ScreenHeader";
 import FlowChart from "./FlowChart";
 import RippleChart from "./RippleChart";
 import { assetFor, BRANCH_TAG, clock, failureSpans, inMin, KIND_LABEL, money, orderFlows, plain, pretty, sharedMax, signedMoney, siteFor, systemsText, tplus } from "./format";
@@ -40,6 +45,7 @@ const DEFAULT_SHUTDOWN_PCT = 92;     // network.json defaults; the module's ripp
 
 export default function InsightScreen() {
   const avon = useAvonConsole();
+  const rtt = useAvonRtt();
   const { status, view, source, insight, facilities } = avon;
   const qs = useSyncExternalStore(subscribe, search, () => "");
   const params = new URLSearchParams(qs);
@@ -59,21 +65,21 @@ export default function InsightScreen() {
   const empty = status === "connected" && view && insight.flows.length === 0;
   return (
     <main className="in-root" data-look={look}>
-      <header className="in-head">
+      <Grain />
+      {/* The one Avon header; its tabs carry ?site= along, as the two links they replace did. */}
+      <ScreenHeader as="p" current="insight" title="Insight" search={keep}
+        clock={<LiveClock dataUnix={view?.now ?? null} />} status={<ConnBadge state={connState(status)} ms={rtt} />} />
+      <div className="in-head">
         <div className="in-title">
           <h1>Tonight, in dollars</h1>
-          <nav className="in-links" aria-label="Other screens">
-            <a href={`/console${keep}`}>Open the console</a>
-            <a href={`/twin${keep}`}>Open the model</a>
-          </nav>
         </div>
         <p className="in-lede">
           {view
             ? <><strong title={source ? `Dataset ${source.datasetId}` : undefined}>{site ? `${site.name}, ${site.basin}` : "This site"}</strong>, at {clock(view.now)}. What tonight&apos;s pump failures cost, what the plans save, and what a faked sensor could hide.</>
             : "What tonight's pump failures cost, what the plans save, and what a faked sensor could hide."}
         </p>
+        {status === "disconnected" ? <p className="in-note in-down">SpacetimeDB is not answering; showing the last numbers.</p> : null}
         <div className="in-bar">
-          <span className={`in-conn in-conn-${status}`}>{status === "connected" ? "Live" : status === "connecting" ? "Connecting to SpacetimeDB" : "SpacetimeDB is not answering; showing the last numbers"}</span>
           <div className="in-switch" role="group" aria-label="Layout">
             <button type="button" aria-pressed={look === "list"} onClick={() => setParam("look", null)}>One column</button>
             <button type="button" aria-pressed={look === "wall"} onClick={() => setParam("look", "wall")}>Wall</button>
@@ -81,7 +87,7 @@ export default function InsightScreen() {
         </div>
         {status === "connected" && !view ? <p className="in-note" role="status">No site is loaded. Load one on the console, then this page fills in.</p> : null}
         {empty ? <p className="in-note" role="status">This database was published before the insight tables existed. Publish the avon module and reload the site.</p> : null}
-      </header>
+      </div>
 
       <div className="in-layout">
         <div className="in-col-a">
@@ -129,7 +135,10 @@ function Budget({ budget, view }: { budget: SystemBudget[]; view: ConsoleView | 
   return (
     <section className="in-section in-budget" aria-labelledby="in-budget-h">
       <h2 id="in-budget-h">The night&apos;s budget</h2>
-      <p className="in-hero"><span className="in-num">{money(saved)}</span> saved by the plans</p>
+      {/* The saving rises from behind a mask, the number's line then the words' (LineReveal), when it changes. */}
+      <p className="in-hero">
+        <span className="in-num"><LineReveal text={money(saved)} /></span> <LineReveal text="saved by the plans" cue={money(saved)} delay={60} />
+      </p>
       {nothing > 0 ? (
         <figure className="in-saving" role="img" aria-label={`The plans cost ${money(plans)}. If nobody acts the night costs ${money(nothing)}. Saved ${money(saved)}.`}>
           <div className="in-saving-labels" aria-hidden="true">

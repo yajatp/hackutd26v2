@@ -21,6 +21,9 @@
   --warn-bg: #2e2208;
   --warn-line: var(--amber);
 
+  /* The page's one margin, shared with the header: 16 px on a phone, 40 px from 768 px up. */
+  --gutter: 16px;
+
   min-height: 100vh;
   background: var(--night);
   color: var(--moon);
@@ -28,6 +31,18 @@
   font-size: 1.0625rem;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 768px) {
+  .page {
+    --gutter: 40px;
+  }
+}
+
+/* Night past the page's edges too (overscroll, the grain's overlay): body is light in a light scheme. */
+:global(html):has(.page),
+:global(body):has(.page) {
+  background: #102231;
 }
 
 .page :focus-visible {
@@ -111,40 +126,23 @@
   color: var(--amber);
 }
 
+/* The one Avon header (app/ui/ScreenHeader.tsx) over the table. Only its links and badge take
+   the pointer, so the rest of the strip still lights the table. */
 .bar {
   position: absolute;
   inset: 0 0 auto 0;
-  display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
-  padding: 20px clamp(16px, 4vw, 48px);
+  padding-inline: var(--gutter);
   pointer-events: none;
 }
 
 .bar a,
-.bar span {
+.bar [role="status"] {
   pointer-events: auto;
-}
-
-.wordmark {
-  font-weight: 700;
-  font-size: 1.125rem;
-  letter-spacing: 0.01em;
-  color: var(--moon);
-  text-decoration: none;
-}
-
-.barTitle {
-  color: var(--dust);
-}
-
-.barStatus {
-  margin-left: auto;
 }
 
 .hint {
   position: absolute;
-  right: clamp(16px, 4vw, 48px);
+  right: var(--gutter);
   bottom: 16px;
   margin: 0;
   padding: 2px 6px;
@@ -159,7 +157,7 @@
 .deck,
 .runsheet,
 .foot {
-  padding-inline: clamp(16px, 4vw, 48px);
+  padding-inline: var(--gutter);
 }
 
 /* The title runs the full width under the table, closed by one moonlight rule (after Grids). */
@@ -231,7 +229,7 @@
 
 .more {
   max-width: 920px;
-  margin: clamp(56px, 8vw, 96px) clamp(16px, 4vw, 48px) 0;
+  margin: clamp(56px, 8vw, 96px) var(--gutter) 0;
   border-top: 1px solid var(--rule);
 }
 
@@ -337,8 +335,14 @@
   border-radius: 2px;
 }
 
+/* After MECHA: invert on hover (night fill, moonlight text and edge) instead of glowing. */
+.primary {
+  border: 1px solid var(--moon);
+}
+
 .primary:hover {
-  background: #ffffff;
+  background: var(--night);
+  color: var(--moon);
 }
 
 .goNote {
@@ -407,6 +411,20 @@
 
 .copy:hover {
   border-color: var(--moon);
+  background: var(--moon);
+  color: var(--night);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .primary,
+  .copy {
+    transition: background-color 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out, transform 120ms ease-out;
+  }
+
+  .primary:active,
+  .copy:active {
+    transform: scale(0.97);
+  }
 }
 
 .steps code,

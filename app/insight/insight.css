@@ -26,13 +26,14 @@ body:has(.in-root) {
   font-size: 17px;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
-  padding: 1.75rem 1rem 4rem;
+  padding: 0 1rem 4rem;
   max-width: 1440px;
   margin: 0 auto;
 }
 
+/* The page's one margin: 16 px on a phone, 40 px from 768 px up, shared with the header. */
 @media (min-width: 768px) {
-  .in-root { padding: 2.5rem 2.5rem 5rem; }
+  .in-root { padding: 0 2.5rem 5rem; }
 }
 
 .in-root code { font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace; font-size: 0.85em; }
@@ -51,23 +52,20 @@ body:has(.in-root) {
 .in-root h4 { font-size: 1.05rem; font-weight: 600; }
 
 /* ---------- head ---------- */
-.in-head { border-bottom: 1px solid var(--rule); padding-bottom: 1.25rem; }
+.in-head { border-bottom: 1px solid var(--rule); padding: 3rem 0 1.25rem; }
 .in-title { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.5rem 1.5rem; }
-.in-links { display: flex; gap: 1.25rem; font-weight: 500; }
-.in-links a, .in-link { color: var(--moon); text-decoration: underline; text-decoration-color: var(--dust); text-underline-offset: 3px; }
-.in-links a:hover, .in-link:hover { text-decoration-color: var(--moon); }
+.in-link { color: var(--moon); text-decoration: underline; text-decoration-color: var(--dust); text-underline-offset: 3px; }
+.in-link:hover { text-decoration-color: var(--moon); }
 .in-link { background: none; border: 0; padding: 0; font: inherit; cursor: pointer; text-align: left; }
 .in-lede { max-width: 72ch; margin: 0.6rem 0 0; color: var(--moon); }
-.in-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 1.5rem; margin-top: 1rem; }
-.in-conn { color: var(--dust); font-size: 15px; display: inline-flex; align-items: center; gap: 0.5rem; }
-.in-conn::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--dust); }
-.in-conn-connected::before { background: var(--out); }
-.in-conn-disconnected { color: var(--amber); }
-.in-conn-disconnected::before { background: var(--amber); }
+.in-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.75rem 1.5rem; margin-top: 1rem; }
+.in-down { color: var(--amber); }
 .in-switch { display: none; border: 1px solid var(--rule); }
 @media (min-width: 1180px) { .in-switch { display: inline-flex; } }
 .in-switch button { background: none; border: 0; color: var(--dust); font: inherit; font-size: 15px; padding: 0.3rem 0.85rem; cursor: pointer; min-height: 36px; }
 .in-switch button[aria-pressed="true"] { color: var(--night); background: var(--moon); }
+/* After MECHA: buttons invert on hover (moonlight fill, night text) instead of glowing. */
+.in-switch button:hover { color: var(--night); background: var(--moon); }
 
 .in-note { color: var(--dust); font-size: 15px; max-width: 72ch; margin: 0.4rem 0 0; }
 .in-empty { color: var(--dust); margin: 0.75rem 0 0; }
@@ -91,20 +89,20 @@ body:has(.in-root) {
 .in-hero { margin: 0.85rem 0 0; font-size: 1.15rem; color: var(--dust); }
 .in-num {
   display: block;
-  font-family: "Chakra Petch", "Barlow Condensed", system-ui, sans-serif;
+  font-family: "Barlow Condensed", "Bahnschrift", system-ui, sans-serif;
   font-weight: 600;
   font-size: clamp(3rem, 9vw, 5.25rem);
   line-height: 1;
   color: var(--moon);
   letter-spacing: -0.01em;
 }
-.in-num-s { font-family: "Chakra Petch", "Barlow Condensed", system-ui, sans-serif; font-weight: 600; font-size: 1.35rem; color: var(--moon); }
+.in-num-s { font-family: "Barlow Condensed", "Bahnschrift", system-ui, sans-serif; font-weight: 600; font-size: 1.35rem; color: var(--moon); }
 .in-saving { margin: 1.4rem 0 0; max-width: 760px; }
 .in-saving-labels { position: relative; height: 1.6rem; }
 .in-saving-l, .in-saving-r { position: absolute; bottom: 0.15rem; white-space: nowrap; }
 .in-saving-r { right: 0; text-align: right; }
 .in-saving-k { color: var(--dust); font-size: 15px; }
-.in-saving-v { font-family: "Chakra Petch", "Barlow Condensed", system-ui, sans-serif; font-weight: 600; font-size: 1.15rem; color: var(--moon); }
+.in-saving-v { font-family: "Barlow Condensed", "Bahnschrift", system-ui, sans-serif; font-weight: 600; font-size: 1.15rem; color: var(--moon); }
 .in-saving-track { position: relative; height: 20px; }
 .in-saving-plan { position: absolute; inset: 0 auto 0 0; background: var(--moon); min-width: 2px; }
 .in-saving-saved {
@@ -198,7 +196,7 @@ body:has(.in-root) {
 .in-btable td, .in-btable tbody th { vertical-align: middle; padding-top: 0.55rem; padding-bottom: 0.55rem; }
 .in-brow { cursor: pointer; }
 .in-brow:hover { background: rgb(215 222 224 / 0.05); }
-.in-c-rank { width: 1.6rem; font-family: "Chakra Petch", "Barlow Condensed", sans-serif; }
+.in-c-rank { width: 1.6rem; font-family: "Barlow Condensed", "Bahnschrift", sans-serif; }
 .in-rowbtn {
   background: none; border: 0; padding: 0; color: var(--moon); cursor: pointer;
   font-family: "Barlow Condensed", "Barlow", sans-serif; font-weight: 600; font-size: 1.1rem;
@@ -207,7 +205,7 @@ body:has(.in-root) {
 .in-brow:hover .in-rowbtn, .in-rowbtn:focus-visible { text-decoration-color: var(--moon); }
 .in-sub { display: block; font-size: 13px; font-weight: 500; }
 .in-bcost { display: grid; grid-template-columns: 4.6rem minmax(40px, 1fr); align-items: center; gap: 0.6rem; }
-.in-bcost-v { font-family: "Chakra Petch", "Barlow Condensed", sans-serif; font-weight: 600; font-size: 1.1rem; text-align: right; }
+.in-bcost-v { font-family: "Barlow Condensed", "Bahnschrift", sans-serif; font-weight: 600; font-size: 1.1rem; text-align: right; }
 .in-c-cost { min-width: 11rem; }
 .in-c-trip, .in-c-wells, .in-c-caught { white-space: nowrap; }
 .in-track { height: 8px; position: relative; }
@@ -227,10 +225,10 @@ body:has(.in-root) {
   border: 1px solid var(--moon); border-radius: 2px;
   padding: 0.35rem 0.9rem; min-height: 40px; cursor: pointer;
 }
-.in-btn:hover { background: rgb(215 222 224 / 0.08); }
+.in-btn:hover:not(:disabled) { background: var(--moon); color: var(--night); }
 .in-btn:disabled { opacity: 0.55; cursor: progress; }
 .in-btn-go { background: var(--moon); color: var(--night); border-color: var(--moon); }
-.in-btn-go:hover { background: #ffffff; }
+.in-btn-go:hover:not(:disabled) { background: var(--night); color: var(--moon); }
 
 /* ---------- what if ---------- */
 .in-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem 1.5rem; margin-top: 1rem; }
@@ -247,6 +245,11 @@ body:has(.in-root) {
 .in-kind span { display: inline-flex; align-items: center; min-height: 42px; padding: 0 0.85rem; border: 1px solid var(--dust); margin-left: -1px; color: var(--dust); font-size: 15px; }
 .in-kind:first-of-type span { margin-left: 0; }
 .in-kind input:checked + span { background: var(--moon); color: var(--night); border-color: var(--moon); position: relative; }
+.in-kind:hover span { background: var(--moon); color: var(--night); border-color: var(--moon); position: relative; }
+@media (prefers-reduced-motion: no-preference) {
+  .in-switch button, .in-btn, .in-kind span { transition: background-color 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out, transform 120ms ease-out; }
+  .in-switch button:active, .in-btn:active:not(:disabled), .in-kind:active span { transform: scale(0.97); }
+}
 .in-kind input:focus-visible + span { outline: 2px solid var(--moon); outline-offset: 2px; }
 
 .in-stale { margin: 1rem 0 0; color: var(--moon); border-left: 2px solid var(--dust); padding-left: 0.75rem; max-width: 72ch; }
@@ -264,7 +267,7 @@ body:has(.in-root) {
   grid-template-columns: 4.4rem 3rem 9.5rem 18px minmax(0, 1fr);
   grid-template-areas: "t clock tag dot text";
 }
-.in-step-t { grid-area: t; font-family: "Chakra Petch", "Barlow Condensed", sans-serif; font-weight: 600; }
+.in-step-t { grid-area: t; font-family: "Barlow Condensed", "Bahnschrift", sans-serif; font-weight: 600; }
 .in-step-clock { grid-area: clock; color: var(--dust); font-size: 14px; }
 .in-step-tag { grid-area: tag; }
 .in-step-dot { grid-area: dot; }

@@ -5,9 +5,15 @@ import type { DatasetFiles } from "@/lib/eog/load";
 import { validateFiles, type Validation } from "@/lib/eog/validate";
 import { AvonProvider, useAvonConsole, useAvonRtt, type AvonStatus } from "@/lib/live";
 import { Board, ConnBanner } from "./Board";
-import { AppHeader } from "@/app/ui/AppHeader";
 import { ConnBadge, connState } from "@/app/ui/Badge";
+import { Grain } from "@/app/ui/Grain";
+import { LiveClock } from "@/app/ui/LiveClock";
+import { NightGate } from "@/app/ui/NightGate";
+import { ScreenHeader } from "@/app/ui/ScreenHeader";
+import "@/app/ui/motion.css";
+import s from "./console.module.css";
 import { LockdownOverlay } from "./lockdown/LockdownOverlay";
+import { unlockSound } from "./lockdown/sound";
 
 type Status = { kind: "idle" } | { kind: "busy"; what: string } | { kind: "error"; msg: string };
 
@@ -38,11 +44,11 @@ function day(unix: number): string {
 }
 
 function Checked({ v }: { v: Validation }) {
-  const s = v.summary!;
+  const sum = v.summary!;
   return (
     <div className="mt-2 text-sm text-muted tabular-nums">
-      Checked: {s.readings.toLocaleString("en-US")} readings · {s.systems} systems · {s.facilities} facilities ·
-      {" "}{s.wells} wells · every {Math.round(s.step_s / 60)} min · {day(s.start)} to {day(s.end)} UTC
+      Checked {sum.readings.toLocaleString("en-US")} readings from {sum.systems} systems, {sum.facilities} facilities and
+      {" "}{sum.wells} wells, every {Math.round(sum.step_s / 60)} min, {day(sum.start)} to {day(sum.end)} UTC.
       {v.warnings.length > 0 && (
         <details className="mt-1">
           <summary className="cursor-pointer">{v.warnings.length} data warning{v.warnings.length > 1 ? "s" : ""}</summary>
@@ -56,6 +62,9 @@ function Checked({ v }: { v: Validation }) {
 export default function ConsolePage() {
   return (
     <AvonProvider>
+      {/* Once per browser session; With sound also wakes the audio, from the click itself. */}
+      <NightGate onChoose={(c) => { if (c === "on") unlockSound(); }} />
+      <Grain />
       <ConsoleScreen />
     </AvonProvider>
   );
@@ -108,32 +117,55 @@ function ConsoleScreen() {
     });
   }
 
-  return (
-    <main className="mx-auto max-w-4xl p-4 sm:p-8">
-      <AppHeader product="Avon" title="every site, one view" sub="What broke, the cheapest fix, and which sensors to trust.">
-        {view && (
-          <span className="tabular-nums">
-            {source} · now {new Date(view.now * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC
-          </span>
-        )}
-        <LiveBadge conn={conn} />
-      </AppHeader>
+  const dataAt = view ? new Date(view.now * 1000).toISOString().slice(0, 16).replace("T", " ") : "";
+  const folderButtons = folders.map((f) => {
+    const on = !!source && f.endsWith(source);
+    return { f, on, name: f.split("/").pop()! };
+  });
 
-      {/* Before a site is loaded, loading one is the next action, so the buttons are big. After, they step back. */}
-      <section aria-label="Site data" className={`flex flex-wrap items-center gap-2 ${view ? "mt-3 text-sm" : "card mt-6"}`}>
-        <span className={view ? "text-muted" : "w-full text-lg font-semibold"}>{view ? "Site data:" : "Start here: load a site's data"}</span>
-        {folders.map((f) => {
-          const on = !!source && f.endsWith(source);
-          return (
-            <button key={f} onClick={() => loadServerFolder(f)} aria-pressed={on}
-              className={`btn ${view ? `min-h-8 px-2.5 py-1 ${on ? "btn-on" : "font-normal"}` : "btn-primary text-base"}`}>
-              {on && <span aria-hidden="true">✓ </span>}{f.split("/").pop()}
-            </button>
-          );
-        })}
-        <button onClick={() => pickRef.current?.click()} className={`btn ${view ? "min-h-8 px-2.5 py-1 font-normal" : "text-base"}`}>
-          Open a folder…
-        </button>
+  return (
+    <main className={s.main}>
+      <ScreenHeader current="console" title="every site, one view" clock={<LiveClock dataUnix={view?.now ?? null} />}
+        status={<LiveBadge conn={conn} />}>
+        <p className={s.sub}>What broke, the cheapest fix, and which sensors to trust.</p>
+        {/* For scripts/e2e (readConsole takes the dataset from the text before " · now "); the
+            clock and the Site data line show the same to everyone else. */}
+        {view && <span className="sr-only">{source} · now {dataAt} UTC</span>}
+      </ScreenHeader>
+
+      <div className={s.column}>
+      {/* Before a site is loaded, loading one is the next action, so the buttons are big. After,
+          the choice folds into one line: Site data, the loaded folder, and a list to switch. */}
+      <section aria-label="Site data" className={view ? "mt-8" : "card mt-8"}>
+        {view ? (
+          <details className={s.picker}>
+            <summary className={s.pickerSum}>
+              <span>Site data</span>
+              <span className={s.pickerNow}>{source}</span>
+              <span aria-hidden="true" className={s.pickerCaret}>▾</span>
+            </summary>
+            <ul className={s.pickerList}>
+              {folderButtons.map(({ f, on, name }) => (
+                <li key={f}>
+                  <button onClick={() => loadServerFolder(f)} aria-pressed={on} className={s.pickerItem}>
+                    <span>{name}</span>{on && <span className={s.pickerOn}>loaded</span>}
+                  </button>
+                </li>
+              ))}
+              <li>
+                <button onClick={() => pickRef.current?.click()} className={s.pickerItem}>Open a folder…</button>
+              </li>
+            </ul>
+          </details>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="w-full text-lg font-semibold">Start here: load a site&apos;s data</span>
+            {folderButtons.map(({ f, on, name }) => (
+              <button key={f} onClick={() => loadServerFolder(f)} aria-pressed={on} className="btn btn-primary text-base">{name}</button>
+            ))}
+            <button onClick={() => pickRef.current?.click()} className="btn text-base">Open a folder…</button>
+          </div>
+        )}
         <input ref={pickRef} type="file" multiple hidden onChange={(e) => loadPicked(e.target.files)}
           {...{ webkitdirectory: "" }} />
       </section>
@@ -152,6 +184,7 @@ function ConsoleScreen() {
       {!view && status.kind === "idle" && (
         <p className="mt-4 text-muted">Pick a site above, or open any folder that holds network.json, ops.json and telemetry.csv.</p>
       )}
+      </div>
     </main>
   );
 }
