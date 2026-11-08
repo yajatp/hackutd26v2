@@ -67,7 +67,7 @@ export interface AvonLinkOptions {
   onAttack?(targets: AttackTarget[], faults: ActiveFault[]): void;
 }
 
-// "S5_FACILITY_C" -> "S5 · Facility C tank"
+// "<SYS>_FACILITY_C" -> "<SYS> · Facility C tank"
 function tankLabel(f: Facility): string {
   const rest = f.facilityId.startsWith(f.systemId + "_") ? f.facilityId.slice(f.systemId.length + 1) : f.facilityId;
   const nice = rest.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()).replace(/\b(\w)$/, (c) => c.toUpperCase());

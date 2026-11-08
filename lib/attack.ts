@@ -13,7 +13,7 @@ export interface AttackTarget {
   asset_id: string;     // the tank whose level sensor the fault changes
   facility_id: string;
   system_id: string;
-  label: string;        // short name for a button, e.g. "S5 · Facility C tank"
+  label: string;        // short name for a button, e.g. "North · Facility C tank"
 }
 
 export interface ActiveFault {

@@ -5,7 +5,7 @@
 //   pump_failure     pump status 2, or not running with the level above its start setpoint.
 //   pump_degradation while running, flow and discharge pressure both below baseline (ramp onset).
 //   pipeline_leak    while running, pipeline pressure low and receive flow below pump flow (step onset).
-// Thresholds are in noise units measured from the dataset itself; nothing is keyed to S1..S5.
+// Thresholds are in noise units measured from the dataset itself; nothing is keyed to asset or system names.
 import { seriesOf, type Dataset } from "./load.ts";
 import type { DetectedEvent, NetworkJson } from "./types.ts";
 

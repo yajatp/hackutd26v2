@@ -12,7 +12,9 @@
     "st:publish": "spacetime publish -s http://127.0.0.1:3001 --module-path spacetimedb -y avon",
     "st:generate": "spacetime generate --lang typescript --out-dir lib/module_bindings --module-path spacetimedb",
     "st:ingest": "node scripts/ingest.mjs",
-    "test:st": "tsx --test --test-concurrency=1 \"spacetimedb/test/*.test.ts\""
+    "test:st": "tsx --test --test-concurrency=1 \"spacetimedb/test/*.test.ts\"",
+    "check:hardcode": "node scripts/hardcode-check.mjs",
+    "fake:site": "node scripts/make-fake-site.mjs ../eog-data/history/mock_test_2026-10-10T1530 ../eog-data/fake/permian_site --seed 4"
   },
   "dependencies": {
     "@noble/hashes": "^2.4.0",

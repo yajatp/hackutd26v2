@@ -65,7 +65,7 @@ export function hhmm(unix: number): string {
   return new Date(unix * 1000).toISOString().slice(11, 16);
 }
 
-// "S4_FACILITY_C" -> "S4 Facility C", for sentences on the fix card.
+// "<SYS>_FACILITY_C" -> "<SYS> Facility C", for sentences on the fix card.
 export function prettyId(id: string): string {
   return id.replace(/^(S\d+)_/, "$1 ").replace(/_/g, " ").replace(/\b([A-Z])([A-Z]+)\b/g, (_, a: string, b: string) => a + b.toLowerCase());
 }
