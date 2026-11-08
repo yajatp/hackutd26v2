@@ -20,6 +20,7 @@ B. The judge-as-operator flow, three times. The judge plays the night-shift oper
 Also run `npm run smoke` once and paste the last 20 lines.
 
 C. The Quest 3S (the VR view `/twin` and its station page `/vr` are on mohan/live now; pull first). This is the important unknown, so test it even if B has problems.
+Route 0, the hosted copy (try this first; it needs only internet, not the laptop): in the Quest Browser open `https://avon-hackutd26.vercel.app/vr`. It should say Live data and This browser can enter VR. Press Open the model, then Enter VR, and run the in-VR checks below. Phone 1 for it is `https://avon-hackutd26.vercel.app/attack` on any phone with internet. Record whether it worked, then also try A or B so we know the laptop route too.
 Route A, no cable and no developer mode (try first):
 1. Put the Quest on the same hotspot as L1.
 2. In the Quest Browser, open `chrome://flags`, search for "insecure" and set **Insecure origins treated as secure** to Enabled. In its text box enter `http://<LAN IP>:3000`, then relaunch the browser.
