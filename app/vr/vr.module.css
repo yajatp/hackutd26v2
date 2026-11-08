@@ -1,6 +1,6 @@
 /* /vr, the Quest station. Two inks, night and moonlight, like the dithered table; red and amber
-   appear only where the console says a tank has that state. DIN is the face of industrial and
-   road signage: Bahnschrift on Windows, DIN on macOS, Roboto on the Quest. No web fonts. */
+   appear only where the console says a tank has that state. Barlow, a DIN-like face (the type of
+   industrial and road signage), ships with the app (app/fonts.css), so the Quest matches. */
 
 .page {
   --night: #102231;
@@ -24,7 +24,7 @@
   min-height: 100vh;
   background: var(--night);
   color: var(--moon);
-  font-family: "Bahnschrift", "DIN Alternate", "Roboto", system-ui, sans-serif;
+  font-family: "Barlow", "Bahnschrift", "Roboto", system-ui, sans-serif;
   font-size: 1.0625rem;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
@@ -152,6 +152,7 @@
   max-width: 14ch;
   font-size: clamp(2.5rem, 7vw, 5.5rem);
   line-height: 0.95;
+  font-family: "Barlow Condensed", "Bahnschrift", sans-serif;
   font-weight: 700;
   font-stretch: 75%;
   letter-spacing: -0.01em;
@@ -279,6 +280,7 @@
   font-weight: 700;
   font-size: 1.375rem;
   line-height: 1.15;
+  font-family: "Barlow Condensed", "Bahnschrift", sans-serif;
   font-stretch: 75%;
   color: var(--dust);
 }

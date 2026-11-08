@@ -17,10 +17,10 @@ Red and amber mean what they mean on the console, and nothing else. Never use th
 
 ## Type
 
-One family, DIN (the typeface of industrial and road signage), from system fonts only, because the demo runs offline:
-`font-family: "Bahnschrift", "DIN Alternate", "Roboto", system-ui, sans-serif;`
+One family in the DIN tradition (the typeface of industrial and road signage): Barlow and Barlow Condensed, shipped with the app in `public/fonts` (SIL OFL) and declared in `app/fonts.css`, so the laptop, the phones, the Quest Browser and the headset's canvas labels all match with no internet:
+`font-family: "Barlow", "Bahnschrift", "Roboto", system-ui, sans-serif;` and `"Barlow Condensed"` for headlines.
 
-- Headlines: bold, condensed (`font-stretch: 75%`), sentence case, tight line height.
+- Headlines: Barlow Condensed 600 or 700, sentence case, tight line height.
 - Body: 17px, line height 1.5, lines under about 70 characters.
 - Numbers: `font-variant-numeric: tabular-nums`.
 - Monospace only for things a person types or compares by eye: commands, hashes, AV- references.

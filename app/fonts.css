@@ -1,0 +1,9 @@
+/* Barlow and Barlow Condensed (SIL Open Font License, public/fonts/OFL-Barlow.txt), served from
+   this app so every screen, the Quest Browser and the headset's canvas labels use the same DIN-like
+   face with no internet. Bahnschrift exists only on Windows and DIN only on macOS. */
+@font-face { font-family: "Barlow"; font-weight: 400; font-display: swap; src: url("/fonts/Barlow-400.woff2") format("woff2"); }
+@font-face { font-family: "Barlow"; font-weight: 500; font-display: swap; src: url("/fonts/Barlow-500.woff2") format("woff2"); }
+@font-face { font-family: "Barlow"; font-weight: 600; font-display: swap; src: url("/fonts/Barlow-600.woff2") format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 500; font-display: swap; src: url("/fonts/BarlowCondensed-500.woff2") format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 600; font-display: swap; src: url("/fonts/BarlowCondensed-600.woff2") format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 700; font-display: swap; src: url("/fonts/BarlowCondensed-700.woff2") format("woff2"); }
