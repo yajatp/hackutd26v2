@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildConsole } from "./alerts.ts";
 import { answerKey, hasData, loadFolder } from "./testdata.ts";
+import { injectFault } from "../rules/faults.ts";
 
 const SNAPS = ["snapshot_2026-10-08T1200", "snapshot_2026-10-09T0330", "snapshot_2026-10-10T0900"];
 
@@ -62,4 +63,18 @@ test("full_week: nothing is ongoing at the end of the week", { skip: !hasData("f
   const view = buildConsole(loadFolder("full_week"));
   assert.equal(view.events.length, 23);
   assert.equal(view.alerts.length, 0);
+});
+
+test("mock_test: every fix card's tank sensor is trusted on clean data; a flat fake makes it LYING and SIMULATED", { skip: !hasData("mock_test_2026-10-10T1530") }, () => {
+  const ds = loadFolder("mock_test_2026-10-10T1530");
+  const clean = buildConsole(ds).alerts.filter((a) => a.fix);
+  for (const a of clean) {
+    assert.ok(a.tank_sensor && ["ok", "shut_in"].includes(a.tank_sensor.state), `${a.facility.id}: ${a.tank_sensor?.state}`);
+    assert.equal(a.tank_sensor!.simulated, false);
+  }
+  const top = clean[0].facility;
+  const { ds: faked } = injectFault(ds, { kind: "fake_flat", asset_id: top.tank.id, from_ts: ds.now - 3600 });
+  const hit = buildConsole(faked).alerts.find((a) => a.facility.id === top.id && a.fix)!;
+  assert.equal(hit.tank_sensor!.state, "lying", hit.tank_sensor!.evidence);
+  assert.equal(hit.tank_sensor!.simulated, true);
 });

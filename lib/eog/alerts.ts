@@ -8,6 +8,7 @@ import {
   type Failure, type Plan, type PlanNetwork, type PlanWell,
 } from "./planner.ts";
 import type { DetectedEvent, FacilityJson } from "./types.ts";
+import { healthOf, type SensorState } from "../rules/health.ts";
 
 export interface Alternative { label: string; cost: number; why: string }
 
@@ -31,6 +32,8 @@ export interface Alert {
   lost_revenue_per_hour: number;
   action: string;                        // one line: the next thing to do
   fix?: FixCard;                         // pump failures only
+  // Health of the tank level sensor the countdown and plan are built on (pump failures only).
+  tank_sensor?: { state: SensorState; evidence: string; simulated: boolean };
   // Leaks and worn pumps show only while the pump runs. If it has not run for an hour, the data
   // cannot confirm the problem ended: this is the last running sample's time.
   pump_off_since?: number;
@@ -167,6 +170,7 @@ export function buildConsole(ds: Dataset): ConsoleView {
         shares_fleet_with: others,
         fleet,
       };
+      const sensor = healthOf(ds, fac.tank.id, "level_pct");
       alerts.push({
         id: ev.asset_id + "@" + ev.onset_unix,
         event: ev,
@@ -175,6 +179,7 @@ export function buildConsole(ds: Dataset): ConsoleView {
         lost_revenue_per_hour: revPerHour(fac.id),
         action: fix.headline,
         fix,
+        tank_sensor: { state: sensor.state, evidence: sensor.evidence, simulated: sensor.simulated === true },
       });
     });
   }

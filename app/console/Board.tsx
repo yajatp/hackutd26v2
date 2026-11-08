@@ -28,6 +28,17 @@ function FixCardView({ a, top }: { a: Alert; top: boolean }) {
         <span>{pretty(a.facility.id)} · pump failed</span>
         <span className="tabular-nums text-red-600 dark:text-red-400">{countdown(a.hours_to_limit)}</span>
       </header>
+      {a.tank_sensor && ["dead", "drifting", "lying"].includes(a.tank_sensor.state) && (
+        <div className="mt-3 rounded border-2 border-amber-500 bg-amber-500/10 p-2 text-sm">
+          <p className="font-bold">
+            CHECK THE TANK SENSOR FIRST: {a.tank_sensor.state.toUpperCase()}
+            {a.tank_sensor.simulated && (
+              <span className="ml-2 rounded bg-current/10 px-1.5 py-0.5 text-xs font-semibold tracking-wide">SIMULATED</span>
+            )}
+          </p>
+          <p>{a.tank_sensor.evidence} This plan uses its reading.</p>
+        </div>
+      )}
       <div className="mt-3 flex items-baseline justify-between gap-4">
         <p className={`${big} font-bold`}><span className="opacity-60">Do this:</span> {fix.headline}</p>
         <p className={`${big} font-bold tabular-nums`}>{money(fix.plan.cost)}</p>
