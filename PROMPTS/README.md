@@ -18,6 +18,7 @@ Paste one file into one agent. Each job owns its own files and branch, so the ag
 | yajat-claude-spacetime-live.md | Yajat (Claude Code), in `avon/` | `/spacetime`: live feed of avon row changes and a reducer-by-table matrix, for the SpacetimeDB judges | yajat/spacetime-live |
 | yajat-codex-quest.md | Yajat (Codex), in `avon-codex/` | `scripts/quest.mjs`: adb checks, reverse both ports, open /vr on the Quest 3S, `--watch` | yajat/quest |
 | sreesh-claude-report-print.md | Sreesh (Claude Code), own clone | Print design for the Darkroom record at `/report`; then a design review of /vr and /spacetime | sreesh/report-print |
+| yajat-claude-l1-test.md | Yajat (Claude Code), worktree `../avon-test` if `avon/` is busy | Test the merged demo on L1 now: judge flow x3 with a real phone, smoke, Quest 3S browser-flag route | yajat/l1-test-2 |
 
 Setup on Yajat's laptop, once:
 
