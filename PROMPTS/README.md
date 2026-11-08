@@ -21,6 +21,9 @@ Paste one file into one agent. Each job owns its own files and branch, so the ag
 | yajat-claude-l1-test.md | Yajat (Claude Code), worktree `../avon-test` if `avon/` is busy | Test the merged demo on L1 now: judge flow x3 with a real phone, smoke, Quest 3S browser-flag route | yajat/l1-test-2 |
 | yajat-codex-quest-perf.md | Yajat (Codex), in `avon-codex/`, after quest.mjs | `scripts/quest-perf.mjs`: frame time, draw calls and offline check for /twin and /vr; baseline in docs/QUEST-PERF.md | yajat/quest-perf |
 | yajat-codex-cloud.md | Yajat (Codex), in `avon-codex/` | Between-judges reset and a smoke check for the hosted copy (Vercel + SpacetimeDB maincloud `avon-hackutd26`) | yajat/cloud |
+| yajat-claude-lockdown-avon.md | Yajat (Claude Code) | LOCKDOWN on the Avon side (docs/LOCKDOWN.md): lockdown table and reducers, the console's shutter-and-evidence sequence, Phone 1 and banners | yajat/lockdown |
+| sreesh-claude-lockdown-darkroom.md | Sreesh (Claude Code) | LOCKDOWN on the Darkroom side: /box seals, the hash chain drawn live, witness ticks, the crack on rollback | sreesh/lockdown-darkroom |
+| yajat-codex-sites.md | Yajat (Codex), after the cloud prompt | Oil sites across America: a site registry, `--center` for fake sites, one SpacetimeDB database per site, local and hosted | yajat/sites |
 
 Setup on Yajat's laptop, once:
 
