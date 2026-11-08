@@ -5,7 +5,7 @@ Mohan is moving to a new session (bypass permissions, fresh context). This file 
 ## Where things stand (all committed and pushed)
 
 - **Repo:** yajatp/hackutd26v2, branches `main` and `mohan/live` at the same commit (`git log -1`). The last known-good tag is `good-0551`. Nothing is uncommitted except `app/vr/lab/` (old design experiments, never committed; ignore them).
-- **Live:** https://avon-hackutd26.vercel.app (production; deployed at 05:30 from `8fa393e`, before the realism pass). Redeploy from a clean worktree:
+- **Live:** https://avon-hackutd26.vercel.app (production; deployed at 05:55 from `78fb360`, which includes the realism pass). Redeploy from a clean worktree:
   ```
   git worktree add --detach <scratch>/deploy-X HEAD
   cp -r <scratch>/deploy-dc312ab/.vercel <scratch>/deploy-X/
