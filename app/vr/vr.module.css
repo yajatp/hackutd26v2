@@ -53,6 +53,8 @@
 /* The field: the bold moment. Everything after it stays quiet. */
 .hero {
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .field {
@@ -126,11 +128,11 @@
   color: var(--amber);
 }
 
-/* The one Avon header (app/ui/ScreenHeader.tsx) over the table. Only its links and badge take
-   the pointer, so the rest of the strip still lights the table. */
+/* The one Brine header (app/ui/ScreenHeader.tsx), above the table rather than over it, so a
+   tank's label can never print across the wordmark, the tabs or the clock at any width. */
 .bar {
-  position: absolute;
-  inset: 0 0 auto 0;
+  position: relative;
+  order: -1;
   padding-inline: var(--gutter);
   pointer-events: none;
 }
