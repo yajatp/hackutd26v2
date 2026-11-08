@@ -54,29 +54,14 @@ const view = (alerts: Alert[], sensors: SensorIssue[] = []): ConsoleView => ({ n
 // The seeded demo: two red pumps in S5, the console's top fix card on S5 Facility C.
 const DEMO = view([pumpFailure("S5_FACILITY_C", 2.05), pumpFailure("S5_FACILITY_B", 3.43)]);
 
-test("labels: with nothing hovered or selected, only tanks with a state and the top problem carry one", () => {
+test("labels: every tank carries its name, the same words as Phone 1, whatever its state", () => {
   const states = tankStates(SITE, DEMO);
-  const top = topFacility(DEMO);
-  assert.equal(top, "S5_FACILITY_C");
-  const shown = visibleLabels(states, { top, hovered: null, selected: null });
-  assert.deepEqual([...shown].sort(), ["S5_FACILITY_B", "S5_FACILITY_C"]);
-  // No "OK" label anywhere by default.
-  for (const s of states) if (shown.has(s.facility_id)) assert.ok(s.lines.every((l) => l.text !== "OK"), s.facility_id);
-});
-
-test("labels: an OK tank carries one only while hovered, selected or the top problem", () => {
-  const ok = tankStates(SITE, DEMO).find((s) => s.facility_id === "S1_FACILITY_A")!;
+  const shown = visibleLabels(states, { top: topFacility(DEMO), hovered: null, selected: null });
+  assert.equal(shown.size, states.length);
+  const ok = states.find((s) => s.facility_id === "S1_FACILITY_A")!;
   assert.equal(ok.tone, "ok");
-  assert.equal(labelVisible(ok, { top: null, hovered: null, selected: null }), false);
-  assert.equal(labelVisible(ok, { top: null, hovered: "S1_FACILITY_A", selected: null }), true);
-  assert.equal(labelVisible(ok, { top: null, hovered: null, selected: "S1_FACILITY_A" }), true);
-  assert.equal(labelVisible(ok, { top: "S1_FACILITY_A", hovered: null, selected: null }), true);
-  assert.equal(labelVisible(ok, { top: "S5_FACILITY_C", hovered: "S1_FACILITY_B", selected: "S2_FACILITY_A" }), false);
-  // A sensor issue on an otherwise fine tank is a state: amber, labelled.
-  const dead = tankStates(SITE, view([], [{ ...lying("S2_FACILITY_A"), state: "dead", simulated: false }])).find((s) => s.facility_id === "S2_FACILITY_A")!;
-  assert.equal(labelVisible(dead, { top: null, hovered: null, selected: null }), true);
-  // Before any data arrives nothing claims a state, so nothing is labelled.
-  assert.equal(visibleLabels(tankStates(SITE, null), { top: null, hovered: null, selected: null }).size, 0);
+  assert.equal(ok.short, "S1 · Facility A tank");
+  assert.equal(labelVisible(ok, { top: null, hovered: null, selected: null }), true);
 });
 
 test("light: with no pointer it rests on the top problem's place on the table", () => {

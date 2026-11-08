@@ -38,11 +38,10 @@ export const TOP_RING_PERIOD_S = 2.4;  // the top problem's ring breathes this s
 export interface Pt { x: number; z: number }
 export interface Focus { top: string | null; hovered: string | null; selected: string | null }
 
-// A label only where there is something to say: a tank with a state (red or amber), the console's
-// top problem, and the tank the judge points at or opened. No "OK" labels on a quiet site.
-export function labelVisible(s: Pick<TankState, "facility_id" | "tone" | "sensor">, f: Focus): boolean {
-  return s.tone !== "ok" || s.sensor !== null
-    || s.facility_id === f.top || s.facility_id === f.hovered || s.facility_id === f.selected;
+// Every tank carries its name, the same words as Phone 1's buttons ("S1 · Facility A tank"), so a
+// tank called out from the attack phone is found at once in the headset (Mohan, Sun 09:40).
+export function labelVisible(_s: Pick<TankState, "facility_id" | "tone" | "sensor">, _f: Focus): boolean {
+  return true;
 }
 
 export function visibleLabels(states: Iterable<TankState>, f: Focus): Set<string> {
