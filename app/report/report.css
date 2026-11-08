@@ -1,9 +1,604 @@
-/* Print rules for /report only (body:has(.report-root)). On paper: black on white even when the
-   screen is dark, no buttons, and no table row or short section split across two pages. */
+/* /report, the Darkroom incident record. docs/DESIGN.md: night and moonlight on screen, ink on
+   white on paper, Barlow (served by the app, app/fonts.css) so the offline box needs no internet.
+   Red means a broken chain and nothing else. Every state is also in words, so grayscale works.
+
+   Paper (US Letter): page 1 is the cover (title, chain status, head fingerprint, who was in the
+   room, opened and closed). The log follows as a chain, one entry never split across pages. */
+
+body:has(.report-root) {
+  --night: #102231;
+  --moon: #d7dee0;
+  --dust: #8fa1aa;
+  --rule: rgb(215 222 224 / 0.16);
+  --red: #ef4444;
+  --amber: #f59e0b;
+  /* The shared connection badge above the report reads these product tokens. */
+  --background: var(--night);
+  --foreground: var(--moon);
+  --surface: #17304a;
+  --line: rgb(215 222 224 / 0.3);
+  --muted: var(--dust);
+  --alert: #fca5a5;
+  --alert-bg: #3b0d0d;
+  --alert-line: var(--red);
+  --warn: #fde68a;
+  --warn-bg: #2e2208;
+  --warn-line: var(--amber);
+
+  --ink: var(--moon);
+  --ink-2: var(--dust);
+  --hair: var(--rule);
+  --link-line: rgb(215 222 224 / 0.45);
+
+  background: var(--night);
+  color: var(--moon);
+}
+
+.report-root {
+  --sans: "Barlow", "Bahnschrift", "Roboto", system-ui, sans-serif;
+  --cond: "Barlow Condensed", "Barlow", "Bahnschrift", "Roboto Condensed", system-ui, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+
+  max-width: 54rem;
+  margin: 0 auto;
+  padding: 1rem 1rem 3rem;
+  font-family: var(--sans);
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+@media (min-width: 640px) {
+  .report-root {
+    padding: 1.5rem 2rem 4rem;
+  }
+}
+
+.report-root :focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.report-root p,
+.report-root ul,
+.report-root ol,
+.report-root dl,
+.report-root dd,
+.report-root pre,
+.report-root h1,
+.report-root h2 {
+  margin: 0;
+}
+
+.report-root .r-mono {
+  font-family: var(--mono);
+  font-variant-numeric: normal;
+}
+
+.report-root .r-muted {
+  color: var(--ink-2);
+}
+
+.report-root .r-fine {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+.report-root .r-strong {
+  font-weight: 600;
+}
+
+.report-root .r-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.report-root .r-label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.report-root .r-word {
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+
+/* ---- Cover ------------------------------------------------------------------ */
+
+/* The markup puts the status first (a broken chain is the first thing a screen reader hears);
+   the grid shows the title above it. */
+.report-root .r-cover {
+  display: grid;
+  grid-template-areas:
+    "tools"
+    "notice"
+    "title"
+    "status"
+    "head"
+    "room"
+    "times";
+  row-gap: 1.75rem;
+  padding-bottom: 2.5rem;
+  border-bottom: 1px solid var(--hair);
+}
+
+.report-root .r-tools { grid-area: tools; }
+.report-root .r-notice { grid-area: notice; }
+.report-root .r-cover-title { grid-area: title; }
+.report-root .r-status { grid-area: status; }
+.report-root .r-cover-head { grid-area: head; }
+.report-root .r-cover-room { grid-area: room; }
+.report-root .r-cover-times { grid-area: times; }
+
+.report-root .r-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  font-size: 0.9375rem;
+}
+
+.report-root .r-btn {
+  display: inline-block;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--link-line);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.report-root .r-btn-primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--night);
+}
+
+.report-root .r-notice {
+  padding: 0.6rem 0.8rem;
+  border-left: 4px solid var(--amber);
+  font-size: 0.9375rem;
+}
+
+.report-root .r-kicker {
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.report-root .r-kicker .r-mono {
+  margin-left: 0.35rem;
+  color: var(--ink);
+}
+
+.report-root .r-h1 {
+  margin-top: 0.25rem;
+  font-family: var(--cond);
+  font-weight: 700;
+  font-size: clamp(2rem, 6vw, 3rem);
+  line-height: 1.05;
+  letter-spacing: -0.005em;
+  max-width: 22ch;
+  text-wrap: balance;
+}
+
+.report-root .r-list {
+  margin-top: 0.5rem;
+  padding-left: 1.25rem;
+}
+
+.report-root .r-list > li + li {
+  margin-top: 0.35rem;
+}
+
+/* The one bold moment: the status line, as the box says it. */
+.report-root .r-status {
+  padding-left: 1rem;
+  border-left: 6px solid var(--ink);
+}
+
+.report-root .r-status-word {
+  font-family: var(--cond);
+  font-weight: 700;
+  font-size: clamp(2.5rem, 9vw, 4.25rem);
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+.report-root .r-status-why {
+  margin-top: 0.5rem;
+  max-width: 62ch;
+}
+
+.report-root .r-status-broken {
+  border-left-color: var(--red);
+}
+
+.report-root .r-status-broken .r-status-word {
+  color: var(--red);
+}
+
+.report-root .r-head8 {
+  margin-top: 0.25rem;
+  font-size: clamp(2.25rem, 8vw, 3.5rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0.12em;
+}
+
+.report-root .r-cover-head .r-muted {
+  margin-top: 0.4rem;
+  max-width: 62ch;
+}
+
+.report-root .r-head64 {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  word-break: break-all;
+  color: var(--ink-2);
+}
+
+.report-root .r-room {
+  margin-top: 0.35rem;
+  padding: 0;
+  list-style: none;
+}
+
+.report-root .r-room > li {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--hair);
+}
+
+.report-root .r-room > li:last-child {
+  border-bottom: 0;
+}
+
+.report-root .r-cover-times {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .report-root .r-cover-times {
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+}
+
+.report-root .r-cover-times dd {
+  margin-top: 0.15rem;
+}
+
+.report-root .r-time {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.report-root .r-resolution {
+  display: block;
+  margin-top: 0.35rem;
+}
+
+/* ---- Sections ---------------------------------------------------------------- */
+
+.report-root .r-section {
+  padding-top: 2.25rem;
+}
+
+.report-root .r-h2 {
+  font-family: var(--cond);
+  font-weight: 600;
+  font-size: 1.75rem;
+  line-height: 1.15;
+}
+
+.report-root .r-lead {
+  margin-top: 0.35rem;
+  max-width: 68ch;
+  color: var(--ink-2);
+}
+
+.report-root .r-rows {
+  margin-top: 0.75rem;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--hair);
+}
+
+.report-root .r-row {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--hair);
+}
+
+.report-root .r-ref {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.report-root .r-fp {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  word-break: break-all;
+}
+
+.report-root .r-table {
+  width: 100%;
+  margin-top: 0.75rem;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  text-align: left;
+}
+
+.report-root .r-table th {
+  padding: 0.4rem 0.75rem 0.4rem 0;
+  font-weight: 600;
+  color: var(--ink-2);
+  border-bottom: 1px solid var(--link-line);
+  vertical-align: bottom;
+}
+
+.report-root .r-table td {
+  padding: 0.5rem 0.75rem 0.5rem 0;
+  border-bottom: 1px solid var(--hair);
+  vertical-align: top;
+}
+
+@media (max-width: 639px) {
+  .report-root .r-table,
+  .report-root .r-table tbody,
+  .report-root .r-table tr,
+  .report-root .r-table td {
+    display: block;
+  }
+
+  .report-root .r-table thead {
+    display: none;
+  }
+
+  .report-root .r-table tr {
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--hair);
+  }
+
+  .report-root .r-table td {
+    padding: 0;
+    border: 0;
+  }
+}
+
+.report-root .r-steps {
+  margin-top: 0.75rem;
+  padding-left: 1.25rem;
+}
+
+.report-root .r-steps > li + li {
+  margin-top: 1rem;
+}
+
+.report-root .r-cmd {
+  margin-top: 0.4rem;
+  padding: 0.6rem 0.75rem;
+  border-left: 3px solid var(--link-line);
+  font-size: 0.9375rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.report-root .r-steps + .r-muted {
+  margin-top: 1rem;
+}
+
+.report-root .r-limits {
+  margin-top: 2.25rem;
+  padding: 1.25rem 0 0;
+  border-top: 1px solid var(--hair);
+}
+
+.report-root .r-limits .r-list {
+  max-width: 70ch;
+}
+
+.report-root .r-footer {
+  margin-top: 2.5rem;
+}
+
+/* ---- The chain ---------------------------------------------------------------- */
+
+/* Each entry: a rail with a node, the entry's words, and its two fingerprints. The link line runs
+   from an entry's own hash down to the prev of the entry below it: the same 8 characters. */
+.report-root .r-chain {
+  margin-top: 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.report-root .r-entry {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) 8.25rem;
+  column-gap: 0.75rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--hair);
+}
+
+.report-root .r-rail {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding-top: 0.35rem;
+}
+
+.report-root .r-node {
+  display: block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  font-size: 0;
+}
+
+.report-root .r-entry-head {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 1rem;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+
+.report-root .r-seq {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.report-root .r-type {
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.report-root .r-payload {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.report-root .r-entry-other .r-payload {
+  color: var(--ink-2);
+  font-style: italic;
+}
+
+.report-root .r-hashes {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.report-root .r-hashes code {
+  font-size: 0.875rem;
+}
+
+.report-root .r-hash-label {
+  display: inline-block;
+  width: 2.4rem;
+  color: var(--ink-2);
+}
+
+.report-root .r-hash-prev {
+  color: var(--ink-2);
+}
+
+.report-root .r-hash-this code {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.report-root .r-hash-note {
+  display: block;
+  font-size: 0.75rem;
+}
+
+/* hash of this entry (bottom of its column) to prev of the next (top of the next column). */
+.report-root .r-chainlink {
+  position: absolute;
+  left: 3.6rem;
+  /* Exactly the gap between this row and the next: from below this hash to above the next prev. */
+  bottom: -1.1rem;
+  height: 1.1rem;
+  border-left: 2px solid var(--link-line);
+}
+
+/* The rail itself, joining the nodes. */
+.report-root .r-entry:not(:last-child) .r-rail::after {
+  content: "";
+  position: absolute;
+  top: 1.35rem;
+  bottom: -0.95rem;
+  left: 50%;
+  border-left: 2px solid var(--link-line);
+  transform: translateX(-50%);
+}
+
+.report-root .r-entry-broken {
+  border-left: 4px solid var(--red);
+  margin-left: -0.5rem;
+  padding-left: calc(0.5rem - 4px);
+}
+
+.report-root .r-entry-broken .r-node {
+  width: auto;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  font-size: 0.875rem;
+  line-height: 1;
+  color: var(--red);
+}
+
+.report-root .r-break-word {
+  font-weight: 700;
+  color: var(--red);
+}
+
+.report-root .r-marker {
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+}
+
+.report-root .r-marker .r-payload {
+  white-space: normal;
+}
+
+/* Phones: the fingerprints move under the words, and the words wrap. */
+@media screen and (max-width: 639px) {
+  .report-root .r-entry {
+    grid-template-columns: 1.25rem minmax(0, 1fr);
+  }
+
+  .report-root .r-hashes {
+    grid-column: 2;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0 1.25rem;
+    margin-top: 0.25rem;
+  }
+
+  .report-root .r-hash-note {
+    display: inline;
+  }
+
+  .report-root .r-chainlink {
+    display: none;
+  }
+
+  .report-root .r-payload {
+    white-space: normal;
+  }
+}
+
+/* ---- Paper -------------------------------------------------------------------- */
 
 @media print {
   @page {
-    margin: 14mm;
+    size: letter;
+    margin: 0.6in 0.6in 0.7in;
+
+    @bottom-right {
+      content: "Page " counter(page) " of " counter(pages);
+      font-family: "Barlow", "Bahnschrift", "Roboto", system-ui, sans-serif;
+      font-size: 8pt;
+      color: #4a5a63;
+    }
   }
 
   :root:has(.report-root) {
@@ -11,68 +606,211 @@
   }
 
   body:has(.report-root) {
+    --ink: #102231;
+    --ink-2: #4a5a63;
+    --hair: #c9d1d4;
+    --link-line: #4a5a63;
+    --red: #ef4444;
     background: #ffffff !important;
-    color: #000000 !important;
+    color: #102231 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 
-  .report-root {
-    --background: #ffffff;
-    --foreground: #000000;
-    --surface: #ffffff;
-    --surface-2: #ffffff;
-    --muted: #333333;
-    --line: #888888;
-    --line-soft: #bbbbbb;
-    --alert: #000000;
-    --alert-bg: #ffffff;
-    --alert-line: #000000;
-    --warn: #000000;
-    --warn-bg: #ffffff;
-    --warn-line: #000000;
-    background: #ffffff !important;
-    color: #000000 !important;
-    max-width: none;
-    padding: 0;
-  }
-
-  .report-no-print {
+  .report-no-print,
+  .report-root .r-tools,
+  .report-root .r-notice {
     display: none !important;
   }
 
-  /* The broken-chain banner prints as black words in a thick red frame: browsers drop
-     background colors on paper, and white text would vanish. */
-  .report-root .report-alert {
-    background: #ffffff !important;
-    color: #000000 !important;
-    border: 4px solid #b91c1c !important;
+  .report-root {
+    max-width: none;
+    padding: 0;
+    font-size: 10.5pt;
+    line-height: 1.4;
+    color: #102231;
   }
 
-  .report-root .card,
-  .report-root .badge {
-    background: #ffffff !important;
-    color: #000000 !important;
+  .report-root :focus-visible {
+    outline: 0;
   }
 
-  .report-root tr,
-  .report-root li,
-  .report-root dl,
-  .report-root pre,
-  .report-root .report-alert {
+  /* Page 1 is the cover, and only the cover. */
+  .report-root .r-cover {
+    grid-template-areas:
+      "title"
+      "status"
+      "head"
+      "room"
+      "times";
+    row-gap: 0.24in;
+    align-content: start;
+    padding-bottom: 0;
+    border-bottom: 0;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .report-root .r-kicker {
+    font-size: 11pt;
+  }
+
+  .report-root .r-h1 {
+    font-size: 30pt;
+    max-width: none;
+  }
+
+  .report-root .r-status {
+    padding: 0.12in 0 0.12in 0.2in;
+    border-left-width: 8px;
+  }
+
+  .report-root .r-status-word {
+    font-size: 38pt;
+  }
+
+  .report-root .r-status-why {
+    font-size: 11pt;
+  }
+
+  /* Black words in a thick red frame: some printers drop color, and the words still say it. */
+  .report-root .r-status-broken {
+    border: 4px solid var(--red);
+    border-left-width: 12px;
+    padding: 0.14in 0.18in;
+  }
+
+  .report-root .r-status-broken .r-status-word {
+    color: #102231;
+  }
+
+  .report-root .r-head8 {
+    font-size: 34pt;
+  }
+
+  .report-root .r-room > li {
+    padding: 0.03in 0;
+  }
+
+  .report-root .r-head64 {
+    font-size: 9pt;
+  }
+
+  .report-root .r-time {
+    font-size: 14pt;
+  }
+
+  .report-root .r-cover-times {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4in;
+    padding-top: 0.15in;
+    border-top: 1px solid var(--hair);
+  }
+
+  .report-root .r-section {
+    padding-top: 0.3in;
+  }
+
+  .report-root .r-section:nth-of-type(2) {
+    padding-top: 0;
+  }
+
+  .report-root .r-h2 {
+    font-size: 18pt;
+  }
+
+  .report-root .r-lead {
+    font-size: 10pt;
+  }
+
+  .report-root .r-entry {
+    grid-template-columns: 0.3in minmax(0, 1fr) 1.25in;
+    padding: 0.06in 0;
+  }
+
+  .report-root .r-entry-head {
+    font-size: 9.5pt;
+  }
+
+  .report-root .r-chainlink {
+    bottom: -0.12in;
+    height: 0.12in;
+  }
+
+  .report-root .r-hashes,
+  .report-root .r-hashes code {
+    font-size: 9pt;
+  }
+
+  .report-root .r-ref {
+    font-size: 15pt;
+  }
+
+  .report-root .r-table {
+    font-size: 9.5pt;
+  }
+
+  .report-root .r-table thead {
+    display: table-header-group;
+  }
+
+  .report-root .r-cmd {
+    font-size: 9.5pt;
+  }
+
+  .report-root .r-entry,
+  .report-root .r-row,
+  .report-root .r-table tr,
+  .report-root .r-steps > li,
+  .report-root .r-room > li,
+  .report-root .r-status,
+  .report-root .r-cover-head,
+  .report-root .r-cover-times,
+  .report-root .r-limits {
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
-  .report-root h1,
-  .report-root h2 {
+  .report-root .r-section-head {
+    break-inside: avoid;
+    page-break-inside: avoid;
     break-after: avoid;
     page-break-after: avoid;
   }
+}
 
-  .report-root thead {
-    display: table-header-group;
+@media (prefers-reduced-motion: reduce) {
+  .report-root * {
+    transition: none !important;
+  }
+}
+
+/* /report/preview only: the SAMPLE strip, on screen and on paper, so a sample print is never
+   mistaken for a record. */
+.report-sample {
+  max-width: 54rem;
+  margin: 0 auto;
+  padding: 0.6rem 1rem;
+  border-bottom: 2px dashed currentColor;
+  font-family: "Barlow", "Bahnschrift", "Roboto", system-ui, sans-serif;
+  font-weight: 600;
+}
+
+.report-sample a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+@media print {
+  .report-sample {
+    max-width: none;
+    margin: 0 0 0.15in;
+    padding: 0.05in 0;
+    font-size: 9pt;
+    color: #102231;
   }
 
-  .report-root .overflow-x-auto {
-    overflow: visible !important;
+  .report-sample .report-no-print {
+    display: none;
   }
 }
