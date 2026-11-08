@@ -4,7 +4,8 @@
 //   1. checks SpacetimeDB answers on 127.0.0.1:3001 and the avon database exists
 //   2. clears every simulated fault (clear_fault "")
 //   3. reloads the demo folder through scripts/ingest.mjs, exactly like boot step 3
-//   4. checks the result over HTTP SQL: dataset, no faults, no sensor issues, the expected top card
+//   4. checks the result over HTTP SQL: dataset, no faults, no sensor issues, no confirmed plans,
+//      the expected top card
 //   5. prints READY with the time taken and the two phone URLs
 //
 //   npm run demo:reset                      (mock_test folder)
@@ -140,6 +141,8 @@ async function main() {
   if (faults.length) problems.push(`${faults.length} simulated fault(s) still active: ${faults.map((f) => f.asset_id).join(", ")}`);
   const issues = await sql("SELECT * FROM sensor_issue");
   if (issues.length) problems.push(`${issues.length} sensor issue(s) still listed`);
+  const confirmed = await sql("SELECT * FROM confirmation");
+  if (confirmed.length) problems.push(`${confirmed.length} plan(s) still marked confirmed by the last judge`);
   const top = await sql("SELECT * FROM alert WHERE rank = 1");
   const want = EXPECTED_TOP[datasetId];
   if (!top.length) problems.push("no alerts: the console has no top card");
@@ -159,7 +162,7 @@ async function main() {
   for (const [k, v] of steps) console.log(`  ${k.padEnd(14)} ${v}`);
   console.log(`  site           ${datasetId}`);
   console.log(`  top card       ${top[0].facility_id}${want ? "" : " (no expected card on file for this folder)"}`);
-  console.log(`  faults         0 active, 0 sensor issues`);
+  console.log(`  faults         0 active, 0 sensor issues, 0 confirmed plans`);
   console.log("\n  This laptop:   http://localhost:3000/console");
   if (best) {
     console.log(`  Phone 1:       http://${best.address}:3000/attack`);

@@ -72,9 +72,9 @@ npm run demo:reset                    # mock_test folder
 npm run demo:reset -- <folder>        # if you booted with another folder
 ```
 
-It clears every simulated fault, reloads the demo folder (same as boot step 3) and checks the result: the console shows the folder, no faults, no sensor issues, and S5 · FACILITY C on top. Then it prints **READY** with the time and the phone URLs. It never restarts SpacetimeDB or the dev server, never publishes, and leaves the open pages alone: the laptop console and Phone 1 both go back to the clean start by themselves, with no reload. If it prints **NOT READY**, the reason is on the same line. "run npm run demo first" means Avon isn't up.
+It clears every simulated fault, reloads the demo folder (same as boot step 3; this also clears the last judge's Confirm) and checks the result: the console shows the folder, no faults, no sensor issues, no confirmed plans, and S5 · FACILITY C on top. Then it prints **READY** with the time and the phone URLs. It never restarts SpacetimeDB or the dev server, never publishes, and leaves the open pages alone: the laptop console and Phone 1 both go back to the clean start by themselves, with no reload. If it prints **NOT READY**, the reason is on the same line. "run npm run demo first" means Avon isn't up.
 
-Tested 2026-11-08 on L1: Fake on S5 · Facility C and Kill on S1 · Facility A from `/attack`, then reset, 3 times in a row: **0.9 s, 0.9 s, 0.8 s**. Each time the console went back to "2 pump failures · doing nothing costs $9,957", S5 · FACILITY C, TRIPS IN 2H 03M, $905, with no Sensors to check, and `/attack` showed Active faults (0).
+Tested 2026-11-08 on L1: Fake on S5 · Facility C and Kill on S1 · Facility A from `/attack`, then reset, 3 times in a row: **0.9 s, 0.9 s, 0.8 s**. Again 3 times on the module with `confirm_plan`, with the top card confirmed before each reset: **1.0 s, 1.0 s, 1.0 s**. Each time the console went back to "2 pump failures · doing nothing costs $9,957", S5 · FACILITY C, TRIPS IN 2H 03M, $905, with no Sensors to check, and `/attack` showed Active faults (0).
 
 ## 4. Firewall
 
