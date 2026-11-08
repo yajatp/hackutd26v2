@@ -270,7 +270,7 @@ function TwinPage({ given, entry, deepLinked, onPick, onBack }: {
         <h1 className={css.title}>{atMap ? "Choose a site" : siteName ?? "Night shift"}</h1>
         {!atMap && <BackToMap onBack={onBack} />}
         {!atMap && <ViewButtons className={css.views} />}
-        <Link href="/vr" className={css.quiet}>VR station</Link>
+        <Link href="/" className={css.quiet}>Home</Link>
         <div className={css.actions}>
           {vr && <button type="button" className={css.primary} onClick={enterVR}>Enter VR</button>}
           {!atMap && <button type="button" className={css.hairline} onClick={resetView}>Reset view</button>}

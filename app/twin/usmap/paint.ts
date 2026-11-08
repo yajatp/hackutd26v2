@@ -7,6 +7,7 @@ export const SUI = {
   page: "#000000", panel: "#131518", raised: "#222529", line: "#222529",
   grey1: "#6C7584", grey2: "#89919F", grey3: "#A1A7B2", white: "#FFFFFF",
   blue: "#298DFF", red: "#EF4444", amber: "#F5A524",
+  land: "#19334F", border: "#7DB9FF",   // the US cutout: Sui blue at 25% over the panel, light blue state lines
 } as const;
 
 export const TONE_DOT: Record<SiteTone, string> = { alert: SUI.red, warn: SUI.amber, ok: SUI.blue, idle: SUI.grey1 };

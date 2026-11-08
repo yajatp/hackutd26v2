@@ -114,18 +114,19 @@ export function UsMap3D({ sites, onPick }: { sites: SiteSummary[]; onPick(key: s
 
   return (
     <group name="twin-usmap" position={[MODEL_CENTER[0], TABLE_TOP_Y + LIFT, MODEL_CENTER[2]]}>
-      {/* The plate under the map and both label rows. */}
+      {/* No plate: the country itself is the shape (Mohan, 06:33). This invisible plane only keeps
+          clicks between the states and labels from falling through to the table. */}
       <mesh rotation-x={-Math.PI / 2} position={[0, -0.002, 0.03]} onClick={(e: ThreeEvent<MouseEvent>) => e.stopPropagation()}>
         <planeGeometry args={[MAP_W + 0.08, MAP_D + 0.26]} />
-        <meshBasicMaterial color={SUI.page} toneMapped={false} fog={false} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} toneMapped={false} fog={false} />
       </mesh>
       {geo && (
         <>
           <mesh geometry={geo.land} raycast={() => {}}>
-            <meshBasicMaterial color={SUI.raised} side={2} toneMapped={false} fog={false} />
+            <meshBasicMaterial color={SUI.land} side={2} toneMapped={false} fog={false} />
           </mesh>
           <lineSegments geometry={geo.borders} position-y={0.0008} raycast={() => {}}>
-            <lineBasicMaterial color={SUI.grey1} transparent opacity={0.75} toneMapped={false} fog={false} />
+            <lineBasicMaterial color={SUI.border} transparent opacity={0.55} toneMapped={false} fog={false} />
           </lineSegments>
         </>
       )}
