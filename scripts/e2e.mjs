@@ -6,6 +6,7 @@
 //   npm run e2e                     one run of steps 0-7
 //   npm run e2e -- --runs 3         three runs in a row, timing and console latency for each
 //   npm run e2e -- --headed         a visible browser, with a short pause after each step
+//   npm run e2e -- --lockdown       enter, verify and end LOCKDOWN after step 5
 //
 // 0 npm run demo:reset (clean start)  1 console LIVE, read the top fix card (mock_test: S5 · FACILITY C,
 // "Do this: Call 1 truck now, 1 trip", $905, "trips in 2h 03m")  2 Confirm this plan -> CONFIRMED
@@ -16,13 +17,14 @@
 // One PASS/FAIL line per step, a line per run with its time and the latency, then E2E PASSED or
 // E2E FAILED (n). Exit 0 passed, 1 failed, 2 Playwright or a browser missing.
 // Screenshots (console left, phone right): ../.playwright-mcp/e2e-<run>-<step>.png
+// Failed steps also save browser console errors in e2e-<run>-<step>.console.log.
 //
 // Uses the running dev server (:3000) and SpacetimeDB (:3001): never builds, never starts or stops
 // either, reaches the Spacetime CLI only through npm run demo:reset, opens only /console and /attack.
 // A step that fails while a live connection dropped (another lane republishing the module) is
 // retried once, and the retry is printed.
 import { spawn } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { argv, exit, platform } from "node:process";
 import { fileURLToPath } from "node:url";
@@ -38,7 +40,7 @@ const EXPECT = { facility: "S5 · FACILITY C", doThis: "Do this: Call 1 truck no
 const WITHIN = 5000;    // each reaction on the judge path must show within 5 s
 const SETTLE = 20000;   // after a reset the screens get every row again
 const RECONNECT = /DISCONNECTED|Connecting|disconnect|reconnect|ECONNREFUSED|ECONNRESET|socket hang up|fetch failed|not answering|ingest failed|websocket/i;
-const USAGE = "usage: npm run e2e -- [--runs N] [--headed]";
+const USAGE = "usage: npm run e2e -- [--runs N] [--headed] [--lockdown]";
 
 const secs = (ms) => `${(ms / 1000).toFixed(1)} s`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -46,10 +48,11 @@ const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const message = (e) => (e instanceof Error ? e.message : String(e?.message ?? e)).split("\n")[0];
 
 function parseArgs(args) {
-  const o = { runs: 1, headed: false };
+  const o = { runs: 1, headed: false, lockdown: false };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === "--headed") o.headed = true;
+    else if (a === "--lockdown") o.lockdown = true;
     else if (a === "--runs") o.runs = Number(args[++i]);
     else if (a.startsWith("--runs=")) o.runs = Number(a.slice(7));
     else if (a === "--help" || a === "-h") { console.log(USAGE); exit(0); }
@@ -232,6 +235,53 @@ async function stepIncident(s, r) {
   return `clicked 'Open an incident in the Darkroom': ${ref}, fingerprint ${hash.slice(0, 16)}… (64 hex, the reference matches it)${same}`;
 }
 
+const lockdownDialog = (s) => s.con.getByRole("alertdialog", { name: "LOCKDOWN", exact: true });
+const faultVerbs = ["Kill", "Fake", "Drift"];
+
+async function stepEnterLockdown(s) {
+  const dialog = lockdownDialog(s);
+  if (!(await dialog.isVisible())) {
+    // The UI confirms after a 600 ms hold, measured on animation frames.
+    await topCard(s).getByRole("button", { name: "Lock down and move to the Darkroom", exact: true })
+      .click({ delay: 750, timeout: WITHIN });
+  }
+  await dialog.waitFor({ timeout: WITHIN });
+  return "held 'Lock down and move to the Darkroom' on the top card; console shows LOCKDOWN";
+}
+
+async function stepVerifyLockdown(s, r) {
+  await until(both(s), (x) => {
+    const { c, p } = x;
+    const out = liveProblems(x);
+    if (c.lockdown !== "settled") out.push(`console lockdown is ${c.lockdown ?? "absent"}`);
+    if (c.lockdownRef !== r.ref) out.push(`lockdown evidence shows ${c.lockdownRef ?? "no reference"}, expected ${r.ref} from step 5`);
+    if (!p.lockdownBanner?.includes(r.ref)) out.push(`phone lockdown banner does not show ${r.ref}`);
+    if (!faultVerbs.every((verb) => p.faultButtons[verb] === true)) out.push("phone Kill, Fake and Drift are not all disabled");
+    return out;
+  }, WITHIN, "lockdown evidence and phone lockout");
+  return `console evidence and phone banner both show ${r.ref}; Kill, Fake and Drift are disabled`;
+}
+
+async function stepEndLockdown(s, r) {
+  const active = s.con.locator('[data-lockdown]:not([data-lockdown="ending"])');
+  if (await active.isVisible()) {
+    await active.getByRole("button", { name: "End lockdown", exact: true }).click({ timeout: WITHIN });
+  }
+  await until(both(s), (x) => {
+    const { c, p } = x;
+    const out = liveProblems(x);
+    if (c.lockdown) out.push("console lockdown is still showing");
+    if (c.top?.facility !== r.facility || !c.top.confirmBtn || c.top.confirmed) out.push("the top card is not ready to confirm again");
+    if (p.lockdownBanner) out.push("phone lockdown banner is still showing");
+    if (!faultVerbs.every((verb) => p.faultButtons[verb] === false)) out.push("phone Kill, Fake and Drift are not all enabled");
+    return out;
+  }, WITHIN, "lockdown ended on both screens");
+  for (const verb of faultVerbs) {
+    await s.att.getByRole("button", { name: new RegExp(`^${verb}\\b`) }).tap({ trial: true, timeout: WITHIN });
+  }
+  return "ended lockdown; top card asks to confirm again; Kill, Fake and Drift can be tapped";
+}
+
 async function stepClear(s, r) {
   const now = await s.att.evaluate(readPhone);
   if (now.active !== 0) await s.att.getByRole("button", { name: "Clear all" }).tap({ timeout: WITHIN });
@@ -242,11 +292,14 @@ async function stepClear(s, r) {
     if (c.sensors) out.push(`'Sensors to check' still shows ${c.sensors.map((y) => y.head).join(", ")}`);
     if (c.top?.check) out.push("top card still says CHECK THE TANK SENSOR FIRST");
     if (c.top?.changed) out.push("top card still says CONFIRMED, THEN CHANGED");
-    if (!c.top?.plain) out.push("top card does not say CONFIRMED by the night shift");
+    if (s.lockdown) {
+      if (!c.top?.confirmBtn || c.top.confirmed) out.push("top card is not ready to confirm again");
+    } else if (!c.top?.plain) out.push("top card does not say CONFIRMED by the night shift");
     if (c.top && c.top.facility !== r.facility) out.push(`top card is now ${c.top.facility}, expected ${r.facility}`);
     return out;
-  }, WITHIN, "the console back to plain CONFIRMED");
-  return `tapped Clear all: phone Active faults (0); console: Sensors to check gone, top card '${st.c.top.doThis}' ${st.c.top.cost}, CONFIRMED by the night shift at ${st.c.top.at}`;
+  }, WITHIN, s.lockdown ? "the unconfirmed console with no sensor warnings" : "the console back to plain CONFIRMED");
+  const plan = s.lockdown ? "ready to confirm again" : `CONFIRMED by the night shift at ${st.c.top.at}`;
+  return `tapped Clear all: phone Active faults (0); console: Sensors to check gone, top card '${st.c.top.doThis}' ${st.c.top.cost}, ${plan}`;
 }
 
 async function stepResetAgain(s, r) {
@@ -265,6 +318,13 @@ const STEPS = [
   { n: 5, label: "Darkroom reference", needs: [4], fn: stepIncident },
   { n: 6, label: "phone Clear all", needs: [2, 3], fn: stepClear },
   { n: 7, label: "reset again", needs: [], fn: stepResetAgain },
+];
+
+const LOCKDOWN_STEPS = [
+  { n: "L1", label: "enter LOCKDOWN", needs: [5], fn: stepEnterLockdown },
+  { n: "L2", label: "verify LOCKDOWN", needs: ["L1"], fn: stepVerifyLockdown },
+  // End the lockdown even if the evidence or phone assertion failed.
+  { n: "L3", label: "end LOCKDOWN", needs: ["L1"], fn: stepEndLockdown },
 ];
 
 // Runs one step. At most one retry, and only when a live connection dropped during the step or the
@@ -298,10 +358,13 @@ async function runOnce(s, i, runs, firstRef) {
   const passed = new Set();
   let failed = 0;
   console.log(`run ${i}/${runs}  (console 1366x900 ${BASE}/console + phone 360x740 ${BASE}/attack)`);
-  for (const step of STEPS) {
+  const steps = s.lockdown
+    ? [...STEPS.slice(0, 6), ...LOCKDOWN_STEPS, { ...STEPS[6], needs: [...STEPS[6].needs, "L3"] }, STEPS[7]]
+    : STEPS;
+  for (const step of steps) {
     const missing = step.needs.filter((n) => !passed.has(n));
     const res = missing.length
-      ? { ok: false, line: `FAIL  ${step.n} ${step.label}: not run (needs step ${missing.join(" and ")})` }
+      ? { ok: false, line: `FAIL  ${step.n} ${step.label}: not run (needs step ${missing.join(" and ")})${typeof step.n === "string" ? "  [0.0 s]" : ""}` }
       : await runStep(s, r, step);
     if (res.ok) passed.add(step.n); else failed++;
     console.log(res.line);
@@ -311,9 +374,17 @@ async function runOnce(s, i, runs, firstRef) {
     } catch (e) {
       console.log(`note: no screenshot for step ${step.n}: ${message(e)}`);
     }
+    const log = join(SHOTS, `e2e-${i}-${step.n}.console.log`);
+    try {
+      if (res.ok) rmSync(log, { force: true });
+      else writeFileSync(log, `${s.consoleErrors.join("\n") || "No browser console errors recorded."}\n`);
+    } catch (e) {
+      console.log(`note: could not update console log for step ${step.n}: ${message(e)}`);
+    }
     if (s.headed) await sleep(800);
   }
   const errs = s.errors.splice(0);
+  s.consoleErrors.length = 0;
   if (errs.length) console.log(`note: ${errs.length} page error(s) in this run: ${errs.slice(0, 3).join(" || ")}`);
   const latency = r.latency !== null
     ? `console changed ${r.latency} ms after the Fake tap${r.retried ? " (timed on the retry)" : ""}`
@@ -327,7 +398,7 @@ async function main() {
   const pw = loadPlaywright();
   mkdirSync(SHOTS, { recursive: true });
   const browser = await launchBrowser(pw.chromium, o.headed);
-  const s = { headed: o.headed, drops: [], errors: [] };
+  const s = { headed: o.headed, lockdown: o.lockdown, drops: [], errors: [], consoleErrors: [] };
   process.once("SIGINT", () => { browser.close().finally(() => exit(130)); });
   try {
     const desk = await browser.newContext({ viewport: { width: 1366, height: 900 } });
@@ -338,7 +409,13 @@ async function main() {
     s.comp = await comp.newPage();
     await s.att.addInitScript(tapHook);
     for (const [page, who] of [[s.con, "console"], [s.att, "phone"]]) {
-      page.on("pageerror", (e) => s.errors.push(`${who}: ${message(e)}`));
+      page.on("pageerror", (e) => {
+        s.errors.push(`${who}: ${message(e)}`);
+        s.consoleErrors.push(`${who} page error: ${e.stack ?? e.message}`);
+      });
+      page.on("console", (entry) => {
+        if (entry.type() === "error") s.consoleErrors.push(`${who} console.error: ${entry.text()}`);
+      });
       page.on("websocket", (ws) => {
         if (new URL(ws.url()).port === "3001") ws.on("close", () => s.drops.push(who));
       });
