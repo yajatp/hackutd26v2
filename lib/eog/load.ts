@@ -9,6 +9,7 @@ export interface Dataset {
   ops: OpsJson;
   ts: number[];                        // every distinct ts_unix, ascending
   series: Map<string, Float64Array>;   // seriesKey(asset, metric) -> value per ts, carried forward
+  lastSeen: Map<string, number>;       // seriesKey -> last ts_unix with a real reading (gaps are filled above)
   now: number;                         // last ts_unix: the folder's "now"
 }
 
@@ -16,7 +17,7 @@ export const seriesKey = (asset: string, metric: string) => `${asset}|${metric}`
 
 // Rows are timestamp,ts_unix,asset_id,metric,value. A missing sample repeats the previous
 // value; before a series' first sample the value is NaN.
-export function parseTelemetry(csv: string): { ts: number[]; series: Map<string, Float64Array> } {
+export function parseTelemetry(csv: string): { ts: number[]; series: Map<string, Float64Array>; lastSeen: Map<string, number> } {
   const raw = new Map<string, Map<number, number>>();
   const tsSet = new Set<number>();
   let start = csv.indexOf("\n") + 1;
@@ -36,7 +37,11 @@ export function parseTelemetry(csv: string): { ts: number[]; series: Map<string,
   }
   const ts = [...tsSet].sort((a, b) => a - b);
   const series = new Map<string, Float64Array>();
+  const lastSeen = new Map<string, number>();
   for (const [k, m] of raw) {
+    let seen = -Infinity;
+    for (const t of m.keys()) if (t > seen) seen = t;
+    lastSeen.set(k, seen);
     const a = new Float64Array(ts.length);
     let last = NaN;
     for (let i = 0; i < ts.length; i++) {
@@ -46,15 +51,15 @@ export function parseTelemetry(csv: string): { ts: number[]; series: Map<string,
     }
     series.set(k, a);
   }
-  return { ts, series };
+  return { ts, series, lastSeen };
 }
 
 export function loadDataset(files: DatasetFiles): Dataset {
   const network = JSON.parse(files.network) as NetworkJson;
   const ops = JSON.parse(files.ops) as OpsJson;
-  const { ts, series } = parseTelemetry(files.telemetry);
+  const { ts, series, lastSeen } = parseTelemetry(files.telemetry);
   if (ts.length === 0) throw new Error("telemetry.csv has no readings");
-  return { network, ops, ts, series, now: ts[ts.length - 1] };
+  return { network, ops, ts, series, lastSeen, now: ts[ts.length - 1] };
 }
 
 export function seriesOf(ds: Pick<Dataset, "series">, asset: string, metric: string): Float64Array {

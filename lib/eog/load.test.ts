@@ -12,8 +12,10 @@ test("parses rows, sorts timestamps and carries a missing sample forward", () =>
     "x,900,T,level_pct,53",
     "",
   ].join("\n");
-  const { ts, series } = parseTelemetry(csv);
+  const { ts, series, lastSeen } = parseTelemetry(csv);
   assert.deepEqual(ts, [300, 600, 900]);
+  assert.equal(lastSeen.get("P|status"), 300);
+  assert.equal(lastSeen.get("T|level_pct"), 900);
   assert.deepEqual([...seriesOf({ series }, "T", "level_pct")], [51, 52, 53]);
   assert.deepEqual([...seriesOf({ series }, "P", "status")], [1, 1, 1]);
 });
