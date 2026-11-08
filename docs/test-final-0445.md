@@ -4,9 +4,16 @@ Checkout: `yajat/final-qa` at `5482978` (`origin/mohan/live`). No app code chang
 Hosted copy: https://avon-hackutd26.vercel.app, **before** Mohan's redeploy (`/map` is 404, `/` is a 307).
 Box laptop for section 7: Yajat's MacBook Air (macOS, SpacetimeDB 2.14.1) standing in for L2, at `10.169.150.177`.
 
-Status: sections 7, 2, 3 and 6 are done. Sections 1, 4 and 5 wait for "redeployed". Real-phone and Quest steps are marked **TODO (Yajat)**: in this pass a second browser tab played Phone 1 and the witness phone.
+Status: sections 7, 2, 3 and 6 were done at 04:45-04:50 on the old deploy. The redeploy (`78fb360`) went live at 05:48, and the second pass ran at 07:00-07:40, partly blocked (see "Second pass" below). Real-phone and Quest steps are marked **TODO (Yajat)**: in this pass a second browser tab played Phone 1 and the witness phone.
 
 ## Ranked bugs (most demo-breaking first)
+
+**After the redeploy (`78fb360`):**
+- Bug 1: the deployed `/attack` now contains the lockout banner ("The site is in LOCKDOWN", `data-lockdown`). Probably fixed; not yet seen on a real phone.
+- Bug 4: fixed. `cloud:check -- --all` passes.
+- Bug 5: the deployed `/attack` now has the Undo button ("Undo <fault>" / "Restore the … sensor"). Probably fixed; not yet tapped.
+- Bug 12 (raw IDs): fixed in `683ef3a`.
+
 
 1. **Phone 1 is not locked out on the hosted copy.** Steps: `/console`, Fake on S5 Facility C from `/attack`, hold **Lock down and move to the Darkroom**. The console shows the LOCKDOWN shutter and evidence card, but `/attack` keeps the normal remote, with Kill, Fake and Drift all live, even after a reload (`html[data-lockdown]` stays unset). None of the deployed `/attack` chunks contains the banner text "The site is in LOCKDOWN". The deploy is older than `app/attack/LockdownBanner.tsx` (`f8be82f`, 03:57). **Recheck after the redeploy.**
 2. **A witness phone may show DISCONNECTED over the LAN (unverified, needs a real phone).** Steps: `npm run demo:darkroom`, then open `http://10.169.150.177:3000/witness`. In the desktop browser pane, the page loads but the chip says **DISCONNECTED**, and the console shows `WebSocket connection to 'ws://10.169.150.177:3001/v1/database/darkroom/subscribe' failed`. The server side is fine:
@@ -83,6 +90,44 @@ Phone 1 was a browser tab on the laptop (**TODO (Yajat): repeat the Fake and loc
 | `npm run cloud:check -- --all` | **FAIL** | `Unknown option '--all'` (bug 4) |
 | `npm run cloud:check` | PASS | `/attack` LIVE; `/vr` LIVE · Live data; `/console` LIVE · 40 ms · S5 · FACILITY C · trips in 2h 03m · $905 (3 s) |
 
-## 1. Front door `/`, 4. `/map`, 5. `/twin` on the Quest 3S
+## Second pass, after the redeploy
 
-Waiting for Mohan's "redeployed". At 04:49 `/` returned 307 and `/map` 404. After the redeploy, also recheck bug 1 (Phone 1 lockout).
+Limits on this pass:
+- The desktop browser pane was hidden, so pages were throttled and the clicks timed out.
+- The laptop also slept between commands (05:58 → 07:00 → 07:37).
+- Section 1 below is HTTP plus the headless `cloud:check`, not clicking through.
+- `npm ci` in the QA worktree stopped the running Darkroom web server. It was restarted with `npm run demo:darkroom`; the data stays.
+
+### 1. Front door `/`
+
+| Step | Result | What I saw |
+|---|---|---|
+| `/` loads | PASS | LIVE · 38 ms. "What broke, the cheapest fix, and which sensors to trust." 8 rows |
+| Row links | PASS | 01 Console `/console` (▲ 2 pump failures), 02 Phone 1 `/attack` (No faults injected), 03 The model `/twin` (15 facilities), 04 Insight `/insight` (Plans save $8,147), 05 Map `/map` (6 sites), 06 Darkroom `/box`, 07 SpacetimeDB `/spacetime` (38 ms round trip), 08 VR station `/vr` |
+| Every row's page answers | PASS | All 9 routes return 200 in 0.15 to 0.38 s |
+| One `/` request at 05:48 | FAIL once | `000` after a 10 s timeout. The next 3 tries returned 200 in 0.27 to 0.42 s |
+| `/console` gate | NOTE | `/console` now opens on "Enter the night shift", with **With sound** and **Without sound** buttons. The clock reads "Midland 07:00", matching CST. The judge flow needs one extra tap |
+| 06 Darkroom on the hosted copy | QUESTION | `/box` is local-only by design. A judge clicking row 06 on the hosted link gets a box with no SpacetimeDB to reach. Say so on the row, or point it at a sample `/report` |
+
+### 4. `/map` and the sites
+
+| Step | Result | What I saw |
+|---|---|---|
+| `/map` loads | PASS (HTTP) | 200; the front door says 6 sites |
+| Every site's console is LIVE with its own top card (`cloud:check -- --all`, 17 s) | PASS | Midland S5 Facility C $905; delaware no pump failures; **eagleford** McMullen County 11, $1,297, trips in 2h 57m; dorado Webb County 27, $1,106; powder Campbell County 4, $2,111, trips in 1h 25m; williston Mountrail County 41, $1,388 |
+| Click Eagle Ford, then Open console | **TODO** | Not clicked: the pane was hidden. The headless check above shows `/console?site=eagleford` is a different site with LIVE |
+| Compare table sorted | **TODO** | Not checked |
+| powder plan times | QUESTION | "Shut in Campbell County 4 well 2 at 12:00, and shut in Campbell County 4 well 3 at 13:56 · trips in 1h 25m". The plan times are on the snapshot clock (`snapshot_2026-10-08T1200`) while the header shows real local time, and the second shut-in falls after the trip time it shows. Check that this is the with-plan trip time |
+
+### 5. `/twin` on the Quest 3S
+
+**TODO (Yajat):**
+- Enter VR.
+- Try the Table, Overview and Walk views.
+- Pull the trigger on a tank and check its panel opens.
+- Turn with the thumbstick.
+- Use the dashboard and Confirm from inside VR.
+- Fake from the phone and check it shows in VR.
+- Note comfort and frame rate.
+
+`/twin` returns 200 on the hosted copy.
