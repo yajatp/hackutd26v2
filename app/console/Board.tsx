@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { hhmm, money, type Alert, type ConsoleView, type SensorIssue } from "@/lib/eog/alerts";
 import { evidenceFor, evidenceForIssue, type Evidence } from "@/lib/evidence";
-import { SensorBadge, SimulatedBadge } from "@/app/ui/Badge";
+import { Badge, SensorBadge, SimulatedBadge } from "@/app/ui/Badge";
+import { useAvonConsole } from "@/lib/live";
 
 // The alerts view. Renders whatever ConsoleView it is given; where the view comes from
 // (Spacetime subscription) is the page's job.
@@ -52,6 +53,60 @@ function SendToDarkroom({ ev, dataset, now }: { ev: Evidence | null; dataset: st
   );
 }
 
+function clock(ms: number): string {
+  return new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+// The operator's decision on this card (PLAN.md section 0: the judge works the shift). The server
+// keeps the plan as it read when confirmed, so a later fault shows against the judge's own choice.
+function ConfirmRow({ a }: { a: Alert }) {
+  const { confirmations, confirm, status } = useAvonConsole();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fix = a.fix!;
+  const done = confirmations[a.id];
+  const bad = a.tank_sensor && ["dead", "drifting", "lying"].includes(a.tank_sensor.state) ? a.tank_sensor : null;
+  const changed = done && (done.headline !== fix.headline || Math.round(done.cost) !== Math.round(fix.plan.cost));
+  async function go() {
+    setBusy(true);
+    setError(null);
+    try { await confirm(a.id); } catch (e) { setError(e instanceof Error ? e.message : String(e)); } finally { setBusy(false); }
+  }
+  if (!done) {
+    return (
+      <div className="mt-3">
+        <button className="btn btn-primary" onClick={go} disabled={busy || status !== "connected"}>
+          Confirm this plan
+        </button>
+        {error && <p className="mt-1 text-sm text-alert">{error}</p>}
+      </div>
+    );
+  }
+  if (!bad && !changed) {
+    return (
+      <p className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+        <Badge tone="ok" icon="✓">CONFIRMED</Badge> by the night shift at {clock(done.atMs)}
+      </p>
+    );
+  }
+  return (
+    <div className="mt-3 rounded-md border-2 border-warn-line bg-warn-bg p-3 text-sm">
+      <p className="flex flex-wrap items-center gap-2 font-bold">
+        <Badge tone="warn" icon="●">CONFIRMED, THEN CHANGED</Badge>
+      </p>
+      <p className="mt-1">
+        You confirmed <b>{done.headline}</b> ({money(done.cost)}) at {clock(done.atMs)}.
+        {bad && <> It rests on a tank sensor that is now <b>{bad.state.toUpperCase()}</b>{bad.simulated ? " (simulated)" : ""}. Check the sensor before the truck rolls.</>}
+        {changed && <> The plan now reads <b>{fix.headline}</b> ({money(fix.plan.cost)}).</>}
+      </p>
+      {changed && (
+        <button className="btn mt-2" onClick={go} disabled={busy || status !== "connected"}>Confirm the new plan</button>
+      )}
+      {error && <p className="mt-1 text-alert">{error}</p>}
+    </div>
+  );
+}
+
 function FixCardView({ a, top, dataset, now }: { a: Alert; top: boolean; dataset: string; now: number }) {
   const fix = a.fix!;
   const big = top ? "text-3xl" : "text-xl";
@@ -77,6 +132,7 @@ function FixCardView({ a, top, dataset, now }: { a: Alert; top: boolean; dataset
         <p className={`${big} font-bold leading-tight`}><span className="text-muted">Do this:</span> {fix.headline}</p>
         <p className={`${big} font-bold tabular-nums`}>{money(fix.plan.cost)}</p>
       </div>
+      {fix.alternatives.length > 0 && <ConfirmRow a={a} />}
       <p className="mt-1 text-sm tabular-nums">
         {[...fix.details,
           fix.trip_at_unix !== null ? `tank would trip ${hhmm(fix.trip_at_unix)}` : null,
