@@ -1,5 +1,5 @@
 "use client";
-// The scene of /twin in Permian Night (docs/TWIN-THEME.md): the World (sky, moon, stars, desert,
+// The scene of /twin in Permian Night: the World (sky, moon, stars, desert,
 // mesas, far rigs) behind everything, and the site in the view the judge picked (nav ViewContext):
 // - table: the holographic ops table (HoloTable) at waist height with the site as a glowing
 //   miniature on it; the thumbstick turns the table (eased 250 ms);

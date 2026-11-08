@@ -1,4 +1,4 @@
-/* /twin on a screen, in Permian Night (docs/TWIN-THEME.md): holo glass over the night world.
+/* /twin on a screen, in Permian Night: holo glass over the night world.
    Every color and font arrives as a CSS variable from app/twin/theme.ts (TwinScreen THEME_VARS),
    so nothing here is a hard-coded color. The canvas is full-bleed; the bar, the legend line, the
    labels, the toast and the panel sit on it. */

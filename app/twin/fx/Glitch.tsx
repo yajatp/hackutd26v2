@@ -1,5 +1,5 @@
 "use client";
-// The lying gauge (docs/TWIN-THEME.md "The attack moment", step 3). Two ways to use it:
+// The lying gauge. Two ways to use it:
 // - useGlitch(active): a ref to a GlitchSample on the /vr cadence (glitchFrame in app/vr/field.ts),
 //   for the parent to tear its own gauge or label; with `target` it also jolts that object sideways.
 // - <GlitchGauge>: a glowing level strip for a tank's side whose bands tear sideways, split into

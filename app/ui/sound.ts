@@ -1,4 +1,4 @@
-// Sound is removed (Mohan, Sun 07:25). Sound helpers still ask soundOn() before they play, and it
+// Sound is removed. Sound helpers still ask soundOn() before they play, and it
 // always answers no. The old per-session choice is kept in sessionStorage (with a copy in memory
 // for browsers that refuse storage) but nothing asks for it any more.
 

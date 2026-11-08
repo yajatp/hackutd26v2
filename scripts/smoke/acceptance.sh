@@ -48,7 +48,7 @@ tail -1 "$OUT/a2" | grep -qx 'SMOKE PASSED'; check $(( $? + code )) "A2 --runs 3
 [ "$(cat "$OUT/a1" "$OUT/a2" | grep -cE 'eyJ[A-Za-z0-9_-]{10,}')" = 0 ]; check $? "A4 no token in the output"
 
 # A5: a folder where the golden path cannot hold fails cleanly.
-npm run smoke -- --folder /home/mohan/hackutd/eog-data/history/full_week >"$OUT/a5" 2>&1; code=$?
+npm run smoke -- --folder "${EOG_DIR:-../eog-data}"/history/full_week >"$OUT/a5" 2>&1; code=$?
 [ "$code" = 1 ]; check $? "A5 full_week exits 1 (exit $code)"
 grep -q '^FAIL' "$OUT/a5"; check $? "A5 at least one FAIL line"
 tail -1 "$OUT/a5" | grep -qE '^SMOKE FAILED \([1-9][0-9]*\)$'; check $? "A5 ends with SMOKE FAILED (n)"

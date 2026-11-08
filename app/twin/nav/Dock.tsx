@@ -1,5 +1,5 @@
 "use client";
-// The menu dock (docs/TWIN-THEME.md "The menu and the dashboard"): five big holo-glass buttons,
+// The menu dock: five big holo-glass buttons,
 // Table, Overview, Walk, Dashboard, Reset, floating 0.45 m under the judge's eyes and 0.9 m ahead,
 // tilted to face them. It follows the judge's yaw lazily (catches up past 40 degrees, eased).
 // Pointing lifts a button toward the judge and lights its glow; pulling the trigger sinks it and

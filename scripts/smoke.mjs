@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Golden-path smoke test (docs/PLAN.md section 0) against the real reducers, on two throwaway
+// Golden-path smoke test against the real reducers, on two throwaway
 // databases on the LOCAL server. One PASS/FAIL line per step, then SMOKE PASSED or SMOKE FAILED (n).
 //
 //   npm run smoke                          one run on avon-smoke + darkroom-smoke

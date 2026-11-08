@@ -1,5 +1,5 @@
 "use client";
-// Motion for the moment of change, shared by /console and /attack. House rule (docs/DESIGN.md):
+// Motion for the moment of change, shared by /console and /attack. House rule:
 // motion only when the data changes or the person acts. So a thing that is already on screen when
 // the page settles on its first data appears still; one that arrives later is news and may move.
 // Every effect is presentation only: the words are in the DOM the moment the data is (the e2e

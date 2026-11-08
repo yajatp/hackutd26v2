@@ -16,7 +16,7 @@ import { PumpFacts } from "./PumpFacts";
 
 export type Conn = "connecting" | "connected" | "disconnected";
 
-// The night look of /vr (docs/DESIGN.md), as Tailwind utilities on the tokens that
+// The night look of /vr, as Tailwind utilities on the tokens that
 // app/console/layout.tsx gives night values. A state is a rule on the left in its color over a
 // faint tint, never a box. The decision is the page's one bold moment: Barlow Condensed 700
 // (.decide in console.module.css, a global name so this file imports no CSS).

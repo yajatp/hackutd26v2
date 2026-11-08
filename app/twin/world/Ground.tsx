@@ -14,7 +14,7 @@ export const MAX_PADS = 12;
 // A muted West Texas desert in daylight albedo (the sky clock's sun and moon light it): sandy tan
 // with paler caliche crests, graded caliche pads, warm sodium lamps at night.
 export const DESERT = { base: "#9c8164", lit: "#c2a984", pad: "#cbbba0", sodium: "#ffb26a" } as const;
-// 72 x 112 (about 16k triangles): the Quest 3S budget (docs/TWIN-THEME.md "Scope"); was 96 x 160.
+// 72 x 112 (about 16k triangles): the Quest 3S budget; was 96 x 160.
 const RINGS = 72;
 const SEGS = 112;
 

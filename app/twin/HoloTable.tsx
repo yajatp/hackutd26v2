@@ -1,5 +1,5 @@
 "use client";
-// The table view's ops table (docs/TWIN-THEME.md "The three views"): a round slab of night glass
+// The table view's ops table: a round slab of night glass
 // at waist height with the site standing on it as a glowing miniature. The top is one shader: a
 // fine holo grid and polar rings, each system's ring and a faint tint inside it (drawn from
 // uniforms, so the five systems cost no draw calls), a soft pool of holo light that follows the

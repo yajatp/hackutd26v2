@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Browser rehearsal of the judge path (docs/PLAN.md section 0) on the real screens: the judge works
+// Browser rehearsal of the judge path on the real screens: the judge works
 // the night shift on the console, a teammate plays the bad night on Phone 1. One headless Chrome,
 // two pages: the console (1366x900, /console) and the phone remote (360x740, /attack).
 //

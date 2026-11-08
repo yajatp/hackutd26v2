@@ -22,7 +22,7 @@ export default function WitnessScreen() {
   const fresh = useFresh(s.events, s.ready);
   const broken = s.status.kind === "rollback" || s.status.kind === "tampering";
 
-  // Sound is removed (Mohan, Sun 07:25): no chime and no tone; a break still flashes red once.
+  // Sound is removed: no chime and no tone; a break still flashes red once.
   const [flashed, setFlashed] = useState<string | null>(null);
 
   // Ticks only for entries this phone has actually taken into its memory.

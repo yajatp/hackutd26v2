@@ -15,7 +15,7 @@
    and LOCKDOWN moments and big numbers (after ethiack.com's raster type). */
 @font-face { font-family: "Pixelify Sans"; font-weight: 500; font-display: swap; src: url("/fonts/PixelifySans-500.woff2") format("woff2"); }
 @font-face { font-family: "Pixelify Sans"; font-weight: 700; font-display: swap; src: url("/fonts/PixelifySans-700.woff2") format("woff2"); }
-/* Hanken Grotesk and IBM Plex Mono (SIL OFL): the Sui-style corporate redesign (docs/HANDOFF.md), free stand-ins for TWK Everett and TWK Everett Mono. */
+/* Hanken Grotesk and IBM Plex Mono (SIL OFL): the Sui-style corporate redesign, free stand-ins for TWK Everett and TWK Everett Mono. */
 @font-face { font-family: "Hanken Grotesk"; font-weight: 400; font-display: swap; src: url("/fonts/HankenGrotesk-400.woff2") format("woff2"); }
 @font-face { font-family: "Hanken Grotesk"; font-weight: 500; font-display: swap; src: url("/fonts/HankenGrotesk-500.woff2") format("woff2"); }
 @font-face { font-family: "Hanken Grotesk"; font-weight: 600; font-display: swap; src: url("/fonts/HankenGrotesk-600.woff2") format("woff2"); }

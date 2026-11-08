@@ -1,5 +1,5 @@
 "use client";
-// The environment every view of /twin stands in (docs/TWIN-THEME.md), on the sky clock (Sun 06:05):
+// The environment every view of /twin stands in, on the sky clock (Sun 06:05):
 // the sky follows the site's real local time (clock.ts; the site from ?site=, Midland by default).
 // Noon is a clear blue sky with the sun's disc and bright daylight; midnight a pitch-black sky with
 // 2500 stars, a faint milky band and a moon; dawn and dusk warm gradients between (sky.ts skyLook).

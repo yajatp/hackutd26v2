@@ -213,7 +213,7 @@ test("before the record loads, nothing claims a status", () => {
 });
 
 test("app/report imports by relative path, so the parent project's tsc and build also resolve it", () => {
-  // The parent folder (/home/mohan/hackutd) is a second Next.js project whose tsconfig also
+  // A parent folder can be a second Next.js project whose tsconfig also
   // type-checks darkroom/**, and there "@/..." points at the parent, not at darkroom.
   const dir = path.dirname(fileURLToPath(import.meta.url));
   const files = readdirSync(dir).filter(f => /\.(ts|tsx)$/.test(f));

@@ -1,4 +1,4 @@
-// The headset world's theme, in the Sui style (UI) with the world's own environment colors (docs/TWIN-THEME.md). Every color, font and scale
+// The headset world's theme, in the Sui style (UI) with the world's own environment colors. Every color, font and scale
 // in the redesigned /twin comes from here, so the world, the models, the menu and the effects match.
 
 export const C = {

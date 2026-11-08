@@ -8,7 +8,7 @@
 // - the attack moment's toast, sliding in front of the judge;
 // - the thumbstick: one push, one 30 degree snap turn (the table turns in the table view; the
 //   judge turns in the overview and Walk views).
-// All in Permian Night's holo glass (docs/TWIN-THEME.md), from theme.ts.
+// All in Permian Night's holo glass, from theme.ts.
 import { useEffect, useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useXR } from "@react-three/xr";
