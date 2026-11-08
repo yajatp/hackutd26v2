@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Alert } from "../../lib/eog/alerts.ts";
-import { CHARGE_MS, failedFacilities, sentDelay, tankTone, verdictTone, waveDelay } from "./motion.ts";
+import { CHARGE_MS, STAGGER_MS, failedFacilities, introDelay, sentDelay, tankTone, verdictTone, waveDelay } from "./motion.ts";
 
 test("tankTone: flagged sensor beats a failed pump, which beats ok", () => {
   const failed = new Set(["S5_FACILITY_C"]);
@@ -50,4 +50,16 @@ test("waveDelay starts at the bottom row (next to Clear all) and reaches the top
   assert.equal(waveDelay(-2, 4), 90);              // out of range clamps to the list
   assert.equal(waveDelay(9, 4), 0);
   for (let i = 1; i < 16; i++) assert.ok(waveDelay(i, 16) < waveDelay(i - 1, 16), "not strictly upward");
+});
+
+test("introDelay: 35 ms a row from the top, capped so rows past the fold do not hold the page back", () => {
+  assert.equal(STAGGER_MS, 35);
+  assert.equal(introDelay(0), 0);
+  assert.equal(introDelay(1), 35);
+  assert.equal(introDelay(4), 140);
+  assert.equal(introDelay(12), 420);
+  assert.equal(introDelay(15), 420);              // 16 tanks: the last few share the cap
+  assert.equal(introDelay(-3), 0);
+  assert.equal(introDelay(2, 50, 80), 80);
+  for (let i = 1; i < 12; i++) assert.ok(introDelay(i) > introDelay(i - 1), "not strictly later down the list");
 });

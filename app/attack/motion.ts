@@ -39,3 +39,11 @@ export function waveDelay(i: number, n: number, spreadMs = 300): number {
   const step = Math.min(30, spreadMs / (n - 1));
   return Math.round((n - 1 - Math.min(Math.max(i, 0), n - 1)) * step);
 }
+
+// First data: the tank rows come in one after another, STAGGER_MS apart, once per page load. The
+// rows past the fold do not hold the ones above back: no row waits more than maxMs.
+export const STAGGER_MS = 35;
+
+export function introDelay(i: number, stepMs = STAGGER_MS, maxMs = 420): number {
+  return Math.min(Math.max(0, Math.round(i)) * stepMs, maxMs);
+}

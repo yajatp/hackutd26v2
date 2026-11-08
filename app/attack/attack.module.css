@@ -2,8 +2,11 @@
    is a rule on the left in its color over a faint tint, and red and amber mean what they mean
    there), in an attacker's skin: a faint red scan grid, Chakra Petch for headings and buttons,
    Barlow for sentences (both in app/fonts.css). Motion only when the data changes or the person
-   taps, and none at all under prefers-reduced-motion: every animation sits in the
-   no-preference block at the end, so the states below are what a reduced-motion phone shows.
+   taps (and the tank rows coming in once on first data), and none at all under
+   prefers-reduced-motion: every animation sits in the no-preference block at the end, so the
+   states below are what a reduced-motion phone shows. One system: 150-420 ms, ease-out; red for
+   an attack, calm green (--ok) for a restore, played as the attack backwards. The Web Animations
+   (useRemoteMotion.ts, useListMotion.ts) follow the same rules.
    Unlayered rules: they beat the layered ones in app/globals.css. */
 
 .red {
@@ -24,6 +27,8 @@
   --ok: #3ddc97;
   --head: "Chakra Petch", "Barlow Condensed", "Bahnschrift", system-ui, sans-serif;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);   /* a button let go: back past its size, and settle */
+  --mint: #b8f5da;
 
   color-scheme: dark;
   position: relative;
@@ -199,6 +204,34 @@
 .dot[data-tone="flag"] { --dot: #f59e0b; --dot-glow: rgb(245 158 11 / 0.6); --dot-ring: rgb(245 158 11 / 0.35); }
 .dot[data-tone="fail"] { --dot: #ef4444; --dot-glow: rgb(239 68 68 / 0.55); }
 
+/* DEAD: the pulse is a dim flat line (useRemoteMotion.ts plays the drop when it is news). No ring:
+   there is nothing left to pulse. */
+.dot[data-state="dead"] {
+  --dot-ring: rgb(245 158 11 / 0);
+  --dot-glow: rgb(245 158 11 / 0);
+  transform: scale(1.9, 0.24);   /* = FLAT in useRemoteMotion.ts */
+  opacity: 0.6;
+}
+
+/* A restore landed on this tank: a green disc that flashes over the dot and settles into its own
+   color, and one green ring. Invisible unless animating. */
+.dotHeal {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--ok);
+  opacity: 0;
+}
+
+.dotHeal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--ok);
+  border-radius: 50%;
+  opacity: 0;
+}
+
 /* The moment the console flags it (Flagged in page.tsx, only when that is news): an amber disc
    that pops in over the dot, and a ring that goes out from it three times. Invisible unless
    animating; under reduced motion the steady ring above is the whole signal. */
@@ -220,10 +253,12 @@
 }
 
 /* Overlays inside a row (no text, aria-hidden): a scan line on pick, a flash when the verdict
-   lands, a calm wave on Clear all. Invisible unless animating. */
+   lands, a calm wave on Clear all, a soft green sweep when a restore lands. Invisible unless
+   animating. */
 .scan,
 .flash,
-.wave {
+.wave,
+.sweep {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -253,6 +288,13 @@
 .wave {
   background: rgb(61 220 151 / 0.07);
   box-shadow: inset 3px 0 0 rgb(61 220 151 / 0.8);
+}
+
+/* A restore: the pick's scan played backwards, right to left, in a soft green with no hard edge. */
+.sweep {
+  left: auto;
+  width: 45%;
+  background: linear-gradient(270deg, transparent 0%, rgb(61 220 151 / 0.06) 40%, rgb(61 220 151 / 0.2) 88%, rgb(184 245 218 / 0.55) 96%, transparent 100%);
 }
 
 /* ---- 2 · Break it (sticky dock) ---- */
@@ -347,6 +389,11 @@
   background: linear-gradient(90deg, rgb(239 68 68 / 0.12), rgb(239 68 68 / 0.4));
 }
 
+/* Once the fault is sent the fill is gone: at once under reduced motion, a 200 ms fade otherwise. */
+.hit[data-phase="sent"] .fill {
+  opacity: 0;
+}
+
 .charge::after {
   content: "";
   position: absolute;
@@ -407,6 +454,118 @@
   transform: rotate(45deg);
 }
 
+/* ---- Restore (unkill): above Kill / Fake / Drift while the picked tank has a fault ---- */
+
+/* The box useFold unfolds and folds; the gap above the button is inside it (flex: no margin
+   collapse), so it opens and closes with the button. */
+.slot {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The calm counterpart of the red buttons: a green rule on the left over a faint green tint,
+   the same language as a state on /console. */
+.undo {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 3.5rem;
+  margin-top: 0.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid rgb(61 220 151 / 0.5);
+  border-radius: 3px;
+  background: rgb(61 220 151 / 0.07);
+  box-shadow: inset 3px 0 0 var(--ok);
+  padding: 0.5rem 0.875rem 0.5rem 1rem;
+  text-align: left;
+  color: var(--foreground);
+  touch-action: manipulation;
+}
+
+.undo[data-off] {
+  opacity: 0.4;
+}
+
+.undoIcon {
+  position: relative;
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  fill: none;
+  stroke: var(--ok);
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.undoText {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.undoVerb {
+  font-family: var(--head);
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  color: var(--mint);
+}
+
+.undoLine {
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+  line-height: 1.3;
+  color: var(--muted);
+}
+
+/* The charge played backwards: full, then draining right to left, its bright edge in front. */
+.drain {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  background: linear-gradient(90deg, rgb(61 220 151 / 0.1), rgb(61 220 151 / 0.34));
+}
+
+.drain::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--mint);
+  box-shadow: 0 0 12px 2px rgb(61 220 151 / 0.85);
+}
+
+/* Two green rings, a beat apart, when the restore is accepted. Invisible unless animating. */
+.healRings,
+.healRings > span {
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+}
+
+.healRings > span {
+  border: 2px solid var(--ok);
+  border-radius: 4px;
+  opacity: 0;
+}
+
+/* "Restoring…" then "Sensor restored": the status line in green. */
+.sendLine[data-mode="restore"][data-phase="sending"] {
+  color: #8ff0c4;
+}
+
+.sendLine[data-mode="restore"][data-phase="sent"] {
+  color: var(--ok);
+}
+
 /* ---- 3 · Active faults ---- */
 
 .fault {
@@ -436,7 +595,92 @@
   gap: 0.5rem;
 }
 
+/* Being cleared (its Clear, the Restore button or Clear all): the rule and tint go green, and
+   so does its Clear. The still copy that slides out keeps this (useListMotion.ts). */
+.fault.healed {
+  border-left-color: var(--ok);
+  background: rgb(61 220 151 / 0.08);
+}
+
+.red .healed .clear {
+  border-color: rgb(61 220 151 / 0.7);
+  background: rgb(61 220 151 / 0.08);
+  color: var(--ok);
+}
+
+/* The green heal flash over a cleared row. [data-heal] keeps it playing in the sliding copy. */
+.healFlash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: rgb(61 220 151 / 0.2);
+  box-shadow: inset 4px 0 0 var(--ok), inset 0 0 22px rgb(61 220 151 / 0.35);
+}
+
+/* ---- the header's connection badge (useConnSwap): the old one fades out in the layer ---- */
+
+.conn {
+  position: relative;
+  display: inline-flex;
+}
+
+.connNow {
+  display: inline-flex;
+}
+
+.connLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.connLayer > span {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  white-space: nowrap;
+}
+
+/* ---- hover: pointer devices only (a phone keeps :hover after a tap). Light and glow here;
+   the lift is motion, in the block below ---- */
+
+@media (hover: hover) and (pointer: fine) {
+  .tank:hover {
+    box-shadow: 0 8px 20px -14px rgb(223 230 234 / 0.55);
+  }
+
+  .tank:not([aria-checked="true"]):hover {
+    border-color: rgb(223 230 234 / 0.34);
+    background: rgb(223 230 234 / 0.055);
+  }
+
+  .hit:hover:not(:disabled) {
+    border-color: rgb(239 68 68 / 0.8);
+    box-shadow: 0 8px 22px -12px rgb(239 68 68 / 0.75);
+  }
+
+  .undo:hover:not(:disabled) {
+    border-color: rgb(61 220 151 / 0.85);
+    box-shadow: inset 3px 0 0 var(--ok), 0 8px 22px -12px rgb(61 220 151 / 0.75);
+  }
+
+  .red :global(.btn:hover:not(:disabled)) {
+    box-shadow: 0 8px 20px -14px rgb(223 230 234 / 0.6);
+  }
+}
+
 /* ---- motion: only where the person asked for none to be withheld ---- */
+
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  .tank:hover,
+  .hit:hover:not(:disabled),
+  .undo:hover:not(:disabled),
+  .red :global(.btn:hover:not(:disabled)) {
+    transform: translateY(-1px);
+  }
+}
 
 @media (prefers-reduced-motion: no-preference) {
   /* A dot going back to its baseline (Clear, Clear all) only crossfades: no pop. */
@@ -450,7 +694,52 @@
   }
 
   .dotNews::after {
-    animation: ring 1.2s ease-out 3;
+    animation: ring 420ms ease-out 3;
+  }
+
+  /* LYING: the amber waits for the three frames of jitter (useRemoteMotion.ts), then pops.
+     DRIFTING: the amber slides in over the slow wobble, then pops. */
+  .dot[data-state="lying"] {
+    transition-delay: 180ms;
+  }
+
+  .dot[data-state="drifting"] {
+    transition-duration: 420ms;
+  }
+
+  .dot[data-state="lying"] .dotNews,
+  .dot[data-state="lying"] .dotNews::after {
+    animation-delay: 180ms;
+    animation-fill-mode: forwards;
+  }
+
+  .dot[data-state="drifting"] .dotNews,
+  .dot[data-state="drifting"] .dotNews::after {
+    animation-delay: 300ms;
+    animation-fill-mode: forwards;
+  }
+
+  /* A restore landed: green flash, settle, one ring. */
+  .dotHeal {
+    animation: heal-pop 380ms ease-out both;
+  }
+
+  .dotHeal::after {
+    animation: ring 420ms ease-out;
+  }
+
+  .sweep {
+    animation: sweep 420ms cubic-bezier(0.35, 0.4, 0.35, 1);
+  }
+
+  /* First data: the tank rows come in one after another (introDelay in motion.ts), once. */
+  .rowIn {
+    animation: row-in 320ms var(--ease) both;
+  }
+
+  /* Words that change in place fade up (Swap in page.tsx). */
+  .swap {
+    animation: swap 240ms var(--ease) both;
   }
 
   .scan {
@@ -466,14 +755,27 @@
     animation: wave 420ms ease-out both;
   }
 
+  /* Every button: pressed, it gives (scale .97, 90 ms); let go, it springs back (--spring).
+     On a mouse it also lifts a pixel on hover. */
   .tank,
-  .hit {
-    transition: transform 140ms var(--ease), border-color 180ms, background-color 180ms, opacity 180ms;
+  .hit,
+  .undo,
+  .red :global(.btn) {
+    transition: transform 320ms var(--spring), border-color 180ms ease-out, background-color 180ms ease-out,
+      box-shadow 220ms ease-out, opacity 180ms ease-out, color 180ms ease-out;
+  }
+
+  .fault {
+    transition: border-color 180ms ease-out, background-color 180ms ease-out;
   }
 
   .tank:active,
-  .hit:active:not(:disabled) {
-    transform: scale(0.975);
+  .hit:active:not(:disabled),
+  .undo:active:not(:disabled),
+  .red :global(.btn:active:not(:disabled)) {
+    transform: scale(0.97);
+    transition-duration: 90ms;
+    transition-timing-function: ease-out;
   }
 
   .charge {
@@ -517,6 +819,38 @@
   .shake {
     animation: shake 380ms var(--ease);
   }
+
+  /* ---- Restore: an attack played backwards, in green ---- */
+
+  .drain {
+    animation: drain 350ms cubic-bezier(0.3, 0.7, 0.4, 1) both;
+  }
+
+  .undo[data-phase="sending"] .undoIcon {
+    animation: unwind 380ms var(--ease);
+  }
+
+  .undo[data-phase="sent"] .undoVerb {
+    animation: verb-heal 420ms var(--ease);
+  }
+
+  .healRings > span {
+    animation: heal-ring 420ms ease-out both;
+  }
+
+  .healRings > span + span {
+    animation-delay: 90ms;
+  }
+
+  .healFlash {
+    animation: heal-row 420ms ease-out both;
+  }
+
+  /* Only transform transitions while it heals: a running transition would hide the flash. */
+  .red .clear[data-heal] {
+    transition: transform 320ms var(--spring);
+    animation: heal-btn 380ms ease-out both;
+  }
 }
 
 @keyframes ring {
@@ -554,6 +888,7 @@
 }
 
 @keyframes fade-out {
+  from { opacity: 1; }
   to { opacity: 0; }
 }
 
@@ -591,6 +926,58 @@
   56% { clip-path: inset(0 0 0 0); transform: translateX(-1px); }
   72% { transform: translateX(1px); text-shadow: -1px 0 rgb(239 68 68 / 0.6); }
   100% { opacity: 1; clip-path: inset(0 0 0 0); transform: none; text-shadow: none; }
+}
+
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes swap {
+  from { opacity: 0; filter: blur(3px); transform: translateY(3px); }
+  to { opacity: 1; filter: none; transform: none; }
+}
+
+@keyframes heal-pop {
+  0% { opacity: 1; transform: scale(1.8); box-shadow: 0 0 14px 3px rgb(61 220 151 / 0.8); }
+  100% { opacity: 0; transform: none; box-shadow: 0 0 0 0 rgb(61 220 151 / 0); }
+}
+
+@keyframes sweep {
+  0% { opacity: 1; transform: translateX(100%); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-250%); }
+}
+
+@keyframes drain {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+@keyframes unwind {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+
+@keyframes verb-heal {
+  0% { text-shadow: 0 0 0 transparent; }
+  30% { text-shadow: 0 0 14px rgb(61 220 151 / 0.95); color: #fff; }
+  100% { text-shadow: 0 0 0 transparent; }
+}
+
+@keyframes heal-ring {
+  0% { opacity: 0.9; transform: scale(1); box-shadow: 0 0 0 0 rgb(61 220 151 / 0.5); }
+  100% { opacity: 0; transform: scale(1.04, 1.5); box-shadow: 0 0 18px 4px rgb(61 220 151 / 0); }
+}
+
+@keyframes heal-row {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes heal-btn {
+  0% { background-color: rgb(61 220 151 / 0.42); box-shadow: 0 0 0 0 rgb(61 220 151 / 0.7); }
+  100% { background-color: rgb(61 220 151 / 0.08); box-shadow: 0 0 0 10px rgb(61 220 151 / 0); }
 }
 
 @keyframes shake {
