@@ -13,6 +13,7 @@ import type { Alert, ConsoleView, SensorIssue } from "./eog/alerts.ts";
 import type { ActiveFault, AttackTarget, FaultKind } from "./attack.ts";
 import type { DetectedEvent } from "./eog/types.ts";
 import { datasetToRows, type WideRow } from "../spacetimedb/src/wide.ts";
+import { DEFAULT_SITE_KEY } from "./sites.ts";
 import { RTT_INTERVAL_MS, RttMeter } from "./rules/darkroom/rtt.ts";
 
 // The hosted copy (Vercel, https) cannot open ws:// to a laptop, so it is built with
@@ -293,10 +294,10 @@ const AvonRttContext = createContext<number | null>(null);
 
 // One database per oil site. `?site=eagleford` on any Avon page (console, Phone 1, the model,
 // the station) opens that site's database, `avon-eagleford` (or `<hosted db>-eagleford`); no
-// parameter keeps the default site. The US map links to sites this way.
+// parameter or ?site=permian keeps the default site. The US map links to sites this way.
 export function siteDatabase(site: string | null | undefined, base: string = AVON_DB): string {
   const key = (site ?? "").toLowerCase().replace(/[^a-z0-9-]/g, "");
-  return key ? `${base}-${key}` : base;
+  return key && key !== DEFAULT_SITE_KEY ? `${base}-${key}` : base;
 }
 
 function siteFromUrl(): string | null {

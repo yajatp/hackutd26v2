@@ -18,3 +18,11 @@ test("reset verifies the expected site, top card and all three counts", () => {
     assert.throws(() => verifyReset({ ...board, [field]: 1 }, "mock"), /active, .* sensor issues, .* confirmed plans/);
   }
 });
+
+test("site reset rejects conflicting flags and permits a healthy site without alerts", () => {
+  assert.throws(() => resetOptions(["--all", "--site", "eagleford"]), /either --site or --all/);
+  assert.equal(resetOptions(["--site", "eagleford"]).site, "eagleford");
+  const board = { meta: { datasetId: "delaware", alertCount: 0 }, faults: 0, issues: 0, confirmed: 0 };
+  assert.doesNotThrow(() => verifyReset(board, "delaware"));
+  assert.throws(() => verifyReset({ ...board, meta: { ...board.meta, alertCount: 1 } }, "delaware"), /top card is missing/);
+});
