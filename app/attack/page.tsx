@@ -20,6 +20,7 @@ import { ConnBadge, SENSOR_STATE, SensorBadge, SimulatedBadge, connState, type C
 import { Arm, useArmed, useBornLive } from "@/app/console/motion";
 import { failedFacilities, introDelay, sentDelay, tankTone, verdictTone, waveDelay, type DotTone } from "./motion";
 import { FOLD_MS, RINGS_MS, VERB, restoreLabel, sendWords } from "./restore";
+import { placeLine, siteFor, siteLine, type Site } from "./place";
 import { useListMotion } from "./useListMotion";
 import { useConnSwap, useDotMotion, useFold, usePresence } from "./useRemoteMotion";
 import s from "./attack.module.css";
@@ -132,8 +133,8 @@ function Conn({ state }: { state: ConnState }) {
   );
 }
 
-function TankRow({ t, i, n, on, tone, verdict, faulted, scan, wave, heal, intro, onPick }: {
-  t: AttackTarget; i: number; n: number; on: boolean; tone: DotTone; verdict?: Verdict; faulted: boolean;
+function TankRow({ t, place, i, n, on, tone, verdict, faulted, scan, wave, heal, intro, onPick }: {
+  t: AttackTarget; place: string; i: number; n: number; on: boolean; tone: DotTone; verdict?: Verdict; faulted: boolean;
   scan: number; wave: number; heal: number; intro?: number; onPick(): void;
 }) {
   return (
@@ -144,7 +145,10 @@ function TankRow({ t, i, n, on, tone, verdict, faulted, scan, wave, heal, intro,
       className={`${s.tank} ${intro !== undefined ? s.rowIn : ""}`}
       style={intro !== undefined ? { animationDelay: `${intro}ms` } : undefined}
     >
-      <span className={s.tankLabel}>{t.label}</span>
+      <span className={s.tankName}>
+        <span className={s.tankLabel}>{t.label}</span>
+        {place && <span className={s.place}>{place}</span>}
+      </span>
       <span className={s.side}>
         {verdict
           ? <Glitch key={verdict.state}><SensorBadge state={verdict.state} /></Glitch>
@@ -195,8 +199,8 @@ function RestoreSlot({ item, leaving, phase, n, off, disabled, onRestore }: {
 
 // healing: its Clear (or the Restore button, or Clear all) was tapped. The row's rule turns
 // Moonlight and flashes, its Clear inverts, and it slides out that way ([data-heal] plays in the copy).
-function FaultItem({ f, label, verdict, disabled, healing, onClear }: {
-  f: ActiveFault; label: string; verdict?: Verdict; disabled: boolean; healing: boolean; onClear(): void;
+function FaultItem({ f, label, place, verdict, disabled, healing, onClear }: {
+  f: ActiveFault; label: string; place: string; verdict?: Verdict; disabled: boolean; healing: boolean; onClear(): void;
 }) {
   const live = useBornLive();
   const b = byKind.get(f.kind);
@@ -204,6 +208,7 @@ function FaultItem({ f, label, verdict, disabled, healing, onClear }: {
     <li data-id={f.asset_id} className={`${s.fault} ${live ? s.enter : ""} ${healing ? s.healed : ""}`}>
       <span className="min-w-0">
         <span className={s.faultName}>{label}</span>
+        {place && <span className={s.place}>{place}</span>}
         <span className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
           <span className="text-muted">{b?.verb ?? f.kind} on since {utc(f.since_ts)}</span>
           {verdict
@@ -233,8 +238,8 @@ function AllClear() {
 }
 
 // Step 3, Active faults. Its own component so it sits inside <Arm> and its list can slide.
-function ActiveFaults({ active, verdicts, labelOf, live, busy, healing, onClear, onClearAll }: {
-  active: ActiveFault[]; verdicts: Record<string, Verdict>; labelOf(asset_id: string): string;
+function ActiveFaults({ active, verdicts, labelOf, placeOf, live, busy, healing, onClear, onClearAll }: {
+  active: ActiveFault[]; verdicts: Record<string, Verdict>; labelOf(asset_id: string): string; placeOf(asset_id: string): string;
   live: boolean; busy: boolean; healing: ReadonlySet<string>; onClear(asset_id: string): void; onClearAll(): void;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
@@ -255,6 +260,7 @@ function ActiveFaults({ active, verdicts, labelOf, live, busy, healing, onClear,
                 key={f.asset_id}
                 f={f}
                 label={labelOf(f.asset_id)}
+                place={placeOf(f.asset_id)}
                 verdict={verdicts[f.asset_id]}
                 disabled={!live || busy}
                 healing={healing.has(f.asset_id)}
@@ -297,6 +303,14 @@ export default function AttackPage() {
   const faultOn = new Map(api.active.map((f) => [f.asset_id, f]));
   const current = target ? faultOn.get(target.asset_id) : undefined;
   const labelOf = (asset_id: string) => api.targets.find((t) => t.asset_id === asset_id)?.label ?? asset_id;
+  // The site this phone breaks (?site=, the same database lib/live.ts opens), and each tank's
+  // county. Read after mount: the server render has no URL, so it would not match.
+  const [site, setSite] = useState<Site | null>(null);
+  useEffect(() => setSite(siteFor(new URLSearchParams(window.location.search).get("site"))), []);
+  const placeOf = (asset_id: string) => {
+    const t = api.targets.find((x) => x.asset_id === asset_id);
+    return !site ? "" : t ? placeLine(site, t.facility_id, t.system_id) : site.state;
+  };
 
   const hasTanks = api.targets.length > 0;
   useEffect(() => {
@@ -377,6 +391,7 @@ export default function AttackPage() {
           status={<Conn state={connState(api.status)} />} />
         <Grain />
         <LockdownBanner />
+        <p className={s.site}>{site ? siteLine(site) : "\u00a0"}</p>
 
         {api.status === "disconnected" && (
           <p role="alert" className={`mt-3 bg-alert-solid p-3 font-bold text-white ${s.shake}`}>
@@ -398,6 +413,7 @@ export default function AttackPage() {
                 <TankRow
                   key={t.asset_id}
                   t={t}
+                  place={placeOf(t.asset_id)}
                   i={i}
                   n={api.targets.length}
                   on={t.asset_id === target?.asset_id}
@@ -474,6 +490,7 @@ export default function AttackPage() {
           active={api.active}
           verdicts={api.verdicts}
           labelOf={labelOf}
+          placeOf={placeOf}
           live={live}
           busy={busy}
           healing={healing}
