@@ -1,0 +1,31 @@
+/* The page's site list beside the 3D map (Sui style: black, dark panels, thin borders, one blue). */
+.picker {
+  position: absolute; left: 16px; top: 76px; z-index: 5; width: min(320px, calc(100vw - 32px));
+  max-height: calc(100dvh - 120px); overflow-y: auto;
+  background: #131518; border: 1px solid #222529; border-radius: 12px; padding: 18px 16px 12px;
+  color: #fff; font-family: "Hanken Grotesk", system-ui, sans-serif;
+}
+.kicker { margin: 0 0 6px; font: 500 11px/1.4 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: 0.12em; text-transform: uppercase; color: #89919F; }
+.title { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+.hint { margin: 0 0 14px; font-size: 13px; color: #A1A7B2; }
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.site {
+  display: grid; grid-template-columns: 10px 1fr; gap: 4px 10px; align-items: center; width: 100%;
+  text-align: left; cursor: pointer; padding: 10px 12px; border-radius: 8px;
+  background: #000; border: 1px solid #222529; color: inherit; font: inherit;
+}
+.site:hover, .site:focus-visible { border-color: #298DFF; outline: none; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #6C7584; }
+.dot[data-tone="ok"] { background: #298DFF; }
+.dot[data-tone="warn"] { background: #F5A524; }
+.dot[data-tone="alert"] { background: #EF4444; }
+.name { font-size: 15px; font-weight: 600; }
+.basin { grid-column: 2; font: 500 11px/1.3 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: 0.08em; text-transform: uppercase; color: #89919F; }
+.status { grid-column: 2; font-size: 13px; color: #A1A7B2; }
+.status[data-tone="alert"] { color: #F87171; }
+.status[data-tone="warn"] { color: #F5A524; }
+.back {
+  font: 600 13px/1 "Hanken Grotesk", system-ui, sans-serif; color: #fff; background: #131518;
+  border: 1px solid #298DFF; border-radius: 8px; padding: 8px 12px; cursor: pointer;
+}
+.back:hover, .back:focus-visible { background: #298DFF; outline: none; }

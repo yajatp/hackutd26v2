@@ -22,6 +22,7 @@ import { Dashboard, Dock, useView, type SiteTransform } from "./nav";
 import { Toast, type FxNotice } from "./fx";
 import { noRay } from "./models";
 import { Panel3D } from "./Panel3D";
+import { BackButton3D, MapStage, useEntry } from "./usmap";
 
 // Each controller's thumbstick: one sideways push past the threshold is one step (stage.ts snapTurn,
 // turnAxis: a mostly forward push is the Walk view's teleport aim, not a turn); it fires again only
@@ -117,10 +118,15 @@ export function VrStage({ s, t, tanks, root, notices, still, onSelect, onTurn, o
 }) {
   const inXR = useXR((x) => x.session != null);
   const { mode, dashboard, setMode } = useView();
-  if (!inXR) return null;
+  const entry = useEntry();
+  // The entry map (usmap/): on the page and in the headset, in place of the site's cards and dock.
+  if (entry?.atMap) return <MapStage sites={entry.sites} inXR={inXR} onPick={entry.pick} />;
   const table = mode === "table";
+  const back = entry && table ? <BackButton3D onBack={entry.back} site={entry.site ?? ""} /> : null;
+  if (!inXR) return back;
   return (
     <>
+      {back}
       {table && !dashboard && <HowTo still={still} />}
       {/* The dashboard takes the space in front: the panel steps out while it is open. */}
       <Panel3D s={dashboard ? null : s} t={t} tanks={tanks} root={root} still={still} onClose={() => onSelect(null)} onWalk={(id) => setMode("ground", id)} />

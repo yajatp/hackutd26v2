@@ -11,7 +11,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import Link from "next/link";
 import type { XRStore } from "@react-three/xr";
 import { money } from "@/lib/eog/alerts";
-import { useAvonConsole } from "@/lib/live";
+import { siteDatabase, useAvonConsole, type SiteFacility } from "@/lib/live";
+import type { SiteSummary } from "@/lib/fleet";
+import { SITES } from "@/lib/sites";
 import { ConnBadge, connState } from "@/app/ui/Badge";
 import TwinCanvas from "./TwinCanvas";
 import { Labels, type Anchors } from "./Labels";
@@ -21,7 +23,10 @@ import { C, FONT, TONE_COLOR } from "./theme";
 import { useStill, useView, ViewButtons, ViewProvider } from "./nav";
 import { confirmedFacilities, useAttackFx, type FxNotice } from "./fx";
 import { twinXR } from "./xr";
+import { backToMap, BackToMap, EntryContext, entrySearch, FleetFeed, initialEntry, pickSite, SiteData, SitePicker, type Entry, type EntryValue } from "./usmap";
 import css from "./twin.module.css";
+
+const NO_FACILITIES: SiteFacility[] = [];
 
 const TONE: Record<Tone, string> = { alert: css.toneAlert, warn: css.toneWarn, ok: css.toneOk };
 
@@ -131,17 +136,50 @@ function Foot({ hint }: { hint: string }) {
 
 const HINT = { table: "Click a tank. Drag to turn.", overview: "Click a tank. Drag to look around.", ground: "Drag to look around. Click a tank or a sign." } as const;
 
+// The entry flow (usmap/): /twin starts at a 3D map of the US; picking a site switches the live
+// data to that site's database without a reload (a reload would end the XR session) and puts
+// ?site=<key> in the URL; /twin?site=<key> opens that site straight away. "Back to map" returns.
 // `store` is for the emulator test page (app/twin/emulate); the real page uses the one XR store.
 export default function TwinScreen({ store }: { store?: XRStore } = {}) {
+  const [entry, setEntry] = useState<Entry>(() => initialEntry(window.location.search));
+  const [deepLinked] = useState(() => entry.at === "site");
+  // The database the layout's <AvonProvider> already reads (from the URL at load).
+  const [home] = useState(() => siteDatabase(new URLSearchParams(window.location.search).get("site")));
+  const [bridged, setBridged] = useState(true);
+  const db = entry.at === "site" ? siteDatabase(entry.site) : home;
+
+  useEffect(() => {
+    const next = entrySearch(window.location.search, entry);
+    if (next === window.location.search) return;
+    window.history.replaceState(window.history.state, "", window.location.pathname + next + window.location.hash);
+    window.dispatchEvent(new Event("avon:site"));   // the sky clock (world/) may re-read ?site= now
+  }, [entry]);
+
+  const pick = useCallback((key: string) => {
+    // Only if the data switch could not be set up: a plain navigation (ends a VR session).
+    if (!bridged && siteDatabase(key) !== home) { window.location.assign(`${window.location.pathname}?site=${encodeURIComponent(key)}`); return; }
+    setEntry((cur) => pickSite(cur, key));
+  }, [bridged, home]);
+  const back = useCallback(() => setEntry(backToMap()), []);
+
   return (
-    <ViewProvider>
-      <TwinPage given={store} />
-    </ViewProvider>
+    <SiteData db={db} home={home} onBridge={setBridged}>
+      <ViewProvider>
+        <TwinPage given={store} entry={entry} deepLinked={deepLinked} onPick={pick} onBack={back} />
+      </ViewProvider>
+    </SiteData>
   );
 }
 
-function TwinPage({ given }: { given?: XRStore }) {
+function TwinPage({ given, entry, deepLinked, onPick, onBack }: {
+  given?: XRStore; entry: Entry; deepLinked: boolean; onPick(key: string): void; onBack(): void;
+}) {
   const avon = useAvonConsole();
+  const atMap = entry.at === "map";
+  const siteKey = entry.at === "site" ? entry.site : null;
+  const siteName = SITES.find((x) => x.key === siteKey)?.name ?? null;
+  const facilities = atMap ? NO_FACILITIES : avon.facilities;
+  const [fleet, setFleet] = useState<SiteSummary[]>([]);
   const { mode, focus, setMode, setDashboard } = useView();
   const [store] = useState<XRStore>(() => given ?? twinXR());
   const vr = useVrSupported();
@@ -154,8 +192,8 @@ function TwinPage({ given }: { given?: XRStore }) {
   const [anchors] = useState<Anchors>(() => new Map());
   // Everything below comes from the last facilities and view received, so a disconnect keeps
   // the model on screen.
-  const { tanks, clusters } = useMemo(() => layoutSite(avon.facilities), [avon.facilities]);
-  const list = useMemo(() => tankStates(avon.facilities, avon.view), [avon.facilities, avon.view]);
+  const { tanks, clusters } = useMemo(() => layoutSite(facilities), [facilities]);
+  const list = useMemo(() => tankStates(facilities, avon.view), [facilities, avon.view]);
   const states = useMemo(() => new Map(list.map((s) => [s.facility_id, s])), [list]);
   const top = useMemo(() => topFacility(avon.view), [avon.view]);
   const labelled = useMemo(() => visibleLabels(list, { top, hovered, selected }), [list, top, hovered, selected]);
@@ -174,6 +212,7 @@ function TwinPage({ given }: { given?: XRStore }) {
   // On entering VR: the table view, facing north, nothing selected. The first look is the table
   // with the top problem's ring and tag, the welcome card and the dock, not a panel over the site
   // (the judge opens one with the trigger).
+  // Entering VR from /twin (not a ?site= link) starts at the US map.
   const modeRef = useRef(mode);
   useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => store.subscribe((s, prev) => {
@@ -182,8 +221,20 @@ function TwinPage({ given }: { given?: XRStore }) {
       setSelected(null);
       setDashboard(false);
       if (modeRef.current !== "table") setMode("table");
+      if (!deepLinked) onBack();
     }
-  }), [store, setMode, setDashboard]);
+  }), [store, setMode, setDashboard, deepLinked, onBack]);
+
+  // A new site (or the map) starts like a fresh visit: the table view, facing north, nothing open.
+  useEffect(() => {
+    setTurn(0);
+    setSelected(null);
+    setHovered(null);
+    setDashboard(false);
+    if (modeRef.current !== "table") setMode("table");
+  }, [atMap, siteKey, setMode, setDashboard]);
+  const entryValue = useMemo<EntryValue>(() => ({ atMap, site: siteName ?? siteKey, siteKey, sites: fleet, pick: onPick, back: onBack }),
+    [atMap, siteName, siteKey, fleet, onPick, onBack]);
 
   const turnBy = useCallback((dir: 1 | -1) => setTurn((t) => (t + dir + 12) % 12), []);
   const resetView = useCallback(() => { setTurn(0); setViewKey((k) => k + 1); }, []);
@@ -198,10 +249,12 @@ function TwinPage({ given }: { given?: XRStore }) {
   }
 
   return (
-    <main className={css.page} style={THEME_VARS} data-view={mode}>
+    <EntryContext.Provider value={entryValue}>
+    <main className={css.page} style={THEME_VARS} data-view={mode} data-entry={atMap ? "map" : "site"} data-site={siteKey ?? undefined}>
+      {atMap && <FleetFeed onSites={setFleet} />}
       <div className={css.stage}>
         <TwinCanvas
-          store={store} facilities={avon.facilities} tanks={tanks} clusters={clusters} states={states} lifts={lifts} labelled={labelled}
+          store={store} facilities={facilities} tanks={tanks} clusters={clusters} states={states} lifts={lifts} labelled={labelled}
           faked={fx.faked} waves={fx.waves} notices={fx.notices} selected={selected} hovered={hovered} top={top} turn={turn}
           viewKey={viewKey} still={still} onSelect={select} onHover={hover} onTurn={turnBy} onReset={resetView} anchors={anchors}
           locked={!!avon.lockdown?.active}
@@ -214,12 +267,13 @@ function TwinPage({ given }: { given?: XRStore }) {
 
       <header className={css.bar}>
         <Link href="/" className={css.wordmark}>Avon</Link>
-        <h1 className={css.title}>Night shift</h1>
-        <ViewButtons className={css.views} />
+        <h1 className={css.title}>{atMap ? "Choose a site" : siteName ?? "Night shift"}</h1>
+        {!atMap && <BackToMap onBack={onBack} />}
+        {!atMap && <ViewButtons className={css.views} />}
         <Link href="/vr" className={css.quiet}>VR station</Link>
         <div className={css.actions}>
           {vr && <button type="button" className={css.primary} onClick={enterVR}>Enter VR</button>}
-          <button type="button" className={css.hairline} onClick={resetView}>Reset view</button>
+          {!atMap && <button type="button" className={css.hairline} onClick={resetView}>Reset view</button>}
           <ConnBadge state={connState(avon.status)} />
         </div>
       </header>
@@ -228,7 +282,8 @@ function TwinPage({ given }: { given?: XRStore }) {
         <p role="alert" className={`${css.notice} ${css.noticeAlert}`}>DISCONNECTED from the live data. Showing the last data received.</p>
       )}
       {vrError && <p role="alert" className={css.notice}>Could not enter VR: {vrError}</p>}
-      {tanks.length === 0 && (
+      {atMap && <SitePicker sites={fleet} onPick={onPick} />}
+      {!atMap && tanks.length === 0 && (
         <p className={css.empty}>
           {avon.status === "connecting" ? "Connecting to the live data…"
             : avon.status === "connected" ? <>No site loaded yet. Load one on the <Link href="/console">console</Link>.</>
@@ -236,7 +291,7 @@ function TwinPage({ given }: { given?: XRStore }) {
         </p>
       )}
       <PageToast latest={fx.latest} />
-      <Foot hint={HINT[mode]} />
+      {!atMap && <Foot hint={HINT[mode]} />}
       {picked && (
         <Panel
           s={picked} here={mode === "ground" && focus === picked.facility_id}
@@ -244,5 +299,6 @@ function TwinPage({ given }: { given?: XRStore }) {
         />
       )}
     </main>
+    </EntryContext.Provider>
   );
 }

@@ -97,7 +97,8 @@ export function useSkyClock(): SkyClock {
     const on = () => setTick(key());
     const id = window.setInterval(on, 15_000);
     window.addEventListener("popstate", on);
-    return () => { window.clearInterval(id); window.removeEventListener("popstate", on); };
+    window.addEventListener("avon:site", on);   // the US map picked a site (TwinScreen)
+    return () => { window.clearInterval(id); window.removeEventListener("popstate", on); window.removeEventListener("avon:site", on); };
   }, []);
   return useMemo(() => {
     void tick;

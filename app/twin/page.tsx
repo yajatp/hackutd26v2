@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 const TwinScreen = dynamic(() => import("./TwinScreen"), {
   ssr: false,
   loading: () => (
-    <p style={{ margin: 0, minHeight: "100dvh", padding: "20px 48px", background: "#102231", color: "#8fa1aa", fontFamily: '"Barlow", system-ui, sans-serif' }}>
+    <p style={{ margin: 0, minHeight: "100dvh", padding: "20px 48px", background: "#000", color: "#89919F", fontFamily: '"Hanken Grotesk", system-ui, sans-serif' }}>
       Loading the model…
     </p>
   ),
