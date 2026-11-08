@@ -126,7 +126,7 @@ function evaluate(md: Model, s: Sensor, i: number): SensorHealth {
       : `No reading for ${minutes(t - lastReal)} min. Last value ${round1(s.series[j])}${unit(s.metric)}.`;
   } else if (tp && judge(j) && Math.abs(tp.err[j]) > cal.drift_line) {
     h.state = "drifting";
-    h.evidence = `Off from physics by ${round1(Math.abs(tp.err[j]))} pts/h, growing.`;
+    h.evidence = `Margin of error vs physics: ${round1(Math.abs(tp.err[j]))} pts/h, growing.`;
   } else if (tp && j >= 1 && tp.level[j] >= tp.shutdown_pct - AT_LIMIT_PTS && Math.abs(tp.level[j] - tp.level[j - 1]) <= AT_LIMIT_PTS) {
     h.state = "shut_in";
     h.evidence = `Level ${round1(tp.level[j])}% at the ${round1(tp.shutdown_pct)}% shutdown limit and flat: wells shut in, not a sensor fault.`;

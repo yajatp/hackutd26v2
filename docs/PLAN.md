@@ -48,7 +48,7 @@ Never show only "Cheapest: $905". Show:
 ### Sensor health: show evidence, not a mystery number
 - Drop the 0-100 trust score from the main screen. Show the evidence instead: "Physics says +9.1 pts/h. Sensor says 0. Off for 30 min."
 - DEAD: "No reading for 10 min. Last value 61%."
-- DRIFTING: "Off from physics by 0.9 pts/h, growing."
+- DRIFTING: "Margin of error vs physics: 0.9 pts/h, growing." (was "Off from physics by ...", renamed by Mohan Sun 03:10)
 - Show "0 false alarms on clean data (5 folders checked)" once that check passes. Until then, don't claim it.
 - Every injected fault carries a **SIMULATED** badge. Their real data has no broken sensors, and we say so.
 

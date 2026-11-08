@@ -291,7 +291,20 @@ export async function sendDataset(
 const AvonContext = createContext<AvonConsole | null>(null);
 const AvonRttContext = createContext<number | null>(null);
 
-export function AvonProvider({ children, uri, database = AVON_DB }: { children: ReactNode; uri?: string; database?: string }) {
+// One database per oil site. `?site=eagleford` on any Avon page (console, Phone 1, the model,
+// the station) opens that site's database, `avon-eagleford` (or `<hosted db>-eagleford`); no
+// parameter keeps the default site. The US map links to sites this way.
+export function siteDatabase(site: string | null | undefined, base: string = AVON_DB): string {
+  const key = (site ?? "").toLowerCase().replace(/[^a-z0-9-]/g, "");
+  return key ? `${base}-${key}` : base;
+}
+
+function siteFromUrl(): string | null {
+  return typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("site");
+}
+
+export function AvonProvider({ children, uri, database }: { children: ReactNode; uri?: string; database?: string }) {
+  const [db] = useState(() => database ?? siteDatabase(siteFromUrl()));
   const [status, setStatus] = useState<AvonStatus>("connecting");
   const [rttMs, setRttMs] = useState<number | null>(null);
   const [view, setView] = useState<ConsoleView | null>(null);
@@ -305,7 +318,7 @@ export function AvonProvider({ children, uri, database = AVON_DB }: { children: 
   useEffect(() => {
     const l = connectAvon({
       uri: uri ?? avonUri(),
-      database,
+      database: db,
       onStatus: setStatus,
       onView: (v, s) => { setView(v); setSource(s); },
       onAttack: (t, f) => { setTargets(t); setFaults(f); },
@@ -315,7 +328,7 @@ export function AvonProvider({ children, uri, database = AVON_DB }: { children: 
     });
     link.current = l;
     return () => { l.close(); if (link.current === l) link.current = null; };
-  }, [uri, database]);
+  }, [uri, db]);
 
   const loading = useRef(false);
   const load = useCallback(async (files: DatasetFiles, datasetId: string) => {

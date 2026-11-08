@@ -122,7 +122,7 @@ test("fake_flat -> lying: a flat fake on a filling tank reads lying within 6 sam
   assert.ok(lyingAt > 0 && lyingAt <= 6, `lying at sample ${lyingAt}`);
 });
 
-test("drift -> drifting: a drift between the lines reads drifting with 'Off from physics by X pts/h, growing.'; calibration ignores the injected ticks", { skip: !hasData(FW) }, () => {
+test("drift -> drifting: a drift between the lines reads drifting with 'Margin of error vs physics: X pts/h, growing.'; calibration ignores the injected ticks", { skip: !hasData(FW) }, () => {
   const ds = loadFolder(FW);
   const cal = calibrate(ds);
   const rate = (cal.drift_line + cal.lie_line) / 2;
@@ -138,7 +138,7 @@ test("drift -> drifting: a drift between the lines reads drifting with 'Off from
     assert.ok(h.state !== "dead" && h.state !== "lying", `tick +${k}: ${h.state}`);
     if (h.state !== "drifting") continue;
     drifting++;
-    const m = h.evidence.match(/^Off from physics by (\d+(?:\.\d+)?) pts\/h, growing\.$/);
+    const m = h.evidence.match(/^Margin of error vs physics: (\d+(?:\.\d+)?) pts\/h, growing\.$/);
     assert.ok(m, h.evidence);
     assert.equal(m[1], round1(Math.abs(h.error_pts_h!)));
   }

@@ -149,7 +149,7 @@ test("lying sensor: amber LYING · SIMULATED first, keeps the PUMP FAILED line, 
 test("dead and drifting sensors on an otherwise fine tank are amber, with neutral fill", () => {
   const v = view([], [
     issue("S1_FACILITY_A", "dead", false, "No reading for 10 min. Last value 61%."),
-    issue("S2_FACILITY_A", "drifting", true, "Off from physics by 0.9 pts/h, growing."),
+    issue("S2_FACILITY_A", "drifting", true, "Margin of error vs physics: 0.9 pts/h, growing."),
   ]);
   const m = byId(v);
   const dead = m.get("S1_FACILITY_A")!;
