@@ -26,6 +26,9 @@ export interface AvonConsole {
   load(files: DatasetFiles, datasetId: string): Promise<void>;
   // The loaded site's facilities with their map position (3D twin, maps).
   facilities: SiteFacility[];
+  // Plans the operator confirmed, by alert id: the headline and cost as they read at that moment.
+  confirmations: Record<string, Confirmed>;
+  confirm(alertId: string): Promise<void>;
   // Phone 1 remote: the loaded site's tanks, the simulated faults on them, and the reducers.
   targets: AttackTarget[];
   faults: ActiveFault[];
@@ -59,6 +62,8 @@ function sourceOf(meta: ConsoleMeta | undefined): AvonSource | null {
   return meta ? { datasetId: meta.datasetId, builtAtMs: Number(meta.builtAt.microsSinceUnixEpoch) / 1000 } : null;
 }
 
+export interface Confirmed { headline: string; cost: number; atMs: number }
+
 export interface SiteFacility {
   facility_id: string; system_id: string; lat: number; lon: number;
   tank_id: string; pump_id: string; capacity_bbl: number; well_ids: string[];
@@ -73,6 +78,7 @@ export interface AvonLinkOptions {
   onView(view: ConsoleView | null, source: AvonSource | null): void;
   onAttack?(targets: AttackTarget[], faults: ActiveFault[]): void;
   onFacilities?(facilities: SiteFacility[]): void;
+  onConfirmations?(c: Record<string, Confirmed>): void;
 }
 
 // "<SYS>_FACILITY_C" -> "<SYS> · Facility C tank"
@@ -165,6 +171,11 @@ export function connectAvon(opts: AvonLinkOptions): AvonLink {
           facility_id: f.facilityId, system_id: f.systemId, lat: f.lat, lon: f.lon,
           tank_id: f.tankId, pump_id: f.pumpId, capacity_bbl: f.capacityBbl, well_ids: [...f.wellIds],
         })).sort((x, y) => x.facility_id.localeCompare(y.facility_id)));
+        const conf: Record<string, Confirmed> = {};
+        for (const r of c.db.confirmation.iter()) {
+          conf[r.alertId] = { headline: r.headline, cost: r.cost, atMs: Number(r.confirmedAt.microsSinceUnixEpoch) / 1000 };
+        }
+        opts.onConfirmations?.(conf);
       });
     };
     c.db.alert.onInsert(rebuild);
@@ -173,11 +184,11 @@ export function connectAvon(opts: AvonLinkOptions): AvonLink {
     c.db.consoleMeta.onInsert(rebuild);
     c.db.consoleMeta.onDelete(rebuild);
     c.db.consoleMeta.onUpdate(rebuild);
-    for (const tbl of [c.db.sensorIssue, c.db.fault, c.db.facility]) {
+    for (const tbl of [c.db.sensorIssue, c.db.fault, c.db.facility, c.db.confirmation]) {
       tbl.onInsert(rebuild);
       tbl.onDelete(rebuild);
     }
-    c.subscriptionBuilder().onApplied(rebuild).subscribe([tables.alert, tables.consoleMeta, tables.sensorIssue, tables.fault, tables.facility]);
+    c.subscriptionBuilder().onApplied(rebuild).subscribe([tables.alert, tables.consoleMeta, tables.sensorIssue, tables.fault, tables.facility, tables.confirmation]);
   }
 
   open();
@@ -255,6 +266,7 @@ export function AvonProvider({ children, uri, database = AVON_DB }: { children: 
   const [targets, setTargets] = useState<AttackTarget[]>([]);
   const [faults, setFaults] = useState<ActiveFault[]>([]);
   const [facilities, setFacilities] = useState<SiteFacility[]>([]);
+  const [confirmations, setConfirmations] = useState<Record<string, Confirmed>>({});
   const link = useRef<AvonLink | null>(null);
 
   useEffect(() => {
@@ -265,6 +277,7 @@ export function AvonProvider({ children, uri, database = AVON_DB }: { children: 
       onView: (v, s) => { setView(v); setSource(s); },
       onAttack: (t, f) => { setTargets(t); setFaults(f); },
       onFacilities: setFacilities,
+      onConfirmations: setConfirmations,
     });
     link.current = l;
     return () => { l.close(); if (link.current === l) link.current = null; };
@@ -295,9 +308,15 @@ export function AvonProvider({ children, uri, database = AVON_DB }: { children: 
     await conn.reducers.clearFault({ assetId: assetId ?? "" });
   }, []);
 
+  const confirm = useCallback(async (alertId: string) => {
+    const conn = link.current?.connection();
+    if (!conn) throw new Error("Spacetime is disconnected");
+    await conn.reducers.confirmPlan({ alertId });
+  }, []);
+
   const value = useMemo<AvonConsole>(
-    () => ({ status, view, source, load, facilities, targets, faults, inject, clear }),
-    [status, view, source, load, facilities, targets, faults, inject, clear],
+    () => ({ status, view, source, load, facilities, confirmations, confirm, targets, faults, inject, clear }),
+    [status, view, source, load, facilities, confirmations, confirm, targets, faults, inject, clear],
   );
   return createElement(AvonContext.Provider, { value }, children);
 }

@@ -7,12 +7,14 @@ import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
 import ClearFaultReducer from "../clear_fault_reducer";
+import ConfirmPlanReducer from "../confirm_plan_reducer";
 import FinishIngestReducer from "../finish_ingest_reducer";
 import IngestBatchReducer from "../ingest_batch_reducer";
 import InjectFaultReducer from "../inject_fault_reducer";
 import LoadDatasetReducer from "../load_dataset_reducer";
 
 export type ClearFaultParams = __Infer<typeof ClearFaultReducer>;
+export type ConfirmPlanParams = __Infer<typeof ConfirmPlanReducer>;
 export type FinishIngestParams = __Infer<typeof FinishIngestReducer>;
 export type IngestBatchParams = __Infer<typeof IngestBatchReducer>;
 export type InjectFaultParams = __Infer<typeof InjectFaultReducer>;

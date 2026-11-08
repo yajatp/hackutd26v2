@@ -35,6 +35,7 @@ import {
 
 // Import all reducer arg schemas
 import ClearFaultReducer from "./clear_fault_reducer";
+import ConfirmPlanReducer from "./confirm_plan_reducer";
 import FinishIngestReducer from "./finish_ingest_reducer";
 import IngestBatchReducer from "./ingest_batch_reducer";
 import InjectFaultReducer from "./inject_fault_reducer";
@@ -45,6 +46,7 @@ import LoadDatasetReducer from "./load_dataset_reducer";
 // Import all table schema definitions
 import AlertRow from "./alert_table";
 import ConfigRow from "./config_table";
+import ConfirmationRow from "./confirmation_table";
 import ConsoleMetaRow from "./console_meta_table";
 import FacilityRow from "./facility_table";
 import FaultRow from "./fault_table";
@@ -76,6 +78,17 @@ const tablesSchema = __schema({
       { name: 'config_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, ConfigRow),
+  confirmation: __table({
+    name: 'confirmation',
+    indexes: [
+      { accessor: 'alertId', name: 'confirmation_alert_id_idx_btree', algorithm: 'btree', columns: [
+        'alertId',
+      ] },
+    ],
+    constraints: [
+      { name: 'confirmation_alert_id_key', constraint: 'unique', columns: ['alertId'] },
+    ],
+  }, ConfirmationRow),
   consoleMeta: __table({
     name: 'console_meta',
     indexes: [
@@ -125,6 +138,7 @@ const tablesSchema = __schema({
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
   __reducerSchema("clear_fault", ClearFaultReducer),
+  __reducerSchema("confirm_plan", ConfirmPlanReducer),
   __reducerSchema("finish_ingest", FinishIngestReducer),
   __reducerSchema("ingest_batch", IngestBatchReducer),
   __reducerSchema("inject_fault", InjectFaultReducer),

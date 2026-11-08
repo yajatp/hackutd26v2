@@ -30,6 +30,15 @@ export const Config = __t.object("Config", {
 });
 export type Config = __Infer<typeof Config>;
 
+export const Confirmation = __t.object("Confirmation", {
+  alertId: __t.string(),
+  headline: __t.string(),
+  cost: __t.f64(),
+  confirmedBy: __t.identity(),
+  confirmedAt: __t.timestamp(),
+});
+export type Confirmation = __Infer<typeof Confirmation>;
+
 export const ConsoleMeta = __t.object("ConsoleMeta", {
   id: __t.u8(),
   datasetId: __t.string(),

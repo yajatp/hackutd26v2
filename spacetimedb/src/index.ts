@@ -106,6 +106,16 @@ const fault = table({ name: 'fault', public: true }, {
   createdAt: t.timestamp(),
 });
 
+// The operator's confirmations: the plan as it read when they pressed Confirm. If a later fault
+// changes the plan, the console can say so (the judge's own action shows the twist).
+const confirmation = table({ name: 'confirmation', public: true }, {
+  alertId: t.string().primaryKey(),
+  headline: t.string(),
+  cost: t.f64(),
+  confirmedBy: t.identity(),
+  confirmedAt: t.timestamp(),
+});
+
 // Every sensor that reads dead, drifting or lying at "now" (ConsoleView.sensors), worst first.
 const sensorIssue = table({ name: 'sensor_issue', public: true }, {
   rank: t.u32().primaryKey(),
@@ -113,7 +123,7 @@ const sensorIssue = table({ name: 'sensor_issue', public: true }, {
 });
 
 // snake_case keys so source and canonical names agree (SQL, describe and logs all say console_meta).
-const spacetimedb = schema({ config, dataset_source: datasetSource, facility, reading, alert, console_meta: consoleMeta, fault, sensor_issue: sensorIssue, load_lock: loadLock });
+const spacetimedb = schema({ config, dataset_source: datasetSource, facility, reading, alert, console_meta: consoleMeta, fault, sensor_issue: sensorIssue, load_lock: loadLock, confirmation });
 export default spacetimedb;
 
 export const load_dataset = spacetimedb.reducer(
@@ -136,6 +146,7 @@ export const load_dataset = spacetimedb.reducer(
     ctx.db.console_meta.clear();
     ctx.db.fault.clear();
     ctx.db.sensor_issue.clear();
+    ctx.db.confirmation.clear();
     ctx.db.facility.clear();
     ctx.db.dataset_source.clear();
     ctx.db.config.clear();
@@ -267,5 +278,20 @@ export const clear_fault = spacetimedb.reducer(
     if (assetId === '') ctx.db.fault.clear();
     else ctx.db.fault.assetId.delete(assetId);
     rebuild(ctx);
+  }
+);
+
+// The operator confirms the plan on a fix card. Stores the headline and cost from the server's own
+// alert row, never from the client.
+export const confirm_plan = spacetimedb.reducer(
+  { alertId: t.string() },
+  (ctx, { alertId }) => {
+    let row: { alertJson: string } | undefined;
+    for (const a of ctx.db.alert.iter()) if (a.alertId === alertId) { row = a; break; }
+    if (!row) throw new SenderError(`no alert ${alertId} on the console now`);
+    const a = JSON.parse(row.alertJson) as { fix?: { headline: string; plan: { cost: number } } };
+    if (!a.fix) throw new SenderError('this alert has no plan to confirm');
+    ctx.db.confirmation.alertId.delete(alertId);
+    ctx.db.confirmation.insert({ alertId, headline: a.fix.headline, cost: a.fix.plan.cost, confirmedBy: ctx.sender, confirmedAt: ctx.timestamp });
   }
 );
