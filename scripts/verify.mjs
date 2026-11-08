@@ -95,7 +95,9 @@ function report(log, witness, status) {
   console.log(`  entries: ${sorted.length}${last ? ` (#${sorted[0].seq}..#${last.seq}), head ${short(last.hash)}` : ""}`);
   if (witness) console.log(`  witness: saw up to #${witness.seq}, head ${short(witness.head)}${witnessPath ? ` (${witnessPath})` : ""}`);
   else console.log(`  witness: none${witnessPath ? ` yet (will save to ${witnessPath})` : " (pass --witness to catch deleted entries)"}`);
-  if (status.kind === "tampering" && status.members) {
+  if (status.kind === "tampering" && status.head) {
+    console.log("  why:     chain_head was changed without a matching log entry; the next honest entry would be blamed");
+  } else if (status.kind === "tampering" && status.members) {
     console.log(`  why:     member ${status.members} in the member table does not match the member entries in the log`);
   } else if (status.kind === "tampering") {
     let why;
@@ -112,15 +114,34 @@ function report(log, witness, status) {
   if (status.kind === "rollback") console.log(`  why:     entries from #${status.at} on were removed after this witness saw them`);
 }
 
+// Server mode only: chain_head must point at the last entry. An edit to the head alone would
+// otherwise pass and get the next honest writer's entry blamed (red team item 6).
+async function readHead() {
+  if (file) return null;
+  const url = `http://${host}:${port}/v1/database/${db}/sql`;
+  const res = await fetch(url, { method: "POST", body: "SELECT seq, hash FROM chain_head" });
+  if (!res.ok) throw new Error(`${url}: HTTP ${res.status} ${await res.text()}`);
+  const [result] = await res.json();
+  const row = result.rows[0];
+  return row ? { seq: Number(row[0]), hash: String(row[1]) } : null;
+}
+
 async function checkOnce(witness, quiet) {
   const log = await readLog();
   let status = chainStatus(log, witness);
   const members = status.kind === "verified" ? await readMembers() : null;
   const stray = members ? memberMismatch(members, log) : null;
   if (stray) status = { kind: "tampering", text: `MEMBER LIST CHANGED OUTSIDE THE LOG (${stray.slice(0, 8)})`, at: log.length, members: stray };
+  if (status.kind === "verified") {
+    const head = await readHead();
+    const last = [...log].sort((a, b) => a.seq - b.seq).at(-1);
+    if (head && last && (head.seq !== last.seq || head.hash !== last.hash)) {
+      status = { kind: "tampering", text: `CHAIN HEAD CHANGED OUTSIDE THE LOG (head #${head.seq}, last entry #${last.seq})`, at: last.seq, head: true };
+    }
+  }
   if (!quiet) report(log, witness, status);
   if (exportPath) writeFileSync(exportPath, JSON.stringify([...log].sort((a, b) => a.seq - b.seq), null, 2));
-  const next = stray ? witness : advanceWitness(log, witness);
+  const next = stray || status.head ? witness : advanceWitness(log, witness);
   if (witnessPath && next && JSON.stringify(next) !== JSON.stringify(witness)) {
     writeFileSync(witnessPath, JSON.stringify(next, null, 2));
     if (!quiet) console.log(`  saved:   witness now #${next.seq}, head ${short(next.head)}`);

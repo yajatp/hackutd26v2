@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { appendEvent, witnessOf, type LogEvent } from "../../chain.ts";
 import { advanceWitness, chainStatus, memberMismatch, parseWitness } from "./status.ts";
+import { rowToEvent } from "./replay.ts";
 
 function build(n: number): LogEvent[] {
   const log: LogEvent[] = [];
@@ -103,4 +104,16 @@ test("member table vs the log: matches, a role edited outside the log, a row add
   assert.equal(memberMismatch([...members, { identity: "cc33", name: "X", role: "Commander", active: true }], log), "cc33");
   add("bb22", "Lee", "Responder");   // a logged role change is fine
   assert.equal(memberMismatch([members[0], { ...members[1], role: "Responder" }], log), null);
+});
+
+test("a stored payload whose bytes differ from what the module wrote is TAMPERING (red team: duplicate keys, spacing, rounding)", () => {
+  let log: LogEvent[] = [];
+  for (let i = 0; i < 3; i++) log = [...log, appendEvent(log, { incident_id: "INC-0001", ts: String(i), actor: "Dana|Commander|aa", type: "chat", payload: { text: `m${i}` } })];
+  const row = (e: LogEvent, payloadJson: string) => ({ seq: e.seq, prevHash: e.prev_hash, incidentId: e.incident_id, ts: e.ts, actor: e.actor, type: e.type, payloadJson, hash: e.hash });
+  const honest = log.map((e) => rowToEvent(row(e, JSON.stringify(e.payload))));
+  assert.equal(chainStatus(honest, null).kind, "verified");
+  for (const forged of ['{"text":"gone","text":"m1"}', '{ "text": "m1" }', '{"text":"\\u006d1"}']) {
+    const rows = log.map((e) => rowToEvent(row(e, e.seq === 1 ? forged : JSON.stringify(e.payload))));
+    assert.deepEqual(chainStatus(rows, null), { kind: "tampering", text: "TAMPERING AT #1", at: 1 }, forged);
+  }
 });

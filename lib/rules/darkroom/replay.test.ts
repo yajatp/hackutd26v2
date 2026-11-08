@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { appendEvent, type Json, type LogEvent, type NewEvent } from "../../chain.ts";
+import { appendEvent, canonical, type Json, type LogEvent, type NewEvent } from "../../chain.ts";
 import { replayChat, replayClosure, replayEvidence, replayIncidents, replayScope, rowToEvent, SCOPE_STATES } from "./replay.ts";
 import { checkWrite } from "./roles.ts";
 import { nextIncidentId, validatePayload } from "./entries.ts";
@@ -73,7 +73,7 @@ test("incidents and chat are rebuilt from the log", () => {
 test("rowToEvent turns a database row (bigint seq, payload JSON) into a chain entry", () => {
   const log = fixture();
   const e = log[3];
-  const row = { seq: BigInt(e.seq), prevHash: e.prev_hash, incidentId: e.incident_id, ts: e.ts, actor: e.actor, type: e.type, payloadJson: JSON.stringify(e.payload), hash: e.hash };
+  const row = { seq: BigInt(e.seq), prevHash: e.prev_hash, incidentId: e.incident_id, ts: e.ts, actor: e.actor, type: e.type, payloadJson: canonical(e.payload), hash: e.hash };
   assert.deepEqual(rowToEvent(row), e);
 });
 

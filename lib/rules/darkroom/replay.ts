@@ -1,7 +1,7 @@
 // Every Darkroom screen is a replay of the log. Nothing here reads a stored
 // status: delete or edit an entry and the board changes with it.
 
-import type { Json, LogEvent } from "../../chain.ts";
+import { canonical, type Json, type LogEvent } from "../../chain.ts";
 import { parseActor } from "./roles.ts";
 import type { Certainty, ScopeState } from "./entries.ts";
 
@@ -136,8 +136,13 @@ export function rowToEvent(r: LogRow): LogEvent {
   let payload: Json;
   try {
     payload = JSON.parse(r.payloadJson) as Json;
+    // The module stores exactly canonical(payload). Different bytes with the same parse (duplicate
+    // keys, extra spaces, escapes, a big number that rounds) mean the row was edited outside the
+    // module: keep the raw text so the hash check flags it (red team items 3-5).
+    if (canonical(payload) !== r.payloadJson) payload = r.payloadJson;
   } catch {
-    // Unparseable payload: keep the raw text so the hash check flags it.
+    // Unparseable payload (or one canonical() refuses, like 1e309): keep the raw text so the
+    // hash check flags it.
     payload = r.payloadJson;
   }
   return {
