@@ -13,6 +13,7 @@ Paste one file into one agent. Each job owns its own files and branch, so the ag
 | yajat-codex-review-2.md | Yajat (Codex), in `avon-codex/`, after "Fix review findings" lands | Re-check the first review, red-team the Darkroom on a throwaway server | yajat/review-2 |
 | yajat-codex-redteam.md | Yajat (Codex), in `avon-codex/` | Automated red-team suite for the Darkroom log: CAUGHT / MISSED per attack, REDTEAM.md | yajat/redteam |
 | yajat-claude-redteam-rerun.md | Yajat (Claude Code) | Rerun the red-team suite after the fixes; both verifiers must agree | yajat/redteam-rerun |
+| yajat-codex-architecture.md | Yajat (Codex), in `avon-codex/` | Draft docs/ARCHITECTURE.md for the Spacetime judges (Mohan approves the text) | yajat/architecture |
 | sreesh-claude-ui-audit.md | Sreesh (Claude Code) | UI audit (report only) + 90-second demo run sheet | none (no commits) |
 
 Setup on Yajat's laptop, once:
