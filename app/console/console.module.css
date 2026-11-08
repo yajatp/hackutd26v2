@@ -1,0 +1,88 @@
+/* /console in the night language of /vr (docs/DESIGN.md). Night in both color schemes: the
+   product tokens get the /vr page's values here, so every token-based class on the board, the
+   header and the badges follows. The board's own pieces are Tailwind utilities on those tokens.
+   These rules are unlayered, so they beat the layered ones in app/globals.css (and Tailwind
+   utilities on the same element): set only what changes. */
+
+.night {
+  --background: #102231;
+  --foreground: #d7dee0;
+  --surface: transparent;
+  --surface-2: rgb(215 222 224 / 0.06);
+  --muted: #8fa1aa;
+  --line: rgb(215 222 224 / 0.3);
+  --line-soft: rgb(215 222 224 / 0.12);
+  --alert: #fca5a5;
+  --alert-bg: transparent;
+  --alert-line: #ef4444;
+  --alert-solid: #b91c1c;
+  --warn: #fde68a;
+  --warn-bg: rgb(245 158 11 / 0.08);
+  --warn-line: #f59e0b;
+
+  color-scheme: dark;
+  min-height: 100vh;
+  background: #102231;
+  color: #d7dee0;
+  font-family: "Bahnschrift", "DIN Alternate", "Roboto", system-ui, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.night :focus-visible {
+  outline: 2px solid #d7dee0;
+  outline-offset: 3px;
+}
+
+/* Shared chrome, quieted. Buttons: a hairline, square-ish, the text face, normal weight. */
+.night :global(.btn) {
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: transparent;
+  color: #d7dee0;
+  font-family: inherit;
+  font-weight: 400;
+}
+
+.night :global(.btn:hover:not(:disabled)) {
+  border-color: #d7dee0;
+}
+
+/* The one filled button: the decision. */
+.night :global(.btn-primary) {
+  border-color: #d7dee0;
+  background: #d7dee0;
+  color: #102231;
+  font-weight: 700;
+}
+
+.night :global(.btn-primary:hover:not(:disabled)) {
+  border-color: #ffffff;
+  background: #ffffff;
+}
+
+.night :global(.btn-on) {
+  border-color: #d7dee0;
+  box-shadow: none;
+}
+
+/* Sentence case, no tracking: a quiet heading, not an all-caps label. */
+.night :global(.section-title) {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  color: #d7dee0;
+}
+
+/* No boxes: a hairline above, text on the page's one left margin. */
+.night :global(.card) {
+  border: 0;
+  border-top: 1px solid var(--line-soft);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  padding-inline: 0;
+}

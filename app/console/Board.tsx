@@ -11,6 +11,13 @@ import { useAvonConsole } from "@/lib/live";
 
 export type Conn = "connecting" | "connected" | "disconnected";
 
+// The night look of /vr (docs/DESIGN.md), as Tailwind utilities on the tokens that
+// app/console/layout.tsx gives night values. A state is a rule on the left in its color over a
+// faint tint, never a box. The decision is the page's one bold moment: DIN bold, condensed.
+const WARN = "border-l-[3px] border-warn-line bg-warn-bg py-3 pr-3 pl-4";
+const ALERT = "border-l-[3px] border-alert-line bg-alert-bg py-3 pr-3 pl-4";
+const DECIDE = "font-bold leading-none [font-stretch:75%]";
+
 function countdown(h: number | null): string {
   if (h === null) return "";
   if (h <= 0) return "at shutdown now";
@@ -32,19 +39,19 @@ function SendToDarkroom({ ev, dataset, now }: { ev: Evidence | null; dataset: st
   if (!ev) return null;
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="btn mt-2">
+      <button onClick={() => setOpen(true)} className="btn mt-3">
         Open an incident in the Darkroom
       </button>
     );
   }
   return (
-    <div className="card mt-2 p-3">
+    <div className={`mt-3 ${WARN}`}>
       <p className="section-title">Carry this to the Darkroom box</p>
       <p className="mt-1 text-sm">
         A sensor that disagrees with physics can mean someone is inside the network. Nothing is sent from here:
         a person types this reference on the Darkroom box, and the box logs who brought it and when.
       </p>
-      <p className="mt-2 font-mono text-3xl font-bold tracking-wider">{ev.ref}</p>
+      <p className="mt-2 font-mono text-3xl font-bold tracking-[0.05em]">{ev.ref}</p>
       <p className="mt-1 break-all font-mono text-xs text-muted">Fingerprint (SHA-256): {ev.hash}</p>
       <p className="mt-1 text-sm text-muted">
         {ev.record.asset_id} {ev.record.metric} · {dataset} at {hhmm(now)} UTC{ev.record.simulated ? " · SIMULATED fault" : ""}
@@ -74,7 +81,7 @@ function ConfirmRow({ a }: { a: Alert }) {
   }
   if (!done) {
     return (
-      <div className="mt-3">
+      <div className="mt-5">
         <button className="btn btn-primary" onClick={go} disabled={busy || status !== "connected"}>
           Confirm this plan
         </button>
@@ -84,13 +91,13 @@ function ConfirmRow({ a }: { a: Alert }) {
   }
   if (!bad && !changed) {
     return (
-      <p className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+      <p className="mt-5 flex flex-wrap items-center gap-2 text-sm">
         <Badge tone="ok" icon="✓">CONFIRMED</Badge> by the night shift at {clock(done.atMs)}
       </p>
     );
   }
   return (
-    <div className="mt-3 rounded-md border-2 border-warn-line bg-warn-bg p-3 text-sm">
+    <div className={`mt-5 ${WARN} text-sm`}>
       <p className="flex flex-wrap items-center gap-2 font-bold">
         <Badge tone="warn" icon="●">CONFIRMED, THEN CHANGED</Badge>
       </p>
@@ -109,17 +116,17 @@ function ConfirmRow({ a }: { a: Alert }) {
 
 function FixCardView({ a, top, dataset, now }: { a: Alert; top: boolean; dataset: string; now: number }) {
   const fix = a.fix!;
-  const big = top ? "text-3xl" : "text-xl";
+  const big = top ? "text-[2rem] sm:text-[2.75rem]" : "text-[1.5rem] sm:text-[1.75rem]";
   return (
-    <section className={`rounded-lg p-4 ${top ? "border-2 border-alert-line bg-alert-bg" : "border border-alert-line/50 bg-surface"}`}>
-      <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-sm font-semibold uppercase tracking-wide">
-        <span>{pretty(a.facility.id)} · pump failed</span>
+    <section className={`border-alert-line pl-5 sm:pl-7 ${top ? "border-l-[3px]" : "border-l"}`}>
+      <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-[0.9375rem]">
+        <span className="font-semibold text-foreground">{pretty(a.facility.id)} · pump failed</span>
         {a.hours_to_limit !== null && (
-          <span className="tabular-nums text-alert"><span aria-hidden="true">▲ </span>{countdown(a.hours_to_limit)}</span>
+          <span className="font-semibold tabular-nums text-[#f87171]"><span aria-hidden="true">▲ </span>{countdown(a.hours_to_limit)}</span>
         )}
       </header>
       {a.tank_sensor && ["dead", "drifting", "lying"].includes(a.tank_sensor.state) && (
-        <div className="mt-3 rounded-md border-2 border-warn-line bg-warn-bg p-3 text-sm">
+        <div className={`mt-4 ${WARN} text-sm`}>
           <p className="flex flex-wrap items-center gap-2 font-bold">
             CHECK THE TANK SENSOR FIRST: <SensorBadge state={a.tank_sensor.state} />
             {a.tank_sensor.simulated && <SimulatedBadge />}
@@ -128,12 +135,12 @@ function FixCardView({ a, top, dataset, now }: { a: Alert; top: boolean; dataset
           <SendToDarkroom ev={evidenceFor(a, dataset, now)} dataset={dataset} now={now} />
         </div>
       )}
-      <div className="mt-3 flex items-baseline justify-between gap-4">
-        <p className={`${big} font-bold leading-tight`}><span className="text-muted">Do this:</span> {fix.headline}</p>
-        <p className={`${big} font-bold tabular-nums`}>{money(fix.plan.cost)}</p>
+      <div className="mt-4 flex items-end justify-between gap-4 sm:gap-6">
+        <p className={`${big} ${DECIDE} min-w-0`}><span className="mb-2 block text-sm font-normal leading-snug text-muted [font-stretch:100%]">Do this:</span> {fix.headline}</p>
+        <p className={`${big} ${DECIDE} shrink-0 text-right tabular-nums`}>{money(fix.plan.cost)}</p>
       </div>
       {fix.alternatives.length > 0 && <ConfirmRow a={a} />}
-      <p className="mt-1 text-sm tabular-nums">
+      <p className="mt-3 text-sm tabular-nums text-muted">
         {[...fix.details,
           fix.trip_at_unix !== null ? `tank would trip ${hhmm(fix.trip_at_unix)}` : null,
           `repair done ${hhmm(fix.repair_done_unix)}`,
@@ -146,22 +153,22 @@ function FixCardView({ a, top, dataset, now }: { a: Alert; top: boolean; dataset
         </p>
       )}
       {fix.alternatives.length > 0 && (
-        <div className="mt-3">
+        <div className="mt-6">
           <p className="section-title">Why not the others</p>
-          <table className="mt-1 w-full text-sm tabular-nums">
+          <table className="mt-2 w-full border-b border-line-soft text-sm tabular-nums">
             <tbody>
               {fix.alternatives.map((alt) => (
                 <tr key={alt.label} className="border-t border-line-soft">
-                  <td className="py-1 pr-3">{alt.label}</td>
-                  <td className="py-1 pr-3 text-right">{money(alt.cost)}</td>
-                  <td className="py-1 text-muted">{alt.why}</td>
+                  <td className="py-1.5 pr-3">{alt.label}</td>
+                  <td className="py-1.5 pr-4 text-right">{money(alt.cost)}</td>
+                  <td className="py-1.5 text-muted">{alt.why}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
-      <p className="mt-2 text-sm text-muted">Times come from noisy readings: same decision, start times within about 3 min.</p>
+      <p className="mt-3 text-[0.8125rem] text-muted">Times come from noisy readings: same decision, start times within about 3 min.</p>
     </section>
   );
 }
@@ -174,12 +181,12 @@ const METRIC_WORD: Record<string, string> = {
 function SensorsToCheck({ sensors, dataset, now }: { sensors: SensorIssue[]; dataset: string; now: number }) {
   if (sensors.length === 0) return null;
   return (
-    <section className="mt-4">
+    <section className="mt-10">
       <h2 className="section-title">Sensors to check</h2>
-      <ul className="mt-2 flex flex-col gap-2">
+      <ul className="mt-3 flex flex-col gap-3">
         {sensors.map((x) => (
-          <li key={x.key} className="rounded-lg border-2 border-warn-line bg-warn-bg p-3">
-            <p className="flex flex-wrap items-center gap-2 text-lg font-bold">
+          <li key={x.key} className={WARN}>
+            <p className="flex flex-wrap items-center gap-2 text-lg font-semibold">
               <SensorBadge state={x.state} />
               <span>{pretty(x.asset_id)} {METRIC_WORD[x.metric] ?? x.metric.replace(/_/g, " ")}</span>
               {x.simulated && <SimulatedBadge />}
@@ -198,9 +205,9 @@ function SensorsToCheck({ sensors, dataset, now }: { sensors: SensorIssue[]; dat
 function InspectionRow({ a }: { a: Alert }) {
   const what = a.event.category === "pipeline_leak" ? "Possible leak" : "Pump wearing out";
   return (
-    <li className="rounded-lg border border-warn-line/60 bg-surface p-3">
+    <li className={WARN}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-        <span className="font-semibold"><span aria-hidden="true">● </span>{what} · {pretty(a.event.asset_id)}</span>
+        <span className="font-semibold"><span aria-hidden="true" className="text-warn-line">● </span>{what} · {pretty(a.event.asset_id)}</span>
         <span className="text-sm tabular-nums text-muted">first seen about {hhmm(a.event.onset_unix)}</span>
       </div>
       <p className="text-sm">{a.action}</p>
@@ -218,7 +225,7 @@ function InspectionRow({ a }: { a: Alert }) {
 export function ConnBanner({ conn }: { conn: Conn }) {
   if (conn !== "disconnected") return null;
   return (
-    <p role="alert" className="mt-4 rounded-lg border-2 border-alert-line bg-alert-bg p-3 font-semibold text-alert">
+    <p role="alert" className={`mt-4 ${ALERT} font-semibold text-alert`}>
       ▲ DISCONNECTED from the live data. Showing the last data received.
     </p>
   );
@@ -231,38 +238,38 @@ export function Board({ view, dataset }: { view: ConsoleView; dataset: string })
     <>
       <SensorsToCheck sensors={view.sensors ?? []} dataset={dataset} now={view.now} />
       {failures.length > 0 && (
-        <p className="mt-6 tabular-nums">
+        <p className="mt-10 text-xl leading-snug tabular-nums text-muted">
           {failures.length} pump failure{failures.length > 1 ? "s" : ""} · doing nothing costs {money(view.totals.do_nothing)} ·
-          these plans cost <b>{money(view.totals.plans)}</b>
+          these plans cost <b className="font-bold text-foreground">{money(view.totals.plans)}</b>
         </p>
       )}
-      <div className="mt-3 flex flex-col gap-4">
+      <div className="mt-10 flex flex-col gap-14">
         {failures.map((a, i) => <FixCardView key={a.id} a={a} top={i === 0} dataset={dataset} now={view.now} />)}
       </div>
       {failures.length === 0 && (
-        <p className="card mt-6"><span aria-hidden="true">✓ </span>No pump failures right now. Every tank is draining normally.</p>
+        <p className="card mt-10"><span aria-hidden="true">✓ </span>No pump failures right now. Every tank is draining normally.</p>
       )}
 
       {inspections.length > 0 && (
-        <section className="mt-6">
+        <section className="mt-14">
           <h2 className="section-title">Needs a field inspection</h2>
-          <ul className="mt-2 flex flex-col gap-2">{inspections.map((a) => <InspectionRow key={a.id} a={a} />)}</ul>
+          <ul className="mt-3 flex flex-col gap-3">{inspections.map((a) => <InspectionRow key={a.id} a={a} />)}</ul>
         </section>
       )}
 
-      <details className="mt-8 text-sm">
-        <summary className="cursor-pointer text-muted">All {view.events.length} problems found in this data</summary>
-        <table className="mt-2 w-full tabular-nums">
-          <thead className="text-left text-sm text-muted">
-            <tr><th className="py-1">Problem</th><th>Asset</th><th>Start</th><th>End</th><th>Status</th></tr>
+      <details className="mt-14 border-t border-line-soft pt-4 text-sm text-muted">
+        <summary className="cursor-pointer">All {view.events.length} problems found in this data</summary>
+        <table className="mt-3 w-full tabular-nums [overflow-wrap:anywhere]">
+          <thead className="text-left text-sm">
+            <tr><th className="py-1.5 pr-3 font-semibold">Problem</th><th className="pr-3 font-semibold">Asset</th><th className="pr-3 font-semibold">Start</th><th className="pr-3 font-semibold">End</th><th className="font-semibold">Status</th></tr>
           </thead>
           <tbody>
             {view.events.map((e) => (
               <tr key={e.asset_id + e.onset_unix + e.category} className="border-t border-line-soft">
-                <td className="py-1">{e.category.replace(/_/g, " ")}</td>
-                <td>{e.asset_id}</td>
-                <td>{stamp(e.onset_unix)}</td>
-                <td>{e.end_unix ? stamp(e.end_unix) : "—"}</td>
+                <td className="py-1.5 pr-3">{e.category.replace(/_/g, " ")}</td>
+                <td className="pr-3">{e.asset_id}</td>
+                <td className="pr-3">{stamp(e.onset_unix)}</td>
+                <td className="pr-3">{e.end_unix ? stamp(e.end_unix) : "—"}</td>
                 <td>{e.status}</td>
               </tr>
             ))}
