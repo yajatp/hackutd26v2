@@ -23,6 +23,7 @@ npm run demo          # boot everything on the EOG laptop (scripts/boot-avon.mjs
 | `fault` | yes | a simulated fault from Phone 1 (never changes the readings) |
 | `confirmation` | yes | a plan the operator confirmed, as it read at that moment |
 | `load_lock` | no | which screen is loading a site right now |
+| `lockdown` | yes | one row (id 0): the site is in LOCKDOWN (docs/LOCKDOWN.md): active, started_at, started_by, reason, evidence_ref (AV-XXXX-XXXX), tank, ended_at |
 
 ## Reducers
 
@@ -34,6 +35,8 @@ npm run demo          # boot everything on the EOG laptop (scripts/boot-avon.mjs
 | `inject_fault(asset, kind)` | any client* | Phone 1: kill / fake_flat / drift on a tank, then reruns the engine on a copy of the readings |
 | `clear_fault(asset)` | any client* | removes one fault (or all with `""`) and reruns the engine |
 | `confirm_plan(alert_id)` | any client* | records the plan's headline and cost from the server's own alert row |
+| `enter_lockdown(reason, evidence_ref, tank)` | any client* | starts a LOCKDOWN: evidence_ref must match `AV-XXXX-XXXX`, reason 1 to 200 characters (lib/rules/lockdown.ts); refused while one is already active |
+| `end_lockdown()` | any client* | ends it after the on-site check: keeps the row with active false and ended_at set, and clears `confirmation` so every plan asks to be confirmed again; refused when none is active |
 
 \* The Avon side trusts its own network in this prototype; that is a stated limit (docs/ARCHITECTURE.md, the threat model card). The isolated Darkroom module checks every caller.
 

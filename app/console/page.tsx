@@ -7,6 +7,7 @@ import { AvonProvider, useAvonConsole, useAvonRtt, type AvonStatus } from "@/lib
 import { Board, ConnBanner } from "./Board";
 import { AppHeader } from "@/app/ui/AppHeader";
 import { ConnBadge, connState } from "@/app/ui/Badge";
+import { LockdownOverlay } from "./lockdown/LockdownOverlay";
 
 type Status = { kind: "idle" } | { kind: "busy"; what: string } | { kind: "error"; msg: string };
 
@@ -147,6 +148,7 @@ function ConsoleScreen() {
       )}
       {view && status.kind === "idle" && validation?.ok && validation.summary && <Checked v={validation} />}
       {view && status.kind === "idle" && <Board view={view} dataset={source} />}
+      <LockdownOverlay />
       {!view && status.kind === "idle" && (
         <p className="mt-4 text-muted">Pick a site above, or open any folder that holds network.json, ops.json and telemetry.csv.</p>
       )}

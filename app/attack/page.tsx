@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useAttack, type AttackTarget, type FaultKind } from "@/lib/attack";
 import { AppHeader } from "@/app/ui/AppHeader";
 import { ConnBadge, SENSOR_STATE, SensorBadge, SimulatedBadge, connState } from "@/app/ui/Badge";
+import { LockdownBanner } from "./LockdownBanner";
 
 interface FaultButton {
   kind: FaultKind;
@@ -63,6 +64,7 @@ export default function AttackPage() {
       <AppHeader product="Avon" title="Break a sensor">
         <ConnBadge state={connState(api.status)} />
       </AppHeader>
+      <LockdownBanner />
 
       {api.status === "disconnected" && (
         <p role="alert" className="mt-3 rounded-lg bg-alert-solid p-3 font-bold text-white">
