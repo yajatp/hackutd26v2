@@ -51,4 +51,6 @@ Push only your own branch. Never push to main or mohan/live, never force push. M
 | yajat-claude-final-qa.md | Yajat (Claude Code) | Full QA of the whole app, hosted copy, Quest and L2 Darkroom; ranked bug list, no fixes | yajat/final-qa |
 | yajat-codex-e2e-lockdown.md | Yajat (Codex) | `npm run e2e -- --lockdown`: the LOCKDOWN path end to end | yajat/e2e-lockdown |
 | sreesh-claude-runsheet.md | Sreesh (Claude Code), small budget | docs/RUNSHEET.md: who stands where, the 3-minute demo, lines, reset, five fixes; as a PR | sreesh/runsheet (PR) |
+| yajat-codex-qa-fixes.md | Yajat (Codex), now | QA bugs outside Mohan's lanes: bug 11 (missed failure or normal?), bug 7 (first boot), bug 12 parts, bug 2 diagnosis | yajat/qa-fixes |
+| yajat-claude-qa-round2.md | Yajat (Claude Code), now and after "redeployed" | Real devices: witness phone over the hotspot, real Phone 1; then recheck 1, 5 and 6, plus `/`, `/map`, `/twin` on the Quest (audio, comfort, realism) | yajat/final-qa |
 
