@@ -7,8 +7,8 @@ import assert from "node:assert/strict";
 import type { SiteFacility } from "@/lib/live";
 import { layoutSite } from "./model";
 import {
-  facing, HOW_TO, LEGEND, MODEL_CENTER, NEAR_EDGE_M, PANEL, RESET, SNAP_RAD, snapTurn, stickX,
-  TABLE_TOP_Y, TANK_H, TANK_R, toWorld, TURNTABLE_R, type P3,
+  facing, HOW_TO, LEGEND, MODEL_CENTER, NEAR_EDGE_M, PANEL, RESET, SNAP_RAD, snapTurn, stickX, stickY, teleportAim,
+  TABLE_TOP_Y, TANK_H, TANK_R, toWorld, turnAxis, TURNTABLE_R, type P3,
 } from "./stage";
 
 const flat = (p: P3) => Math.hypot(p[0], p[2]);   // horizontal distance from the judge's feet
@@ -95,4 +95,35 @@ test("nothing is behind the judge or under the floor", () => {
     assert.ok(at[2] < 0, `${at} is in front`);
     assert.ok(at[1] > 0, `${at} is above the floor`);
   }
+});
+
+test("thumbstick axes: forward-back on axes 3 (xr-standard) or 1; the turn reads only a sideways push", () => {
+  assert.equal(stickY([0, 0, 0.2, -0.9]), -0.9);
+  assert.equal(stickY([0.1, -0.7]), -0.7);
+  assert.equal(stickY([]), 0);
+  assert.equal(turnAxis([0, 0, 0.9, -0.2]), 0.9, "sideways: a turn");
+  assert.equal(turnAxis([0, 0, 0.7, -0.95]), 0, "forward with a lean: the teleport aim, no turn");
+  // A forward push never fires a snap turn, however it leans.
+  let armed = true;
+  for (const x of [0.2, 0.5, 0.65, 0.7]) {
+    const r = snapTurn(turnAxis([0, 0, x, -0.98]), armed);
+    assert.equal(r.step, 0);
+    armed = r.armed;
+  }
+});
+
+test("teleport aim: a forward push aims, letting go fires once, a sideways push never aims", () => {
+  let st = { aiming: false, fire: false };
+  st = teleportAim(0, -0.3, st.aiming);
+  assert.deepEqual(st, { aiming: false, fire: false }, "a small push does nothing");
+  st = teleportAim(0.1, -0.8, st.aiming);
+  assert.deepEqual(st, { aiming: true, fire: false });
+  st = teleportAim(0.3, -0.5, st.aiming);
+  assert.deepEqual(st, { aiming: true, fire: false }, "still held past the rearm line");
+  st = teleportAim(0, -0.1, st.aiming);
+  assert.deepEqual(st, { aiming: false, fire: true }, "let go: fire");
+  st = teleportAim(0, 0, st.aiming);
+  assert.deepEqual(st, { aiming: false, fire: false }, "fires once");
+  assert.deepEqual(teleportAim(0.9, -0.7, false), { aiming: false, fire: false }, "mostly sideways: a turn, not an aim");
+  assert.deepEqual(teleportAim(0, 0.9, false), { aiming: false, fire: false }, "pulled back: nothing");
 });

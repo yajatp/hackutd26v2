@@ -1,20 +1,31 @@
 "use client";
-// What only the headset shows, around the model and outside its turning group: the How to use
-// card and a big Reset view button straight ahead, the info panel on the right, a legend on the
-// left, and the thumbstick turning the model. Placement and rules live in stage.ts (unit-tested).
-import { useRef, useState } from "react";
+// What only the headset shows (the page is not visible in immersive VR):
+// - the How to use card, straight ahead over the table in the table view (hidden while the
+//   dashboard is open; it fades after 8 s or at the first trigger pull);
+// - the selected tank's panel (Panel3D: beside the tank, or in front of the judge in Walk);
+// - the menu dock (Table, Overview, Walk, Dashboard, Reset) on the table's near rim (under the
+//   hands elsewhere), and the dashboard;
+// - the attack moment's toast, sliding in front of the judge;
+// - the thumbstick: one push, one 30 degree snap turn (the table turns in the table view; the
+//   judge turns in the overview and Walk views).
+// All in Permian Night's holo glass (docs/TWIN-THEME.md), from theme.ts.
+import { useEffect, useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useXR } from "@react-three/xr";
-import { money } from "@/lib/eog/alerts";
-import type { TankState } from "./model";
-import { CanvasCard, type TextRow } from "./CanvasText";
-import { facing, HOW_TO, LEGEND, LINE_HEX, PANEL, RESET, snapTurn, stickX } from "./stage";
+import type { Group, MeshBasicMaterial } from "three";
+import type { PlacedTank, TankState } from "./model";
+import { C, TONE_COLOR } from "./theme";
+import { facing, HOW_TO, snapTurn, TABLE_TOP_Y, turnAxis } from "./stage";
+import { usePainted, type Painter } from "./nav/glass";
+import { corners, dot, glass, rgba, text } from "./nav/paint";
+import { Dashboard, Dock, useView, type SiteTransform } from "./nav";
+import { Toast, type FxNotice } from "./fx";
+import { noRay } from "./models";
+import { Panel3D } from "./Panel3D";
 
-const HOW_TO_TEXT = "Point at a tank and pull the trigger. Thumbstick turns the site.";
-const PANEL_TILT = -0.25;               // the panel leans back a little toward the judge's eyes
-
-// Each controller's thumbstick: one push, one 30 degree step of the model (snapTurn). Only the
-// model turns: the judge never moves. Raw gamepad axes, so it works with any controller layout.
+// Each controller's thumbstick: one sideways push past the threshold is one step (stage.ts snapTurn,
+// turnAxis: a mostly forward push is the Walk view's teleport aim, not a turn); it fires again only
+// after the stick comes back. Raw gamepad axes, so any controller layout works.
 function SnapTurn({ onTurn }: { onTurn(dir: 1 | -1): void }) {
   const armed = useRef(new WeakMap<XRInputSource, boolean>());
   useFrame((state, _dt, frame?: XRFrame) => {
@@ -22,7 +33,7 @@ function SnapTurn({ onTurn }: { onTurn(dir: 1 | -1): void }) {
     if (!session) return;
     for (const src of session.inputSources) {
       if (!src.gamepad || src.hand) continue;
-      const r = snapTurn(stickX(src.gamepad.axes), armed.current.get(src) ?? true);
+      const r = snapTurn(turnAxis(src.gamepad.axes), armed.current.get(src) ?? true);
       armed.current.set(src, r.armed);
       if (r.step !== 0) onTurn(r.step);
     }
@@ -30,101 +41,96 @@ function SnapTurn({ onTurn }: { onTurn(dir: 1 | -1): void }) {
   return null;
 }
 
-function HowTo() {
-  return (
-    <group position={HOW_TO.at} rotation-y={facing(HOW_TO.at)}>
-      <CanvasCard
-        worldWidth={HOW_TO.widthM} pxPerM={HOW_TO.pxPerM} padM={0.02} border="#a1a1aa"
-        rows={[
-          { text: "How to use", color: "#a1a1aa", size: 40, bold: true },
-          { text: HOW_TO_TEXT, color: "#ffffff", size: 50, bold: true },
-          { text: "Reset view puts the site back.", color: "#d4d4d8", size: 42 },
-        ]}
-      />
-    </group>
-  );
-}
+const HOW_W = 0.78, HOW_PPM = 1300;
+const howPainter: Painter<{ v: 1 }, null> = {
+  size: () => ({ w: HOW_W * HOW_PPM, h: 0.4 * HOW_PPM }),
+  paint(ctx, _s, W, H) {
+    glass(ctx, 3, 3, W - 6, H - 6, { r: 26, edge: C.holo, edgeAlpha: 0.9, edgePx: 3, glowPx: 16, tintAlpha: 0.2 });
+    corners(ctx, 3, 3, W - 6, H - 6, 30, rgba(C.holo, 0.95), 4, 12);
+    const x = 44;
+    text(ctx, "NIGHT SHIFT · HOW TO USE", x, 58, { size: 30, weight: 700, color: C.holo, spacing: 5, glow: 8 });
+    text(ctx, "Point at a tank and pull the trigger.", x, 128, { size: 50, weight: 700, color: C.text });
+    text(ctx, "Its story opens beside it, in the console's words.", x, 184, { size: 34, face: "body", weight: 500, color: C.textDim });
+    text(ctx, "Thumbstick turns the site. The menu on the table's edge:", x, 244, { size: 34, face: "body", weight: 500, color: C.textDim });
+    text(ctx, "Table · Overview · Walk · Dashboard", x, 294, { size: 38, weight: 700, color: C.text, spacing: 1 });
+    let lx = x + 6;
+    const items: [string, string][] = [[TONE_COLOR.alert, "Pump failed"], [TONE_COLOR.warn, "Check the sensor"], [TONE_COLOR.ok, "OK"], [C.holo, "Top problem"]];
+    for (const [c, label] of items) {
+      dot(ctx, lx, 368, 9, c);
+      lx += 24 + text(ctx, label, lx + 20, 368, { size: 30, weight: 600, color: C.text }) + 40;
+    }
+    return null;
+  },
+};
 
-// Big and in front, outside the turning group: puts the model back to north-up.
-function ResetButton({ onReset }: { onReset(): void }) {
-  const [hover, setHover] = useState(false);
+// The welcome card stays HOW_TO_MS after entering VR, or until the judge's first trigger pull or
+// pinch, then fades out (HOW_TO_FADE_MS) and stays gone for the session.
+const HOW_TO_MS = 8000;
+const HOW_TO_FADE_MS = 700;
+
+function HowTo({ still }: { still: boolean }) {
+  const tex = usePainted(howPainter, { v: 1 });
+  const session = useXR((x) => x.session);
+  const mat = useRef<MeshBasicMaterial>(null);
+  const group = useRef<Group>(null);
+  const k = useRef({ born: -1, goneAt: -1 });
+  useEffect(() => {
+    if (!session) return;
+    k.current = { born: performance.now(), goneAt: -1 };
+    const dismiss = () => { if (k.current.goneAt < 0) k.current.goneAt = performance.now(); };
+    session.addEventListener("selectstart", dismiss);
+    return () => session.removeEventListener("selectstart", dismiss);
+  }, [session]);
+  useFrame(() => {
+    const st = k.current, now = performance.now();
+    if (st.born < 0) return;
+    if (st.goneAt < 0 && now - st.born > HOW_TO_MS) st.goneAt = now;
+    const a = st.goneAt < 0 ? 1 : still ? 0 : Math.max(0, 1 - (now - st.goneAt) / HOW_TO_FADE_MS);
+    if (mat.current) mat.current.opacity = a;
+    if (group.current) group.current.visible = a > 0.001;
+  });
+  if (!tex) return null;
   return (
-    <group
-      position={RESET.at} rotation-y={facing(RESET.at)}
-      onClick={(e) => { e.stopPropagation(); onReset(); }}
-      onPointerOver={(e) => { e.stopPropagation(); setHover(true); }}
-      onPointerOut={() => setHover(false)}
-    >
-      <mesh position={[0, 0, -0.012]}>
-        <boxGeometry args={[RESET.w + 0.01, RESET.h + 0.01, 0.02]} />
-        <meshStandardMaterial color={hover ? "#52525b" : "#27272a"} />
+    <group ref={group} position={HOW_TO.at} rotation-y={facing(HOW_TO.at)} name="twin-vr-howto">
+      <mesh raycast={noRay} renderOrder={6}>
+        <planeGeometry args={[HOW_W, (HOW_W * tex.h) / tex.w]} />
+        <meshBasicMaterial ref={mat} map={tex.texture} transparent depthWrite={false} toneMapped={false} fog={false} />
       </mesh>
-      <CanvasCard
-        rows={[{ text: "Reset view", color: "#ffffff", size: 56, bold: true }]}
-        worldWidth={RESET.w} worldHeight={RESET.h} pxPerM={1000} padM={0.01}
-        bg={hover ? "#3f3f46" : "#27272a"} border={hover ? "#ffffff" : "#a1a1aa"}
-      />
     </group>
   );
 }
 
-// The selected tank's story, beside the model: name, state, evidence, fix and what to bring.
-function InfoPanel({ s }: { s: TankState | null }) {
-  const head = (text: string): TextRow => ({ text, color: "#a1a1aa", size: PANEL.headPx, bold: true });
-  const body = (text: string): TextRow => ({ text, color: "#e4e4e7", size: PANEL.bodyPx });
-  const rows: TextRow[] = s
-    ? [
-      { text: s.name, color: "#ffffff", size: PANEL.titlePx, bold: true },
-      ...s.lines.map((l) => ({ text: l.text, color: LINE_HEX[l.tone], size: PANEL.linePx, bold: true })),
-      ...(s.evidence.length ? [head("EVIDENCE"), ...s.evidence.map(body)] : []),
-      ...(s.fix ? [head("FIX"), { text: `${s.fix.headline} · ${money(s.fix.cost)}`, color: "#ffffff", size: PANEL.linePx, bold: true }] : []),
-      head("WHAT TO BRING"),
-      ...s.bring.map(body),
-    ]
-    : [body("Select a tank to see what is wrong, the fix and what to bring.")];
-  return (
-    <group position={PANEL.at} rotation-y={facing(PANEL.at)}>
-      <group rotation-x={PANEL_TILT}>
-        <CanvasCard
-          rows={rows} worldWidth={PANEL.widthM} pxPerM={PANEL.pxPerM} padM={0.022} anchor="bottom" align="left"
-          border={s ? (s.tone === "ok" ? "#71717a" : LINE_HEX[s.tone]) : "#52525b"}
-        />
-      </group>
-    </group>
-  );
-}
+// The dock at the table: on the near rim (stage.ts NEAR_EDGE_M is 0.45 m), 0.12 m over the table
+// top for a judge whose eyes are about 1.6 m up, its face pitched 35 degrees back from upright.
+const DOCK_TABLE = { aheadM: 0.35, downM: 1.6 - (TABLE_TOP_Y + 0.12), tilt: -(35 * Math.PI) / 180 } as const;
 
-function Legend() {
-  const row = (text: string, color = "#e4e4e7"): TextRow => ({ text, color, size: 32 });
-  return (
-    <group position={LEGEND.at} rotation-y={facing(LEGEND.at)}>
-      <group rotation-x={PANEL_TILT}>
-        <CanvasCard
-          worldWidth={LEGEND.widthM} pxPerM={LEGEND.pxPerM} padM={0.02} anchor="bottom" align="left"
-          rows={[
-            { text: "WHAT THE COLORS MEAN", color: "#a1a1aa", size: 28, bold: true },
-            row("Red: pump failed", LINE_HEX.alert),
-            row("Amber: check a sensor or inspect", LINE_HEX.warn),
-            row("Gray: OK", LINE_HEX.ok),
-            row("Pulsing: a sensor is dead, drifting or lying."),
-            row("Fill: the tank level an alert reports. Gray half fill: not reported."),
-            row("Expanding ring: the console's top problem."),
-          ]}
-        />
-      </group>
-    </group>
-  );
-}
-
-export function VrStage({ s, onReset, onTurn }: { s: TankState | null; onReset(): void; onTurn(dir: 1 | -1): void }) {
+export function VrStage({ s, t, tanks, root, notices, still, onSelect, onTurn, onReset }: {
+  s: TankState | null;
+  t: SiteTransform;
+  tanks: PlacedTank[];
+  root: RefObject<Group | null>;
+  notices: FxNotice[];
+  still: boolean;
+  onSelect(id: string | null): void;
+  onTurn(dir: 1 | -1): void;
+  onReset(): void;
+}) {
   const inXR = useXR((x) => x.session != null);
+  const { mode, dashboard, setMode } = useView();
   if (!inXR) return null;
+  const table = mode === "table";
   return (
     <>
-      <HowTo />
-      <ResetButton onReset={onReset} />
-      <InfoPanel s={s} />
-      <Legend />
+      {table && !dashboard && <HowTo still={still} />}
+      {/* The dashboard takes the space in front: the panel steps out while it is open. */}
+      <Panel3D s={dashboard ? null : s} t={t} tanks={tanks} root={root} still={still} onClose={() => onSelect(null)} onWalk={(id) => setMode("ground", id)} />
+      {/* At the table the dock is a console on the table's near rim: 0.35 m ahead, about 0.12 m
+          over the table top, pitched up toward the judge, so it never covers the miniature;
+          elsewhere where the theme puts it (0.9 m ahead, 0.45 m under the eyes). */}
+      <Dock onReset={onReset} still={still} aheadM={table ? DOCK_TABLE.aheadM : 0.9} downM={table ? DOCK_TABLE.downM : 0.45}
+        tilt={table ? DOCK_TABLE.tilt : undefined} />
+      <Dashboard still={still} />
+      <Toast events={notices} still={still} />
       <SnapTurn onTurn={onTurn} />
     </>
   );

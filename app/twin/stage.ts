@@ -42,6 +42,29 @@ export function stickX(axes: readonly number[]): number {
   return (axes.length >= 4 ? axes[2] : axes[0]) ?? 0;
 }
 
+// The thumbstick's forward-back axis (forward is negative), on the same axes as stickX.
+export function stickY(axes: readonly number[]): number {
+  return (axes.length >= 4 ? axes[3] : axes[1]) ?? 0;
+}
+
+// The snap turn only reads a mostly sideways push, so pushing the stick forward to aim a teleport
+// never turns the judge as well.
+export function turnAxis(axes: readonly number[]): number {
+  const x = stickX(axes), y = stickY(axes);
+  return Math.abs(x) > Math.abs(y) ? x : 0;
+}
+
+// The Walk view's teleport, on the common Quest pattern: push the thumbstick forward to aim the
+// arc, let it go to jump. The trigger stays free for the ray (tanks, signs, the menu). `aiming`
+// starts on a mostly-forward push past AIM_PUSH; letting the stick come back inside AIM_REARM fires.
+const AIM_PUSH = 0.6;
+const AIM_REARM = 0.3;
+export function teleportAim(x: number, y: number, aiming: boolean): { aiming: boolean; fire: boolean } {
+  if (!aiming) return { aiming: y < -AIM_PUSH && Math.abs(y) > Math.abs(x), fire: false };
+  if (y > -AIM_REARM) return { aiming: false, fire: true };
+  return { aiming: true, fire: false };
+}
+
 // The y rotation that turns a card at `at` (its front is +z) to face the judge's start position.
 export function facing(at: P3): number {
   return Math.atan2(-at[0], -at[2]);
@@ -59,7 +82,8 @@ export const PANEL = { at: [0.9, 1.02, -0.72] as P3, widthM: 0.62, pxPerM: 1600,
 // Legend: the same on the left.
 export const LEGEND = { at: [-0.9, 1.02, -0.72] as P3, widthM: 0.5, pxPerM: 1600 };
 
-// Scene colors: a tank's shell and fill (TONE_HEX) and its label words (LINE_HEX), the console's
-// red and amber on the dark scene; gray is OK.
-export const TONE_HEX: Record<Tone, string> = { alert: "#ef4444", warn: "#f59e0b", ok: "#a1a1aa" };
-export const LINE_HEX: Record<Tone, string> = { alert: "#fca5a5", warn: "#fcd34d", ok: "#d4d4d8" };
+// Scene colors (docs/DESIGN.md): a tank's shell and fill (TONE_HEX) and its label words
+// (LINE_HEX). Red and amber are the console's state colors and nothing else; OK is matte dust.
+// Red words are a step lighter than the red tank so they read on the night background.
+export const TONE_HEX: Record<Tone, string> = { alert: "#ef4444", warn: "#f59e0b", ok: "#8fa1aa" };
+export const LINE_HEX: Record<Tone, string> = { alert: "#f87171", warn: "#f59e0b", ok: "#d7dee0" };

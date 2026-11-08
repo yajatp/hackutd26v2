@@ -1,0 +1,77 @@
+/* The 2D view buttons (ViewButtons.tsx). Colors and fonts arrive as CSS variables from
+   app/twin/theme.ts, so nothing here is a hard-coded color. */
+.bar {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--nav-holo-dim);
+  border-radius: 14px;
+  background: var(--nav-glass);
+  backdrop-filter: blur(8px);
+  font-family: var(--nav-font);
+}
+
+.btn {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--nav-holo-dim);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--nav-text);
+  font: 600 1rem/1 var(--nav-font);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, transform 80ms ease;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--nav-holo);
+  box-shadow: 0 0 14px -2px var(--nav-holo);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--nav-holo);
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.on {
+  border-color: var(--nav-holo);
+  background: var(--nav-holo);
+  color: var(--nav-ink);
+  font-weight: 700;
+  box-shadow: 0 0 18px -4px var(--nav-holo);
+}
+
+.goto {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px 0 10px;
+  color: var(--nav-text-dim);
+  font: 500 0.95rem/1 var(--nav-body);
+}
+
+.goto select {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--nav-holo-dim);
+  border-radius: 10px;
+  background: var(--nav-glass);
+  color: var(--nav-text);
+  font: 600 0.95rem/1 var(--nav-font);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn { transition: none; }
+}

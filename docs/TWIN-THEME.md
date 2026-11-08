@@ -102,3 +102,85 @@ Offline only: no CDN, no drei `<Text>`, no remote GLTF. Models are procedural or
 - **Lockdown in VR** (docs/LOCKDOWN.md): holo layer off, a red perimeter ring, a cage over the suspect tank, a toast, and the AV- reference large on the dashboard.
 - **Budget in the VR dashboard**: plans vs doing nothing, the saving, trucks used vs available (from the /insight lane's data).
 - The reference sites Mohan's team sends (puture.co.kr carousel, ethiack.com), and a theme switch in the menu (two or three looks) so the team can pick.
+
+## Realism pass: make it read as an actual Permian lease (Mohan, Sun 04:50)
+
+References: a New Mexico OCD battery filing (wells, header, production and test separators, heater-treater, vapor recovery tower, oil stock tanks, LACT units); Keystone's central tank battery (separators, heater-treaters, oil and produced-water storage, LACT, vapor recovery, combustor, vent and relief); Basic Tank Battery Design ("the dike", i.e. secondary containment). Procedural, with real proportions, low poly, instanced; no downloaded models (licences, Quest frame time, offline).
+
+- **Pad:** a rectangular caliche gravel pad (light tan around `#c9b48f`, speckled, about 60 x 40 m), not a round disc. A dirt lease road leaves the pad, and the pad has a low edge berm.
+- **Tank battery:** the monitored oil stock tank plus two more stock tanks and one produced-water tank in a row, 12 ft diameter x 20 ft (3.7 x 6 m), painted desert tan with a darker base band. A shared catwalk runs across the roofs, with stairs at one end; thief hatches and vents sit on the roofs. Only the monitored tank carries the state band, the external float-gauge board (fill) and the label; the others are neutral context. Around them: a secondary containment dike, a low 0.9 m wall rectangle with a dark liner floor.
+- **Process equipment** on skids beside the battery:
+  - a horizontal two-phase separator (about 1.2 m diameter x 4 m) on saddles;
+  - a vertical heater-treater with a firebox and a short stack;
+  - a vapor recovery tower (tall, thin);
+  - a LACT unit (a skid with a meter run and a small cabinet);
+  - an enclosed combustor (a squat cylinder, about 2.5 m diameter x 6 m) with a faint glow at the top. The system's emergency flare stays.
+- **Wells:** each pumpjack (about 8 to 10 m tall at the horsehead, Lufkin-style proportions) sits on its own small pad. Each has a wellhead (Christmas-tree valves) under the horsehead, an electric motor with a belt guard, and a power pole with a line to the next pole. A flowline runs from each wellhead back to a header manifold at the battery, on low pipe stands.
+- **The rest:** chain-link fence segments around the battery with a gate and a lease sign; two pole lights.
+- **Budget:** the same as above (under about 250 draw calls in Walk). Use instancing for tanks, poles, stands and fence posts.
+
+## Immersion: "realistic as hell" (Mohan, Sun 04:55)
+
+Whoever puts on the headset should feel they are standing on a lease at night. Realism comes from light, material, atmosphere, sound and scale together, not from polygons. All of it must stay within the Quest 3S budget.
+
+- **Materials (procedural, no texture downloads):**
+  - generate small canvas textures at load (256 to 512 px, then reused): caliche gravel with speckle and tyre tracks; tank paint with streaks, rust bleeding under seams and dust at the base; weathered galvanized steel; dirty pumpjack paint;
+  - use roughness and metalness to match: painted steel rough 0.6, galvanized 0.4 / metal 0.6, gravel 1.0;
+  - decals: a hazard diamond and a "DANGER H2S" placard on the tank, the lease sign, number stencils on the tanks.
+- **Light:**
+  - a low moon key light and a cool sky fill;
+  - pole lights that throw real warm light pools, using at most 2 real lights near the user in Walk and faking the rest with emissive halos and light cookies on the ground;
+  - the flare and combustor glow flickers onto nearby steel;
+  - in Walk view only, one shadow-casting light (the nearest pole) at a 1024 shadow map; blob shadows everywhere else.
+- **Atmosphere:**
+  - distance fog matched to the horizon;
+  - slow dust motes in the light pools (instanced points);
+  - heat shimmer above the flare (a cheap distortion sprite);
+  - wind-blown tumbleweed or dust puffs now and then;
+  - stars and the Milky Way; distant facility lights and a far gas-plant glow on the horizon in their real directions;
+  - mesquite and creosote scrub bushes scattered off-pad (instanced, low poly).
+- **Sound** (WebAudio, synthesized, no files, positional with three's PositionalAudio, starts only after Enter VR or the first click):
+  - wind, a low steady broadband;
+  - each pumpjack's rhythmic creak and thump on its stroke, positional;
+  - the flare's roar, positional and louder close up;
+  - electrical hum near the motors;
+  - insects at night;
+  - the attack's two-tone chirp and the lockdown sound already exist; route them through the same mixer;
+  - a mute toggle in the dock.
+- **Scale and presence:**
+  - in Walk, eye height is the user's real height; tanks tower at 6 m and pumpjacks at 8 to 10 m;
+  - teleport arcs land on gravel with a footstep crunch;
+  - the controller ray hits the ground with a soft holo reticle;
+  - hand tracking can pinch anything a controller can point at.
+- **Motion:**
+  - pumpjacks out of phase at their real stroke rate;
+  - counterweights rotating;
+  - the flare flame noise-animated;
+  - gauge needles and floats easing;
+  - nothing in the world snaps.
+- **Comfort:** no camera motion the user did not cause, fades on teleport, and a comfort toggle that turns off shimmer, dust and the beacon spin.
+
+## Scope set by Mohan (Sun 04:52): "a lot more realistic than the original", within what the Quest 3S can run; realistic events; minimal UI
+
+- **Realism is capped by the Quest 3S, not maximised.** Each item in the realism and immersion lists above earns its place only if `npm run perf` (frame-rate cap off, 4x CPU throttle) stays within budget in Walk and Table:
+  - draw calls under about 200;
+  - triangles under about 250k;
+  - textures 512 px at most and few of them;
+  - no post-processing in XR;
+  - at most one shadow map (1024), in Walk only.
+
+  Drop items in this order when over budget: heat shimmer, tumbleweed, dust motes, the real shadow, scrub density.
+- **Events look like what would really happen on site.** The animation is the physical thing, not a holographic effect:
+  - **Pump fails:** the pumpjack coasts to a stop over about 3 s, its beam settles, and the motor hum fades out. The tank's float gauge keeps creeping up, and an amber strobe on the battery's alarm pole starts flashing like a real one, a sharp flash about once a second that lights the nearby steel.
+  - **Sensor faked (LYING):** the level transmitter on the tank, a small box at the gauge, blinks its status LED wrong. The float board and the reported number disagree, so the gauge needle twitches while the float keeps rising. A quiet red tag appears only on that transmitter.
+  - **LOCKDOWN:** the site's pole lights fade to red emergency lighting over about 1 s; a single low two-tone sounds; the flare is unchanged.
+  - **Undo or Clear:** everything eases back, the strobe stops, and the lights return to warm.
+- **The UI stays minimal:**
+  - small, quiet panels;
+  - few words: the state word, one number and one action;
+  - no big holographic cards or rings beyond the selection reticle;
+  - the dock is five small icons with labels on hover;
+  - the dashboard shows one card at a time;
+  - text only where it informs.
+
+  The drama is in the world, not in the interface.
