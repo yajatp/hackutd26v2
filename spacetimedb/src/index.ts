@@ -1,8 +1,9 @@
 // Avon side of the Darkroom module (SpacetimeDB 2.14.1), published as database 'avon'.
 // Load path: load_dataset (network + ops) -> ingest_batch (reading rows) -> finish_ingest
 // (EOG engine inside the reducer, writes alert + console_meta).
-import { schema, table, t, SenderError } from 'spacetimedb/server';
+import { schema, table, t, SenderError, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
 import { consoleOf, datasetFromReadings } from './eog.ts';
+import { injectFault, type FaultKind } from '../../lib/rules/faults.ts';
 import { facilitiesOf } from './wide.ts';
 import type { NetworkJson } from '../../lib/eog/types.ts';
 
@@ -88,8 +89,23 @@ const consoleMeta = table({ name: 'console_meta', public: true }, {
   builtAt: t.timestamp(),
 });
 
+// Simulated sensor faults from the Phone 1 remote. The data files and reading rows never change:
+// every rebuild applies these on a copy (lib/rules/faults.ts) and marks the results SIMULATED.
+const fault = table({ name: 'fault', public: true }, {
+  assetId: t.string().primaryKey(), // a tank: its level sensor is faulted
+  kind: t.string(),                 // kill | fake_flat | drift
+  fromTs: t.u32(),                  // data time the fault starts
+  createdAt: t.timestamp(),
+});
+
+// Every sensor that reads dead, drifting or lying at "now" (ConsoleView.sensors), worst first.
+const sensorIssue = table({ name: 'sensor_issue', public: true }, {
+  rank: t.u32().primaryKey(),
+  issueJson: t.string(),            // JSON.stringify(SensorIssue)
+});
+
 // snake_case keys so source and canonical names agree (SQL, describe and logs all say console_meta).
-const spacetimedb = schema({ config, dataset_source: datasetSource, facility, reading, alert, console_meta: consoleMeta });
+const spacetimedb = schema({ config, dataset_source: datasetSource, facility, reading, alert, console_meta: consoleMeta, fault, sensor_issue: sensorIssue });
 export default spacetimedb;
 
 export const load_dataset = spacetimedb.reducer(
@@ -110,6 +126,8 @@ export const load_dataset = spacetimedb.reducer(
     ctx.db.reading.clear();
     ctx.db.alert.clear();
     ctx.db.console_meta.clear();
+    ctx.db.fault.clear();
+    ctx.db.sensor_issue.clear();
     ctx.db.facility.clear();
     ctx.db.dataset_source.clear();
     ctx.db.config.clear();
@@ -149,7 +167,10 @@ export const ingest_batch = spacetimedb.reducer(
   }
 );
 
-export const finish_ingest = spacetimedb.reducer((ctx) => {
+type Ctx = ReducerCtx<InferSchema<typeof spacetimedb>>;
+
+// Rebuilds the readings into a Dataset and checks nothing was lost in transit.
+function datasetOf(ctx: Ctx) {
   const cfg = ctx.db.config.id.find(0);
   const src = ctx.db.dataset_source.id.find(0);
   if (!cfg || !src) throw new SenderError('call load_dataset first');
@@ -159,11 +180,19 @@ export const finish_ingest = spacetimedb.reducer((ctx) => {
   const want = ds.ts.length * Number(ctx.db.facility.count());
   if (Number(ctx.db.reading.count()) !== want) throw new SenderError(`reading has ${ctx.db.reading.count()} rows, expected ${want}`);
   if (ds.now !== cfg.nowTs) throw new SenderError(`readings end at ${ds.now}, config says ${cfg.nowTs}`);
+  return { ds, cfg };
+}
 
-  // The EOG engine (lib/eog/alerts.ts buildConsole) runs here, inside the reducer.
+// The EOG engine (lib/eog/alerts.ts buildConsole) runs here, inside the reducer, on the
+// readings plus any simulated faults. Rewrites alert, console_meta and sensor_issue.
+function rebuild(ctx: Ctx) {
+  const { ds: clean, cfg } = datasetOf(ctx);
+  let ds = clean;
+  for (const f of ctx.db.fault.iter()) ds = injectFault(ds, { kind: f.kind as FaultKind, asset_id: f.assetId, from_ts: f.fromTs }).ds;
   const view = consoleOf(ds);
   ctx.db.alert.clear();
   ctx.db.console_meta.clear();
+  ctx.db.sensor_issue.clear();
   view.alerts.forEach((a, i) => {
     ctx.db.alert.insert({
       rank: i + 1,
@@ -176,6 +205,7 @@ export const finish_ingest = spacetimedb.reducer((ctx) => {
       alertJson: JSON.stringify(a),
     });
   });
+  view.sensors.forEach((x, i) => ctx.db.sensor_issue.insert({ rank: i + 1, issueJson: JSON.stringify(x) }));
   ctx.db.console_meta.insert({
     id: 0,
     datasetId: cfg.datasetId,
@@ -186,4 +216,35 @@ export const finish_ingest = spacetimedb.reducer((ctx) => {
     eventsJson: JSON.stringify(view.events),
     builtAt: ctx.timestamp,
   });
+}
+
+export const finish_ingest = spacetimedb.reducer((ctx) => {
+  rebuild(ctx);
 });
+
+// Faults start this far back in the recording, so the console shows them at once:
+// "No reading for 10 min", "Off for 30 min", a 1-hour drift.
+const BACKDATE_S: Record<FaultKind, number> = { kill: 600, fake_flat: 1800, drift: 3600 };
+
+export const inject_fault = spacetimedb.reducer(
+  { assetId: t.string(), kind: t.string() },
+  (ctx, { assetId, kind }) => {
+    if (!(kind in BACKDATE_S)) throw new SenderError('kind must be kill, fake_flat or drift');
+    const cfg = ctx.db.config.id.find(0);
+    if (!cfg || cfg.nowTs === 0) throw new SenderError('load a site on the console first');
+    if (![...ctx.db.facility.iter()].some((f) => f.tankId === assetId)) throw new SenderError(`${assetId} is not a tank in this site`);
+    ctx.db.fault.assetId.delete(assetId);
+    ctx.db.fault.insert({ assetId, kind, fromTs: cfg.nowTs - BACKDATE_S[kind as FaultKind], createdAt: ctx.timestamp });
+    rebuild(ctx);
+  }
+);
+
+// assetId '' clears every fault.
+export const clear_fault = spacetimedb.reducer(
+  { assetId: t.string() },
+  (ctx, { assetId }) => {
+    if (assetId === '') ctx.db.fault.clear();
+    else ctx.db.fault.assetId.delete(assetId);
+    rebuild(ctx);
+  }
+);

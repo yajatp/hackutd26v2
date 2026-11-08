@@ -78,3 +78,14 @@ test("mock_test: every fix card's tank sensor is trusted on clean data; a flat f
   assert.equal(hit.tank_sensor!.state, "lying", hit.tank_sensor!.evidence);
   assert.equal(hit.tank_sensor!.simulated, true);
 });
+
+test("sensors to check: none on clean data; a killed tank sensor is listed DEAD and SIMULATED", { skip: !hasData("mock_test_2026-10-10T1530") }, () => {
+  const ds = loadFolder("mock_test_2026-10-10T1530");
+  assert.deepEqual(buildConsole(ds).sensors, []);
+  const tank = ds.network.systems[0].facilities[0].tank.id;
+  const { ds: killed } = injectFault(ds, { kind: "kill", asset_id: tank, from_ts: ds.now - 600 });
+  const s = buildConsole(killed).sensors;
+  assert.equal(s.length, 1);
+  assert.deepEqual([s[0].asset_id, s[0].state, s[0].simulated, s[0].facility_id], [tank, "dead", true, ds.network.systems[0].facilities[0].id]);
+  assert.match(s[0].evidence, /^No reading for 10 min\. Last value [\d.]+%\.$/);
+});

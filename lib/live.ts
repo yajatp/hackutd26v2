@@ -5,9 +5,10 @@
 // says so and the last view stays on screen; there is no browser-only engine path.
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DbConnection, tables } from "./module_bindings/index.ts";
-import type { Alert as AlertRow, ConsoleMeta } from "./module_bindings/types.ts";
+import type { Alert as AlertRow, ConsoleMeta, Facility, Fault, SensorIssue as SensorIssueRow } from "./module_bindings/types.ts";
 import { loadDataset, type DatasetFiles } from "./eog/load.ts";
-import type { Alert, ConsoleView } from "./eog/alerts.ts";
+import type { Alert, ConsoleView, SensorIssue } from "./eog/alerts.ts";
+import type { ActiveFault, AttackTarget, FaultKind } from "./attack.ts";
 import type { DetectedEvent } from "./eog/types.ts";
 import { datasetToRows, type WideRow } from "../spacetimedb/src/wide.ts";
 
@@ -23,6 +24,11 @@ export interface AvonConsole {
   view: ConsoleView | null;
   source: AvonSource | null;                      // which dataset the view was built from, and when
   load(files: DatasetFiles, datasetId: string): Promise<void>;
+  // Phone 1 remote: the loaded site's tanks, the simulated faults on them, and the reducers.
+  targets: AttackTarget[];
+  faults: ActiveFault[];
+  inject(kind: FaultKind, assetId: string): Promise<void>;
+  clear(assetId?: string): Promise<void>;
 }
 
 // Same host as the page, so phones on the LAN reach the laptop's Spacetime. Plain ws://, so
@@ -33,13 +39,14 @@ export function avonUri(): string {
 
 // The ConsoleView that finish_ingest built, from the rows it wrote. Returns undefined while
 // the alert rows and console_meta disagree (mid-update), so callers keep the previous view.
-export function viewFromRows(alerts: readonly AlertRow[], meta: ConsoleMeta | undefined): ConsoleView | null | undefined {
+export function viewFromRows(alerts: readonly AlertRow[], meta: ConsoleMeta | undefined, issues: readonly SensorIssueRow[] = []): ConsoleView | null | undefined {
   if (!meta) return null;
   if (alerts.length !== meta.alertCount) return undefined;
   const sorted = [...alerts].sort((a, b) => a.rank - b.rank);
   return {
     now: meta.now,
     alerts: sorted.map((r) => JSON.parse(r.alertJson) as Alert),
+    sensors: [...issues].sort((a, b) => a.rank - b.rank).map((r) => JSON.parse(r.issueJson) as SensorIssue),
     events: JSON.parse(meta.eventsJson) as DetectedEvent[],
     totals: { do_nothing: meta.doNothing, plans: meta.plans },
   };
@@ -57,6 +64,25 @@ export interface AvonLinkOptions {
   connectTimeoutMs?: number;                       // give up on an attempt that neither connects nor fails
   onStatus(status: AvonStatus): void;
   onView(view: ConsoleView | null, source: AvonSource | null): void;
+  onAttack?(targets: AttackTarget[], faults: ActiveFault[]): void;
+}
+
+// "S5_FACILITY_C" -> "S5 · Facility C tank"
+function tankLabel(f: Facility): string {
+  const rest = f.facilityId.startsWith(f.systemId + "_") ? f.facilityId.slice(f.systemId.length + 1) : f.facilityId;
+  const nice = rest.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()).replace(/\b(\w)$/, (c) => c.toUpperCase());
+  return `${f.systemId} · ${nice} tank`;
+}
+
+export function attackFromRows(facilities: readonly Facility[], faults: readonly Fault[]): { targets: AttackTarget[]; faults: ActiveFault[] } {
+  return {
+    targets: [...facilities]
+      .sort((a, b) => a.facilityId.localeCompare(b.facilityId))
+      .map((f) => ({ asset_id: f.tankId, facility_id: f.facilityId, system_id: f.systemId, label: tankLabel(f) })),
+    faults: [...faults]
+      .sort((a, b) => a.assetId.localeCompare(b.assetId))
+      .map((f) => ({ asset_id: f.assetId, kind: f.kind as FaultKind, since_ts: f.fromTs })),
+  };
 }
 
 export interface AvonLink { connection(): DbConnection | null; close(): void }
@@ -118,8 +144,10 @@ export function connectAvon(opts: AvonLinkOptions): AvonLink {
         pending = false;
         if (c !== conn) return;
         const meta = [...c.db.consoleMeta.iter()][0];
-        const view = viewFromRows([...c.db.alert.iter()], meta);
+        const view = viewFromRows([...c.db.alert.iter()], meta, [...c.db.sensorIssue.iter()]);
         if (view !== undefined) opts.onView(view, sourceOf(meta));
+        const a = attackFromRows([...c.db.facility.iter()], [...c.db.fault.iter()]);
+        opts.onAttack?.(a.targets, a.faults);
       });
     };
     c.db.alert.onInsert(rebuild);
@@ -128,7 +156,11 @@ export function connectAvon(opts: AvonLinkOptions): AvonLink {
     c.db.consoleMeta.onInsert(rebuild);
     c.db.consoleMeta.onDelete(rebuild);
     c.db.consoleMeta.onUpdate(rebuild);
-    c.subscriptionBuilder().onApplied(rebuild).subscribe([tables.alert, tables.consoleMeta]);
+    for (const tbl of [c.db.sensorIssue, c.db.fault, c.db.facility]) {
+      tbl.onInsert(rebuild);
+      tbl.onDelete(rebuild);
+    }
+    c.subscriptionBuilder().onApplied(rebuild).subscribe([tables.alert, tables.consoleMeta, tables.sensorIssue, tables.fault, tables.facility]);
   }
 
   open();
@@ -203,6 +235,8 @@ export function AvonProvider({ children, uri, database = AVON_DB }: { children: 
   const [status, setStatus] = useState<AvonStatus>("connecting");
   const [view, setView] = useState<ConsoleView | null>(null);
   const [source, setSource] = useState<AvonSource | null>(null);
+  const [targets, setTargets] = useState<AttackTarget[]>([]);
+  const [faults, setFaults] = useState<ActiveFault[]>([]);
   const link = useRef<AvonLink | null>(null);
 
   useEffect(() => {
@@ -211,6 +245,7 @@ export function AvonProvider({ children, uri, database = AVON_DB }: { children: 
       database,
       onStatus: setStatus,
       onView: (v, s) => { setView(v); setSource(s); },
+      onAttack: (t, f) => { setTargets(t); setFaults(f); },
     });
     link.current = l;
     return () => { l.close(); if (link.current === l) link.current = null; };
@@ -222,7 +257,22 @@ export function AvonProvider({ children, uri, database = AVON_DB }: { children: 
     await sendDataset(conn, files, datasetId);
   }, []);
 
-  const value = useMemo<AvonConsole>(() => ({ status, view, source, load }), [status, view, source, load]);
+  const inject = useCallback(async (kind: FaultKind, assetId: string) => {
+    const conn = link.current?.connection();
+    if (!conn) throw new Error("Spacetime is disconnected");
+    await conn.reducers.injectFault({ assetId, kind });
+  }, []);
+
+  const clear = useCallback(async (assetId?: string) => {
+    const conn = link.current?.connection();
+    if (!conn) throw new Error("Spacetime is disconnected");
+    await conn.reducers.clearFault({ assetId: assetId ?? "" });
+  }, []);
+
+  const value = useMemo<AvonConsole>(
+    () => ({ status, view, source, load, targets, faults, inject, clear }),
+    [status, view, source, load, targets, faults, inject, clear],
+  );
   return createElement(AvonContext.Provider, { value }, children);
 }
 

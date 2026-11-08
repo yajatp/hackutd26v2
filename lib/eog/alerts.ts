@@ -8,7 +8,7 @@ import {
   type Failure, type Plan, type PlanNetwork, type PlanWell,
 } from "./planner.ts";
 import type { DetectedEvent, FacilityJson } from "./types.ts";
-import { healthOf, type SensorState } from "../rules/health.ts";
+import { healthAt, healthOf, type SensorState } from "../rules/health.ts";
 
 export interface Alternative { label: string; cost: number; why: string }
 
@@ -39,9 +39,21 @@ export interface Alert {
   pump_off_since?: number;
 }
 
+// A sensor that is dead, drifting or lying at "now", with the evidence the console shows.
+export interface SensorIssue {
+  key: string;
+  asset_id: string;
+  metric: string;
+  facility_id: string | null;
+  state: SensorState;
+  evidence: string;
+  simulated: boolean;
+}
+
 export interface ConsoleView {
   now: number;
   alerts: Alert[];
+  sensors: SensorIssue[];                // sensors to check, worst first
   events: DetectedEvent[];               // everything detected, resolved too
   totals: { do_nothing: number; plans: number };
 }
@@ -51,6 +63,11 @@ const UNCONFIRMED_S = 3600;              // pump off this long: a slow problem's
 
 export function hhmm(unix: number): string {
   return new Date(unix * 1000).toISOString().slice(11, 16);
+}
+
+// "S4_FACILITY_C" -> "S4 Facility C", for sentences on the fix card.
+export function prettyId(id: string): string {
+  return id.replace(/^(S\d+)_/, "$1 ").replace(/_/g, " ").replace(/\b([A-Z])([A-Z]+)\b/g, (_, a: string, b: string) => a + b.toLowerCase());
 }
 
 export function money(x: number): string {
@@ -96,7 +113,7 @@ function why(alt: Plan, chosen: Plan, fleetFree: number, others: string[], tripU
     return tripUnix === null ? "" : `wells shut in ${hhmm(tripUnix)} to ${hhmm(doneUnix)}`;
   }
   if (alt.cost < chosen.cost && alt.trucks > fleetFree) {
-    return `needs ${alt.trucks} truck${alt.trucks > 1 ? "s" : ""}; the others go to ${others.join(", ")}`;
+    return `needs ${alt.trucks} truck${alt.trucks > 1 ? "s" : ""}; the others go to ${others.map(prettyId).join(" and ")}`;
   }
   const more = alt.cost - chosen.cost;
   return more > 0.5 ? `${money(more)} more` : "same cost, ties broken toward fewer trucks";
@@ -205,5 +222,17 @@ export function buildConsole(ds: Dataset): ConsoleView {
     if (now - offSince >= UNCONFIRMED_S) alert.pump_off_since = offSince;
     alerts.push(alert);
   }
-  return { now, alerts, events, totals: { do_nothing: doNothing, plans } };
+  const owner = new Map<string, string>();
+  for (const f of facs.values()) {
+    for (const a of [f.id, f.tank.id, f.pump.id, f.pipeline.id, ...f.wells.map((w) => w.id)]) owner.set(a, f.id);
+  }
+  const RANK: Record<string, number> = { lying: 0, dead: 1, drifting: 2 };
+  const sensors: SensorIssue[] = healthAt(ds)
+    .filter((h) => h.state in RANK)
+    .sort((a, b) => RANK[a.state] - RANK[b.state] || a.key.localeCompare(b.key))
+    .map((h) => ({
+      key: h.key, asset_id: h.asset_id, metric: h.metric, facility_id: owner.get(h.asset_id) ?? null,
+      state: h.state, evidence: h.evidence, simulated: h.simulated === true,
+    }));
+  return { now, alerts, sensors, events, totals: { do_nothing: doNothing, plans } };
 }

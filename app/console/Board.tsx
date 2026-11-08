@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { hhmm, money, type Alert, type ConsoleView } from "@/lib/eog/alerts";
-import { evidenceFor } from "@/lib/evidence";
+import { hhmm, money, type Alert, type ConsoleView, type SensorIssue } from "@/lib/eog/alerts";
+import { evidenceFor, evidenceForIssue, type Evidence } from "@/lib/evidence";
 
 // The alerts view. Renders whatever ConsoleView it is given; where the view comes from
 // (Spacetime subscription) is the page's job.
@@ -25,9 +25,8 @@ function stamp(unix: number): string {
 }
 
 // A person carries this from the console to the Darkroom box; nothing is sent over the network.
-function SendToDarkroom({ a, dataset, now }: { a: Alert; dataset: string; now: number }) {
+function SendToDarkroom({ ev, dataset, now }: { ev: Evidence | null; dataset: string; now: number }) {
   const [open, setOpen] = useState(false);
-  const ev = evidenceFor(a, dataset, now);
   if (!ev) return null;
   if (!open) {
     return (
@@ -70,7 +69,7 @@ function FixCardView({ a, top, dataset, now }: { a: Alert; top: boolean; dataset
             )}
           </p>
           <p>{a.tank_sensor.evidence} This plan uses its reading.</p>
-          <SendToDarkroom a={a} dataset={dataset} now={now} />
+          <SendToDarkroom ev={evidenceFor(a, dataset, now)} dataset={dataset} now={now} />
         </div>
       )}
       <div className="mt-3 flex items-baseline justify-between gap-4">
@@ -110,6 +109,35 @@ function FixCardView({ a, top, dataset, now }: { a: Alert; top: boolean; dataset
   );
 }
 
+const STATE_WORD: Record<string, string> = { dead: "DEAD", drifting: "DRIFTING", lying: "LYING" };
+const METRIC_WORD: Record<string, string> = {
+  level_pct: "level", flow_bpd: "flow", discharge_psi: "discharge pressure", status: "status",
+  pressure_psi: "pressure", receive_flow_bpd: "receive flow", inflow_bpd: "inflow", water_bpd: "water rate",
+};
+
+function SensorsToCheck({ sensors, dataset, now }: { sensors: SensorIssue[]; dataset: string; now: number }) {
+  if (sensors.length === 0) return null;
+  return (
+    <section className="mt-4">
+      <h2 className="text-xs font-semibold uppercase tracking-wide opacity-60">Sensors to check</h2>
+      <ul className="mt-2 flex flex-col gap-2">
+        {sensors.map((x) => (
+          <li key={x.key} className="rounded-lg border-2 border-amber-500 bg-amber-500/10 p-3">
+            <p className="font-bold">
+              {STATE_WORD[x.state] ?? x.state} · {pretty(x.asset_id)} {METRIC_WORD[x.metric] ?? x.metric.replace(/_/g, " ")}
+              {x.simulated && <span className="ml-2 rounded bg-current/10 px-1.5 py-0.5 text-xs font-semibold tracking-wide">SIMULATED</span>}
+            </p>
+            <p className="text-sm">{x.evidence}</p>
+            {x.state === "dead" && <p className="text-sm">Send someone with a replacement sensor; until then, plans use its last reading.</p>}
+            {x.state === "lying" && <p className="text-sm">Check the sensor on site first. A reading that disagrees with physics can also mean someone changed it.</p>}
+            <SendToDarkroom ev={evidenceForIssue(x, dataset, now)} dataset={dataset} now={now} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function InspectionRow({ a }: { a: Alert }) {
   const what = a.event.category === "pipeline_leak" ? "Possible leak" : "Pump wearing out";
   return (
@@ -143,6 +171,7 @@ export function Board({ view, dataset }: { view: ConsoleView; dataset: string })
   const inspections = view.alerts.filter((a) => !a.fix);
   return (
     <>
+      <SensorsToCheck sensors={view.sensors ?? []} dataset={dataset} now={view.now} />
       {failures.length > 0 && (
         <p className="mt-6 text-sm tabular-nums">
           {failures.length} pump failure{failures.length > 1 ? "s" : ""} · doing nothing costs {money(view.totals.do_nothing)} ·

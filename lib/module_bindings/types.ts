@@ -67,6 +67,14 @@ export const Facility = __t.object("Facility", {
 });
 export type Facility = __Infer<typeof Facility>;
 
+export const Fault = __t.object("Fault", {
+  assetId: __t.string(),
+  kind: __t.string(),
+  fromTs: __t.u32(),
+  createdAt: __t.timestamp(),
+});
+export type Fault = __Infer<typeof Fault>;
+
 export const Reading = __t.object("Reading", {
   id: __t.u64(),
   facilityId: __t.string(),
@@ -83,6 +91,12 @@ export const Reading = __t.object("Reading", {
   staleMask: __t.u32(),
 });
 export type Reading = __Infer<typeof Reading>;
+
+export const SensorIssue = __t.object("SensorIssue", {
+  rank: __t.u32(),
+  issueJson: __t.string(),
+});
+export type SensorIssue = __Infer<typeof SensorIssue>;
 
 export const WideRow = __t.object("WideRow", {
   facilityId: __t.string(),

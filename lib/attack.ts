@@ -1,9 +1,9 @@
 "use client";
 // Contract between the Phone 1 remote (/attack) and the backend. The UI uses only useAttack().
-// This version keeps state in the page so the screen can be built and tested now; the main
-// session swaps the body for Spacetime reducer calls (inject_fault, clear_fault) without
-// changing these types.
-import { useState } from "react";
+// The data comes from the avon Spacetime database: the loaded site's tanks, the simulated faults
+// on them, and the inject_fault / clear_fault reducers (each rebuilds the console with the
+// faults applied to a copy of the readings; the data itself never changes).
+import { useAvonConsole } from "./live";
 import type { FaultKind } from "./rules/faults";
 
 export type { FaultKind };
@@ -30,22 +30,8 @@ export interface AttackApi {
   clear(asset_id?: string): Promise<void>;   // no asset: clear every fault
 }
 
-const DEMO_TARGETS: AttackTarget[] = [
-  { asset_id: "TANK_A", facility_id: "FACILITY_A", system_id: "SYS_1", label: "Site 1 · Facility A tank" },
-  { asset_id: "TANK_B", facility_id: "FACILITY_B", system_id: "SYS_1", label: "Site 1 · Facility B tank" },
-];
-
+// Needs <AvonProvider> above it (app/attack/layout.tsx).
 export function useAttack(): AttackApi {
-  const [active, setActive] = useState<ActiveFault[]>([]);
-  return {
-    status: "connected",
-    targets: DEMO_TARGETS,
-    active,
-    async inject(kind, asset_id) {
-      setActive((a) => [...a.filter((f) => f.asset_id !== asset_id), { asset_id, kind, since_ts: Math.floor(Date.now() / 1000) }]);
-    },
-    async clear(asset_id) {
-      setActive((a) => (asset_id ? a.filter((f) => f.asset_id !== asset_id) : []));
-    },
-  };
+  const avon = useAvonConsole();
+  return { status: avon.status, targets: avon.targets, active: avon.faults, inject: avon.inject, clear: avon.clear };
 }

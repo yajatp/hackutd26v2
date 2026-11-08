@@ -34,8 +34,10 @@ import {
 } from "spacetimedb";
 
 // Import all reducer arg schemas
+import ClearFaultReducer from "./clear_fault_reducer";
 import FinishIngestReducer from "./finish_ingest_reducer";
 import IngestBatchReducer from "./ingest_batch_reducer";
+import InjectFaultReducer from "./inject_fault_reducer";
 import LoadDatasetReducer from "./load_dataset_reducer";
 
 // Import all procedure arg schemas
@@ -45,6 +47,8 @@ import AlertRow from "./alert_table";
 import ConfigRow from "./config_table";
 import ConsoleMetaRow from "./console_meta_table";
 import FacilityRow from "./facility_table";
+import FaultRow from "./fault_table";
+import SensorIssueRow from "./sensor_issue_table";
 
 /** Type-only namespace exports for generated type groups. */
 
@@ -94,12 +98,36 @@ const tablesSchema = __schema({
       { name: 'facility_facility_id_key', constraint: 'unique', columns: ['facilityId'] },
     ],
   }, FacilityRow),
+  fault: __table({
+    name: 'fault',
+    indexes: [
+      { accessor: 'assetId', name: 'fault_asset_id_idx_btree', algorithm: 'btree', columns: [
+        'assetId',
+      ] },
+    ],
+    constraints: [
+      { name: 'fault_asset_id_key', constraint: 'unique', columns: ['assetId'] },
+    ],
+  }, FaultRow),
+  sensorIssue: __table({
+    name: 'sensor_issue',
+    indexes: [
+      { accessor: 'rank', name: 'sensor_issue_rank_idx_btree', algorithm: 'btree', columns: [
+        'rank',
+      ] },
+    ],
+    constraints: [
+      { name: 'sensor_issue_rank_key', constraint: 'unique', columns: ['rank'] },
+    ],
+  }, SensorIssueRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
+  __reducerSchema("clear_fault", ClearFaultReducer),
   __reducerSchema("finish_ingest", FinishIngestReducer),
   __reducerSchema("ingest_batch", IngestBatchReducer),
+  __reducerSchema("inject_fault", InjectFaultReducer),
   __reducerSchema("load_dataset", LoadDatasetReducer),
 );
 
@@ -111,6 +139,8 @@ type __SchemaWithTableAccessorAliases = Omit<typeof tablesSchema.schemaType, "ta
   tables: typeof tablesSchema.schemaType.tables & {
     /** @deprecated Use `consoleMeta` instead. This alias will be removed in the next major version. */
     readonly "console_meta": Omit<typeof tablesSchema.schemaType.tables["consoleMeta"], "accessorName"> & { readonly accessorName: "console_meta" };
+    /** @deprecated Use `sensorIssue` instead. This alias will be removed in the next major version. */
+    readonly "sensor_issue": Omit<typeof tablesSchema.schemaType.tables["sensorIssue"], "accessorName"> & { readonly accessorName: "sensor_issue" };
   };
 };
 
@@ -130,6 +160,7 @@ const REMOTE_MODULE = {
 
 const tableAccessorAliases = {
   "console_meta": "consoleMeta",
+  "sensor_issue": "sensorIssue",
 } as const;
 
 function __withTableAccessorAliases<T extends object>(target: T, freeze = false): T {
@@ -152,12 +183,16 @@ type __DbViewBase = __DbConnectionImpl<typeof REMOTE_MODULE>["db"];
 export type DbView = __DbViewBase & {
   /** @deprecated Use `consoleMeta` instead. This alias will be removed in the next major version. */
   readonly "console_meta": __DbViewBase["consoleMeta"];
+  /** @deprecated Use `sensorIssue` instead. This alias will be removed in the next major version. */
+  readonly "sensor_issue": __DbViewBase["sensorIssue"];
 };
 
 type __TablesBase = __QueryBuilder<typeof tablesSchema.schemaType>;
 export type Tables = __TablesBase & {
   /** @deprecated Use `consoleMeta` instead. This alias will be removed in the next major version. */
   readonly "console_meta": __TablesBase["consoleMeta"];
+  /** @deprecated Use `sensorIssue` instead. This alias will be removed in the next major version. */
+  readonly "sensor_issue": __TablesBase["sensorIssue"];
 };
 
 /** The tables available in this remote SpacetimeDB module. Each table reference doubles as a query builder. */
