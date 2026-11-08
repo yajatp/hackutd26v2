@@ -190,7 +190,7 @@ test("no element on the board carries the Tailwind class uppercase", () => {
 test("the board still says what it said", () => {
   const t = words(render());
   for (const want of [
-    "2 pump failures. Doing nothing costs $9,957 ; these plans cost $1,810 .",
+    "2 pump failures. Cost if unaddressed $9,957 ; response cost $1,810 .",
     "Why not the others", "Call 2 trucks now, 1 trip each", "$1,810", "$905 more",
     "Truck arrives 17:10 Tank would trip 17:33 Repair done 20:00 Level now 73.5%",
     "Shares S5's 2 trucks with FACILITY B.",

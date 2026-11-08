@@ -525,6 +525,11 @@ export function useAvonConsole(): AvonConsole {
   return v;
 }
 
+// The same, or null outside <AvonProvider>: for parts that also render without a live site.
+export function useAvonConsoleOrNull(): AvonConsole | null {
+  return useContext(AvonContext);
+}
+
 // LOCKDOWN for any Avon screen inside <AvonProvider> (/twin, /vr, /insight): the row and the reducers.
 // `active` is true only while the site is locked down.
 export function useLockdown(): { lockdown: LockdownState | null; active: boolean; enterLockdown: AvonConsole["enterLockdown"]; endLockdown: AvonConsole["endLockdown"] } {

@@ -77,3 +77,34 @@ test("fake-site center translates the retained facilities and landmarks together
   }
   assert.deepEqual([after.disposal_site.lat, after.disposal_site.lon], [before.disposal_site.lat + dLat, before.disposal_site.lon + dLon]);
 });
+
+test("--counties names a generated site's pads after real counties, keeps the answer key in step", async (t) => {
+  const { SITES, DEFAULT_SITE_KEY } = await tsImport("../lib/sites.ts", import.meta.url);
+  for (const s of SITES) {
+    assert.ok(s.counties.length > 0, s.key);
+    assert.ok(/^America\//.test(s.timeZone), s.key);
+  }
+  const site = SITES.find((s) => s.key !== DEFAULT_SITE_KEY && s.source === "history/full_week");
+  const source = fileURLToPath(new URL(`../../eog-data/${site.source}`, import.meta.url));
+  try { await readFile(join(source, "network.json")); } catch { t.skip("no EOG data"); return; }
+  const dir = await mkdtemp(join(tmpdir(), "avon-pads-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const script = fileURLToPath(new URL("make-fake-site.mjs", import.meta.url));
+  const out = join(dir, "site");
+  execFileSync(process.execPath, [script, source, out, "--seed", String(site.seed), "--name", site.name, "--counties", site.counties.join(",")]);
+  const network = JSON.parse(await readFile(join(out, "network.json"), "utf8"));
+  const pads = network.systems.flatMap((s) => s.facilities.map((f) => f.id));
+  assert.deepEqual(network.systems.map((s) => s.id), network.systems.map((_, i) => `S${i + 1}`));
+  assert.equal(new Set(pads).size, pads.length, "pad names are unique");
+  const county = new RegExp(`^(${site.counties.map((c) => c.replace(/\W+/g, "_")).join("|")})_County_\\d+$`);
+  for (const id of pads) assert.match(id, county);
+  const f = network.systems[0].facilities[0];
+  assert.deepEqual([f.tank.id, f.pump.id, f.pipeline.id, f.wells[0].id], [`${f.id}_Tank`, `${f.id}_Pump`, `${f.id}_Line`, `${f.id}_Well_1`]);
+  const ids = new Set(network.systems.flatMap((s) => [s.id, s.disposal_site.id, ...s.facilities.flatMap((x) => [x.id, x.tank.id, x.pump.id, x.pipeline.id, ...x.wells.map((w) => w.id)])]));
+  const answers = JSON.parse(await readFile(join(out, "answer_key.json"), "utf8"));
+  assert.ok(answers.length > 0);
+  for (const e of answers) for (const k of ["system", "facility", "asset"]) assert.ok(ids.has(e[k]), `${e.id} ${k} ${e[k]}`);
+  const telemetry = await readFile(join(out, "telemetry.csv"), "utf8");
+  const seen = new Set(telemetry.split("\n").slice(1, 2000).filter(Boolean).map((l) => l.split(",")[2]));
+  for (const id of seen) assert.ok(ids.has(id), `telemetry asset ${id}`);
+});

@@ -230,7 +230,7 @@ export function levelPath(fail: Failure, net: PlanNetwork, p: Plan | null, delay
   return { pts, trip_min: trip === null ? null : delayMin + trip, pickups };
 }
 
-// "S2_WELL_A1, S2_WELL_A2, S2_WELL_A3" -> "wells A1-A3"; one well -> "well A2".
+// "<SYS>_WELL_A1, <SYS>_WELL_A2, <SYS>_WELL_A3" -> "wells A1-A3"; one well -> "well A2".
 export function wellsText(ids: readonly string[]): string {
   const short = ids.map((id) => id.replace(/^S\d+_WELL_/, ""));
   if (short.length === 0) return "no wells";

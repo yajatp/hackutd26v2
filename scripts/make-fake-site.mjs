@@ -15,7 +15,39 @@ function seededRandom(seed) {
   return () => createHash("sha256").update(`${seed}:${draw++}`).digest().readUInt32BE() / 2 ** 32;
 }
 
-function transformSite(network, ops, seed) {
+// Readable ids for a generated site: systems S1..Sn in order, and each facility a pad named
+// after a real county of the basin ("Loving_County_7", shown as "Loving County 7"). The pad
+// numbers are drawn from their own seeded stream, so names never change the site's numbers.
+function padNamer(network, droppedIndex, counties, seed) {
+  if (!counties?.length) return null;
+  const random = seededRandom(`${seed}:pads`);
+  const used = new Map();
+  const ids = new Map();
+  for (const [index, system] of network.systems.entries()) {
+    if (index === droppedIndex) continue;
+    const order = index < droppedIndex ? index : index - 1;
+    const sys = `S${order + 1}`;
+    const county = counties[order % counties.length];
+    ids.set(system.id, sys);
+    ids.set(system.disposal_site.id, `${sys}_DISPOSAL`);
+    const taken = used.get(county) ?? new Set();
+    used.set(county, taken);
+    for (const facility of system.facilities) {
+      let n = 1 + Math.floor(random() * 48);
+      while (taken.has(n)) n = n === 48 ? 1 : n + 1;
+      taken.add(n);
+      const pad = `${county.replace(/[^A-Za-z]+/g, "_")}_County_${n}`;
+      ids.set(facility.id, pad);
+      ids.set(facility.tank.id, `${pad}_Tank`);
+      ids.set(facility.pump.id, `${pad}_Pump`);
+      ids.set(facility.pipeline.id, `${pad}_Line`);
+      facility.wells.forEach((well, w) => ids.set(well.id, `${pad}_Well_${w + 1}`));
+    }
+  }
+  return ids;
+}
+
+function transformSite(network, ops, seed, counties) {
   if (network.systems.length < 2) throw new Error("network.json needs at least two systems");
   const random = seededRandom(seed);
   const integer = (min, max) => min + Math.floor(random() * (max - min + 1));
@@ -26,12 +58,13 @@ function transformSite(network, ops, seed) {
   };
   const droppedIndex = integer(0, network.systems.length - 1);
   const seconds = integer(14, 90) * 86400;
+  const named = padNamer(network, droppedIndex, counties, seed);
 
   const assets = new Map();
   const register = (asset, kind, dropped, scale, pressureShift) => {
     const oldId = asset.id;
     const suffix = createHash("sha256").update(`${seed}:${oldId}`).digest("hex").slice(0, 12);
-    asset.id = `${kind}-${suffix}`;
+    asset.id = named?.get(oldId) ?? `${kind}-${suffix}`;
     assets.set(oldId, { id: asset.id, dropped, scale, pressureShift });
   };
 
@@ -78,7 +111,7 @@ function transformSite(network, ops, seed) {
   }
 
   network.systems = systems;
-  if (ops.dataset_id) ops.dataset_id = `fake-${systems[0].id}`;
+  if (ops.dataset_id) ops.dataset_id = named ? `fake-${seed}` : `fake-${systems[0].id}`;
   ops.systems = systemOps;
   ops.prices = {
     oil_per_bbl: differentInteger(5500, 8000, Math.round(ops.prices.oil_per_bbl * 100)) / 100,
@@ -184,16 +217,21 @@ async function main(args) {
       argv.splice(i, 2, `${argv[i]}=${argv[i + 1]}`);
     }
   }
-  const { values: { seed, center, name }, positionals } = parseArgs({
+  const { values: { seed, center, name, counties }, positionals } = parseArgs({
     args: argv,
     allowPositionals: true, options: {
       seed: { type: "string", default: "0" },
       center: { type: "string" },
       name: { type: "string" },
+      counties: { type: "string" },
     },
   });
+  const countyList = counties?.split(",").map((c) => c.trim()).filter(Boolean);
+  if (counties !== undefined && (!countyList.length || countyList.some((c) => !/^[A-Za-z][A-Za-z .'-]*$/.test(c)))) {
+    throw new Error("--counties needs a comma-separated list of county names");
+  }
   if (positionals.length !== 2 || !/^-?\d+$/.test(seed) || (name !== undefined && !name.trim())) {
-    throw new Error("Usage: node scripts/make-fake-site.mjs <source folder> <out folder> [--seed N] [--center lat,lon] [--name NAME]");
+    throw new Error("Usage: node scripts/make-fake-site.mjs <source folder> <out folder> [--seed N] [--center lat,lon] [--name NAME] [--counties A,B,C]");
   }
   const [source, output] = positionals;
   const coordinates = center?.split(",");
@@ -208,7 +246,7 @@ async function main(args) {
       if (error.code !== "ENOENT") throw error;
     }),
   ]);
-  const { assets, seconds } = transformSite(network, ops, BigInt(seed).toString());
+  const { assets, seconds } = transformSite(network, ops, BigInt(seed).toString(), countyList);
   if (coordinates) centerSite(network.systems, coordinates.map(Number));
   if (name !== undefined) network.name = name;
   const destination = resolve(output);

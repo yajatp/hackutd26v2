@@ -38,6 +38,7 @@ async function main() {
           execFileSync(process.execPath, [
             "scripts/make-fake-site.mjs", join(DATA, site.source), folder,
             "--seed", String(site.seed), "--center", `${site.lat},${site.lon}`, "--name", site.name,
+            "--counties", site.counties.join(","),
           ], { cwd: ROOT, stdio: "inherit" });
         }
         const files = await readDatasetFiles(folder);

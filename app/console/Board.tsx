@@ -9,6 +9,7 @@ import { useAvonConsole } from "@/lib/live";
 import { LockdownButton } from "./lockdown/LockdownButton";
 import { Arm, Collapse, Tick, useBornLive, useBringIntoView } from "./motion";
 import { freshConfirm } from "./tween";
+import { PumpFacts } from "./PumpFacts";
 
 // The alerts view. Renders whatever ConsoleView it is given; where the view comes from
 // (Spacetime subscription) is the page's job.
@@ -262,6 +263,7 @@ function FixCardView({ a, top, dataset, now }: { a: Alert; top: boolean; dataset
           Shares {a.event.system_id}&apos;s {fix.fleet} trucks with {fix.shares_fleet_with.map((id) => sameSystem(id, a.event.system_id)).join(", ")}.
         </p>
       )}
+      <PumpFacts a={a} now={now} />
       {fix.alternatives.length > 0 && (
         <div className="mt-6">
           <p className="section-title">Why not the others</p>
@@ -368,8 +370,8 @@ export function Board({ view, dataset }: { view: ConsoleView; dataset: string })
       </Collapse>
       {failures.length > 0 && (
         <p className="mt-10 text-xl leading-snug tabular-nums text-muted">
-          {failures.length} pump failure{failures.length > 1 ? "s" : ""}. Doing nothing costs <Tick value={view.totals.do_nothing} format={money} />;
-          {" "}{failures.length > 1 ? "these plans cost" : "this plan costs"} <b className="font-semibold text-foreground"><Tick value={view.totals.plans} format={money} /></b>.
+          {failures.length} pump failure{failures.length > 1 ? "s" : ""}. Cost if unaddressed <Tick value={view.totals.do_nothing} format={money} />;
+          {" "}response cost <b className="font-semibold text-foreground"><Tick value={view.totals.plans} format={money} /></b>.
         </p>
       )}
       <div className="mt-10 flex flex-col gap-14">

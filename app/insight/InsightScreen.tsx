@@ -20,6 +20,7 @@ import { LineReveal } from "@/app/ui/LineReveal";
 import { LiveClock } from "@/app/ui/LiveClock";
 import { ScreenHeader } from "@/app/ui/ScreenHeader";
 import FlowChart from "./FlowChart";
+import PumpTable from "./PumpTable";
 import RippleChart from "./RippleChart";
 import { assetFor, BRANCH_TAG, clock, failureSpans, inMin, KIND_LABEL, money, orderFlows, plain, pretty, sharedMax, signedMoney, siteFor, systemsText, tplus } from "./format";
 
@@ -92,6 +93,7 @@ export default function InsightScreen() {
       <div className="in-layout">
         <div className="in-col-a">
           <Budget budget={insight.budget} view={view} />
+          <PumpTable view={view} flows={insight.flows} breaches={insight.breaches} facilities={facilities} />
           <Breaches breaches={insight.breaches} now={view?.now ?? 0} onRipple={(f) => runRipple("sensor_spoof", f)} onCompute={avon.computeBreaches} ready={!!view} />
           <section className="in-section" ref={whatIfRef} aria-labelledby="in-whatif-h">
             <WhatIf facilities={facilities} view={view} scenarios={insight.scenarios} datasetId={source?.datasetId ?? ""} run={avon.whatIf} request={request} />
@@ -462,7 +464,7 @@ function RippleView({ run }: { run: ScenarioRun }) {
             <div><dt>Night</dt><dd>{money(r.night_before)} to {money(r.night_after)} <span className="in-dim">({signedMoney(r.cost_delta)})</span></dd></div>
           </>
         )}
-        <div><dt>{r.system_id} trucks</dt><dd>{r.trucks_after} of {r.fleet}{r.trucks_after !== r.trucks_before ? <span className="in-dim"> (was {r.trucks_before})</span> : null}</dd></div>
+        <div><dt>{r.system_id} trucks in use</dt><dd>{r.trucks_after} of {r.fleet}{r.trucks_after !== r.trucks_before ? <span className="in-dim"> (was {r.trucks_before})</span> : null}</dd></div>
       </dl>
       {r.projection ? <RippleChart p={r.projection} now={r.now} /> : null}
       {r.changes.length ? (

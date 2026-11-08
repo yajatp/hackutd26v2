@@ -1,0 +1,20 @@
+/* /insight pump details: Sui style. Hairline rows, Plex Mono uppercase headings, white figures,
+   the one blue for key numbers and the cost curve; red only for a failed pump. No glow. */
+.lede { margin: 0.5rem 0 0; max-width: 68ch; color: var(--sui-grey-3, #a1a7b2); font-size: 15px; line-height: 1.5; }
+.scroll { margin-top: 1.25rem; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table { width: 100%; min-width: 860px; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.table th, .table td { padding: 0.55rem 0.75rem 0.55rem 0; border-top: 1px solid var(--sui-hair, rgb(255 255 255 / 0.08)); text-align: left; font-weight: 400; vertical-align: baseline; white-space: nowrap; }
+.table thead th {
+  border-top: 0; padding-bottom: 0.4rem;
+  font-family: var(--font-label, "IBM Plex Mono", ui-monospace, monospace);
+  font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--sui-grey-1, #6c7584);
+}
+.table tbody th { font-weight: 600; color: var(--sui-white, #fff); }
+.table tr[data-failed] th { box-shadow: inset 2px 0 0 var(--alert-line, #ef4444); padding-left: 0.6rem; }
+.r { text-align: right !important; }
+.key { color: var(--sui-blue, #298dff); font-weight: 600; }
+.dim { color: var(--sui-grey-1, #6c7584); }
+.alert { color: var(--alert, #fca5a5); font-weight: 600; }
+.spark { display: inline-flex; align-items: center; gap: 8px; }
+.sparkLine { fill: none; stroke: var(--sui-blue, #298dff); stroke-width: 1.5; stroke-linejoin: round; }
+.sparkEnd { color: var(--sui-grey-2, #89919f); font-size: 12px; }
